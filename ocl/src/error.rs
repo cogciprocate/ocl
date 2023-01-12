@@ -3,16 +3,15 @@
 
 use std;
 // use std::sync::mpsc::{SendError as StdMpscSendError, RecvError as StdMpscRecvError};
-use futures::sync::oneshot::Canceled as OneshotCanceled;
-use futures::sync::mpsc::SendError;
-use crate::core::error::{Error as OclCoreError};
+use crate::core::error::Error as OclCoreError;
 use crate::core::Status;
-use crate::standard::{DeviceError, PlatformError, KernelError};
+use crate::standard::{DeviceError, KernelError, PlatformError};
+use futures::sync::mpsc::SendError;
+use futures::sync::oneshot::Canceled as OneshotCanceled;
 
 use crate::BufferCmdError;
 
 pub type Result<T> = std::result::Result<T, Error>;
-
 
 /// An enum containing either a `String` or one of several other error types.
 ///
@@ -133,7 +132,6 @@ impl From<Error> for String {
         err.to_string()
     }
 }
-
 
 unsafe impl Send for Error {}
 unsafe impl Sync for Error {}

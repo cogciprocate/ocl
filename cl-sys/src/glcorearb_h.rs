@@ -2,19 +2,19 @@
 
 use crate::cl_h::cl_int;
 
-pub const GL_TEXTURE_1D:                    cl_int = 0x0DE0;
-pub const GL_TEXTURE_1D_ARRAY:              cl_int = 0x8C18;
-pub const GL_TEXTURE_BUFFER:                cl_int = 0x8C2A;
-pub const GL_TEXTURE_2D:                    cl_int = 0x0DE1;
-pub const GL_TEXTURE_2D_ARRAY:              cl_int = 0x8C1A;
-pub const GL_TEXTURE_3D:                    cl_int = 0x806F;
-pub const GL_TEXTURE_CUBE_MAP_POSITIVE_X:   cl_int = 0x8515;
-pub const GL_TEXTURE_CUBE_MAP_NEGATIVE_X:   cl_int = 0x8516;
-pub const GL_TEXTURE_CUBE_MAP_POSITIVE_Y:   cl_int = 0x8517;
-pub const GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:   cl_int = 0x8518;
-pub const GL_TEXTURE_CUBE_MAP_POSITIVE_Z:   cl_int = 0x8519;
-pub const GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:   cl_int = 0x851A;
-pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
+pub const GL_TEXTURE_1D: cl_int = 0x0DE0;
+pub const GL_TEXTURE_1D_ARRAY: cl_int = 0x8C18;
+pub const GL_TEXTURE_BUFFER: cl_int = 0x8C2A;
+pub const GL_TEXTURE_2D: cl_int = 0x0DE1;
+pub const GL_TEXTURE_2D_ARRAY: cl_int = 0x8C1A;
+pub const GL_TEXTURE_3D: cl_int = 0x806F;
+pub const GL_TEXTURE_CUBE_MAP_POSITIVE_X: cl_int = 0x8515;
+pub const GL_TEXTURE_CUBE_MAP_NEGATIVE_X: cl_int = 0x8516;
+pub const GL_TEXTURE_CUBE_MAP_POSITIVE_Y: cl_int = 0x8517;
+pub const GL_TEXTURE_CUBE_MAP_NEGATIVE_Y: cl_int = 0x8518;
+pub const GL_TEXTURE_CUBE_MAP_POSITIVE_Z: cl_int = 0x8519;
+pub const GL_TEXTURE_CUBE_MAP_NEGATIVE_Z: cl_int = 0x851A;
+pub const GL_TEXTURE_RECTANGLE: cl_int = 0x84F5;
 
 // #ifndef __glcorearb_h_
 // #define __glcorearb_h_ 1
@@ -53,7 +53,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // **
 // ** Khronos $Revision: 32433 $ on $Date: 2016-02-10 02:02:08 -0500 (Wed, 10 Feb 2016) $
 // */
-
 // #if defined(_WIN32) && !defined(APIENTRY) && !defined(__CYGWIN__) && !defined(__SCITECH_SNAP__)
 // #ifndef WIN32_LEAN_AND_MEAN
 // #define WIN32_LEAN_AND_MEAN 1
@@ -84,7 +83,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // ** Do not #include both <GL/glcorearb.h> and either of <GL/gl.h> or
 // ** <GL/glext.h> in the same source file.
 // */
-
 // /* Generated C header for:
 //  * API: gl
 //  * Profile: core
@@ -94,7 +92,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 //  * Additional extensions included: _nomatch_^
 //  * Extensions removed: _nomatch_^
 //  */
-
 // #ifndef GL_VERSION_1_0
 // #define GL_VERSION_1_0 1
 // typedef void GLvoid;
@@ -206,7 +203,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glViewport (GLint x, GLint y, GLsizei width, GLsizei height);
 // #endif
 // #endif /* GL_VERSION_1_0 */
-
 // #ifndef GL_VERSION_1_1
 // #define GL_VERSION_1_1 1
 // typedef float GLclampf;
@@ -446,7 +442,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI GLboolean APIENTRY glIsTexture (GLuint texture);
 // #endif
 // #endif /* GL_VERSION_1_1 */
-
 // #ifndef GL_VERSION_1_2
 // #define GL_VERSION_1_2 1
 // #define GL_UNSIGNED_BYTE_3_3_2            0x8032
@@ -496,7 +491,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glCopyTexSubImage3D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLint x, GLint y, GLsizei width, GLsizei height);
 // #endif
 // #endif /* GL_VERSION_1_2 */
-
 // #ifndef GL_VERSION_1_3
 // #define GL_VERSION_1_3 1
 // #define GL_TEXTURE0                       0x84C0
@@ -579,7 +573,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glGetCompressedTexImage (GLenum target, GLint level, void *img);
 // #endif
 // #endif /* GL_VERSION_1_3 */
-
 // #ifndef GL_VERSION_1_4
 // #define GL_VERSION_1_4 1
 // #define GL_BLEND_DST_RGB                  0x80C8
@@ -628,7 +621,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glBlendEquation (GLenum mode);
 // #endif
 // #endif /* GL_VERSION_1_4 */
-
 // #ifndef GL_VERSION_1_5
 // #define GL_VERSION_1_5 1
 // #include <stddef.h>
@@ -703,7 +695,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glGetBufferPointerv (GLenum target, GLenum pname, void **params);
 // #endif
 // #endif /* GL_VERSION_1_5 */
-
 // #ifndef GL_VERSION_2_0
 // #define GL_VERSION_2_0 1
 // typedef char GLchar;
@@ -979,7 +970,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glVertexAttribPointer (GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
 // #endif
 // #endif /* GL_VERSION_2_0 */
-
 // #ifndef GL_VERSION_2_1
 // #define GL_VERSION_2_1 1
 // #define GL_PIXEL_PACK_BUFFER              0x88EB
@@ -1013,7 +1003,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glUniformMatrix4x3fv (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
 // #endif
 // #endif /* GL_VERSION_2_1 */
-
 // #ifndef GL_VERSION_3_0
 // #define GL_VERSION_3_0 1
 // typedef unsigned short GLhalf;
@@ -1419,7 +1408,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI GLboolean APIENTRY glIsVertexArray (GLuint array);
 // #endif
 // #endif /* GL_VERSION_3_0 */
-
 // #ifndef GL_VERSION_3_1
 // #define GL_VERSION_3_1 1
 // #define GL_SAMPLER_2D_RECT                0x8B63
@@ -1510,7 +1498,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glUniformBlockBinding (GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding);
 // #endif
 // #endif /* GL_VERSION_3_1 */
-
 // #ifndef GL_VERSION_3_2
 // #define GL_VERSION_3_2 1
 // typedef struct __GLsync *GLsync;
@@ -1658,7 +1645,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glSampleMaski (GLuint maskNumber, GLbitfield mask);
 // #endif
 // #endif /* GL_VERSION_3_2 */
-
 // #ifndef GL_VERSION_3_3
 // #define GL_VERSION_3_3 1
 // #define GL_VERTEX_ATTRIB_ARRAY_DIVISOR    0x88FE
@@ -1736,7 +1722,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glVertexAttribP4uiv (GLuint index, GLenum type, GLboolean normalized, const GLuint *value);
 // #endif
 // #endif /* GL_VERSION_3_3 */
-
 // #ifndef GL_VERSION_4_0
 // #define GL_VERSION_4_0 1
 // #define GL_SAMPLE_SHADING                 0x8C36
@@ -1911,7 +1896,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glGetQueryIndexediv (GLenum target, GLuint index, GLenum pname, GLint *params);
 // #endif
 // #endif /* GL_VERSION_4_0 */
-
 // #ifndef GL_VERSION_4_1
 // #define GL_VERSION_4_1 1
 // #define GL_FIXED                          0x140C
@@ -2128,7 +2112,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glGetDoublei_v (GLenum target, GLuint index, GLdouble *data);
 // #endif
 // #endif /* GL_VERSION_4_1 */
-
 // #ifndef GL_VERSION_4_2
 // #define GL_VERSION_4_2 1
 // #define GL_COPY_READ_BUFFER_BINDING       0x8F36
@@ -2270,7 +2253,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glDrawTransformFeedbackStreamInstanced (GLenum mode, GLuint id, GLuint stream, GLsizei instancecount);
 // #endif
 // #endif /* GL_VERSION_4_2 */
-
 // #ifndef GL_VERSION_4_3
 // #define GL_VERSION_4_3 1
 // typedef void (APIENTRY  *GLDEBUGPROC)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
@@ -2621,7 +2603,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glGetObjectPtrLabel (const void *ptr, GLsizei bufSize, GLsizei *length, GLchar *label);
 // #endif
 // #endif /* GL_VERSION_4_3 */
-
 // #ifndef GL_VERSION_4_4
 // #define GL_VERSION_4_4 1
 // #define GL_MAX_VERTEX_ATTRIB_STRIDE       0x82E5
@@ -2664,7 +2645,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glBindVertexBuffers (GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizei *strides);
 // #endif
 // #endif /* GL_VERSION_4_4 */
-
 // #ifndef GL_VERSION_4_5
 // #define GL_VERSION_4_5 1
 // #define GL_CONTEXT_LOST                   0x0507
@@ -2912,27 +2892,21 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glTextureBarrier (void);
 // #endif
 // #endif /* GL_VERSION_4_5 */
-
 // #ifndef GL_ARB_ES2_compatibility
 // #define GL_ARB_ES2_compatibility 1
 // #endif /* GL_ARB_ES2_compatibility */
-
 // #ifndef GL_ARB_ES3_1_compatibility
 // #define GL_ARB_ES3_1_compatibility 1
 // #endif /* GL_ARB_ES3_1_compatibility */
-
 // #ifndef GL_ARB_ES3_compatibility
 // #define GL_ARB_ES3_compatibility 1
 // #endif /* GL_ARB_ES3_compatibility */
-
 // #ifndef GL_ARB_arrays_of_arrays
 // #define GL_ARB_arrays_of_arrays 1
 // #endif /* GL_ARB_arrays_of_arrays */
-
 // #ifndef GL_ARB_base_instance
 // #define GL_ARB_base_instance 1
 // #endif /* GL_ARB_base_instance */
-
 // #ifndef GL_ARB_bindless_texture
 // #define GL_ARB_bindless_texture 1
 // typedef uint64_t GLuint64EXT;
@@ -2972,15 +2946,12 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glGetVertexAttribLui64vARB (GLuint index, GLenum pname, GLuint64EXT *params);
 // #endif
 // #endif /* GL_ARB_bindless_texture */
-
 // #ifndef GL_ARB_blend_func_extended
 // #define GL_ARB_blend_func_extended 1
 // #endif /* GL_ARB_blend_func_extended */
-
 // #ifndef GL_ARB_buffer_storage
 // #define GL_ARB_buffer_storage 1
 // #endif /* GL_ARB_buffer_storage */
-
 // #ifndef GL_ARB_cl_event
 // #define GL_ARB_cl_event 1
 // struct _cl_context;
@@ -2992,27 +2963,21 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI GLsync APIENTRY glCreateSyncFromCLeventARB (struct _cl_context *context, struct _cl_event *event, GLbitfield flags);
 // #endif
 // #endif /* GL_ARB_cl_event */
-
 // #ifndef GL_ARB_clear_buffer_object
 // #define GL_ARB_clear_buffer_object 1
 // #endif /* GL_ARB_clear_buffer_object */
-
 // #ifndef GL_ARB_clear_texture
 // #define GL_ARB_clear_texture 1
 // #endif /* GL_ARB_clear_texture */
-
 // #ifndef GL_ARB_clip_control
 // #define GL_ARB_clip_control 1
 // #endif /* GL_ARB_clip_control */
-
 // #ifndef GL_ARB_compressed_texture_pixel_storage
 // #define GL_ARB_compressed_texture_pixel_storage 1
 // #endif /* GL_ARB_compressed_texture_pixel_storage */
-
 // #ifndef GL_ARB_compute_shader
 // #define GL_ARB_compute_shader 1
 // #endif /* GL_ARB_compute_shader */
-
 // #ifndef GL_ARB_compute_variable_group_size
 // #define GL_ARB_compute_variable_group_size 1
 // #define GL_MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB 0x9344
@@ -3024,27 +2989,21 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glDispatchComputeGroupSizeARB (GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z, GLuint group_size_x, GLuint group_size_y, GLuint group_size_z);
 // #endif
 // #endif /* GL_ARB_compute_variable_group_size */
-
 // #ifndef GL_ARB_conditional_render_inverted
 // #define GL_ARB_conditional_render_inverted 1
 // #endif /* GL_ARB_conditional_render_inverted */
-
 // #ifndef GL_ARB_conservative_depth
 // #define GL_ARB_conservative_depth 1
 // #endif /* GL_ARB_conservative_depth */
-
 // #ifndef GL_ARB_copy_buffer
 // #define GL_ARB_copy_buffer 1
 // #endif /* GL_ARB_copy_buffer */
-
 // #ifndef GL_ARB_copy_image
 // #define GL_ARB_copy_image 1
 // #endif /* GL_ARB_copy_image */
-
 // #ifndef GL_ARB_cull_distance
 // #define GL_ARB_cull_distance 1
 // #endif /* GL_ARB_cull_distance */
-
 // #ifndef GL_ARB_debug_output
 // #define GL_ARB_debug_output 1
 // typedef void (APIENTRY  *GLDEBUGPROCARB)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
@@ -3081,23 +3040,18 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI GLuint APIENTRY glGetDebugMessageLogARB (GLuint count, GLsizei bufSize, GLenum *sources, GLenum *types, GLuint *ids, GLenum *severities, GLsizei *lengths, GLchar *messageLog);
 // #endif
 // #endif /* GL_ARB_debug_output */
-
 // #ifndef GL_ARB_depth_buffer_float
 // #define GL_ARB_depth_buffer_float 1
 // #endif /* GL_ARB_depth_buffer_float */
-
 // #ifndef GL_ARB_depth_clamp
 // #define GL_ARB_depth_clamp 1
 // #endif /* GL_ARB_depth_clamp */
-
 // #ifndef GL_ARB_derivative_control
 // #define GL_ARB_derivative_control 1
 // #endif /* GL_ARB_derivative_control */
-
 // #ifndef GL_ARB_direct_state_access
 // #define GL_ARB_direct_state_access 1
 // #endif /* GL_ARB_direct_state_access */
-
 // #ifndef GL_ARB_draw_buffers_blend
 // #define GL_ARB_draw_buffers_blend 1
 // typedef void (APIENTRYP PFNGLBLENDEQUATIONIARBPROC) (GLuint buf, GLenum mode);
@@ -3111,73 +3065,56 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glBlendFuncSeparateiARB (GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha);
 // #endif
 // #endif /* GL_ARB_draw_buffers_blend */
-
 // #ifndef GL_ARB_draw_elements_base_vertex
 // #define GL_ARB_draw_elements_base_vertex 1
 // #endif /* GL_ARB_draw_elements_base_vertex */
-
 // #ifndef GL_ARB_draw_indirect
 // #define GL_ARB_draw_indirect 1
 // #endif /* GL_ARB_draw_indirect */
-
 // #ifndef GL_ARB_enhanced_layouts
 // #define GL_ARB_enhanced_layouts 1
 // #endif /* GL_ARB_enhanced_layouts */
-
 // #ifndef GL_ARB_explicit_attrib_location
 // #define GL_ARB_explicit_attrib_location 1
 // #endif /* GL_ARB_explicit_attrib_location */
-
 // #ifndef GL_ARB_explicit_uniform_location
 // #define GL_ARB_explicit_uniform_location 1
 // #endif /* GL_ARB_explicit_uniform_location */
-
 // #ifndef GL_ARB_fragment_coord_conventions
 // #define GL_ARB_fragment_coord_conventions 1
 // #endif /* GL_ARB_fragment_coord_conventions */
-
 // #ifndef GL_ARB_fragment_layer_viewport
 // #define GL_ARB_fragment_layer_viewport 1
 // #endif /* GL_ARB_fragment_layer_viewport */
-
 // #ifndef GL_ARB_framebuffer_no_attachments
 // #define GL_ARB_framebuffer_no_attachments 1
 // #endif /* GL_ARB_framebuffer_no_attachments */
-
 // #ifndef GL_ARB_framebuffer_object
 // #define GL_ARB_framebuffer_object 1
 // #endif /* GL_ARB_framebuffer_object */
-
 // #ifndef GL_ARB_framebuffer_sRGB
 // #define GL_ARB_framebuffer_sRGB 1
 // #endif /* GL_ARB_framebuffer_sRGB */
-
 // #ifndef GL_ARB_get_program_binary
 // #define GL_ARB_get_program_binary 1
 // #endif /* GL_ARB_get_program_binary */
-
 // #ifndef GL_ARB_get_texture_sub_image
 // #define GL_ARB_get_texture_sub_image 1
 // #endif /* GL_ARB_get_texture_sub_image */
-
 // #ifndef GL_ARB_gpu_shader5
 // #define GL_ARB_gpu_shader5 1
 // #endif /* GL_ARB_gpu_shader5 */
-
 // #ifndef GL_ARB_gpu_shader_fp64
 // #define GL_ARB_gpu_shader_fp64 1
 // #endif /* GL_ARB_gpu_shader_fp64 */
-
 // #ifndef GL_ARB_half_float_vertex
 // #define GL_ARB_half_float_vertex 1
 // #endif /* GL_ARB_half_float_vertex */
-
 // #ifndef GL_ARB_imaging
 // #define GL_ARB_imaging 1
 // #define GL_BLEND_COLOR                    0x8005
 // #define GL_BLEND_EQUATION                 0x8009
 // #endif /* GL_ARB_imaging */
-
 // #ifndef GL_ARB_indirect_parameters
 // #define GL_ARB_indirect_parameters 1
 // #define GL_PARAMETER_BUFFER_ARB           0x80EE
@@ -3189,40 +3126,31 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glMultiDrawElementsIndirectCountARB (GLenum mode, GLenum type, GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount, GLsizei stride);
 // #endif
 // #endif /* GL_ARB_indirect_parameters */
-
 // #ifndef GL_ARB_internalformat_query
 // #define GL_ARB_internalformat_query 1
 // #endif /* GL_ARB_internalformat_query */
-
 // #ifndef GL_ARB_internalformat_query2
 // #define GL_ARB_internalformat_query2 1
 // #define GL_SRGB_DECODE_ARB                0x8299
 // #endif /* GL_ARB_internalformat_query2 */
-
 // #ifndef GL_ARB_invalidate_subdata
 // #define GL_ARB_invalidate_subdata 1
 // #endif /* GL_ARB_invalidate_subdata */
-
 // #ifndef GL_ARB_map_buffer_alignment
 // #define GL_ARB_map_buffer_alignment 1
 // #endif /* GL_ARB_map_buffer_alignment */
-
 // #ifndef GL_ARB_map_buffer_range
 // #define GL_ARB_map_buffer_range 1
 // #endif /* GL_ARB_map_buffer_range */
-
 // #ifndef GL_ARB_multi_bind
 // #define GL_ARB_multi_bind 1
 // #endif /* GL_ARB_multi_bind */
-
 // #ifndef GL_ARB_multi_draw_indirect
 // #define GL_ARB_multi_draw_indirect 1
 // #endif /* GL_ARB_multi_draw_indirect */
-
 // #ifndef GL_ARB_occlusion_query2
 // #define GL_ARB_occlusion_query2 1
 // #endif /* GL_ARB_occlusion_query2 */
-
 // #ifndef GL_ARB_pipeline_statistics_query
 // #define GL_ARB_pipeline_statistics_query 1
 // #define GL_VERTICES_SUBMITTED_ARB         0x82EE
@@ -3236,23 +3164,18 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // #define GL_CLIPPING_INPUT_PRIMITIVES_ARB  0x82F6
 // #define GL_CLIPPING_OUTPUT_PRIMITIVES_ARB 0x82F7
 // #endif /* GL_ARB_pipeline_statistics_query */
-
 // #ifndef GL_ARB_program_interface_query
 // #define GL_ARB_program_interface_query 1
 // #endif /* GL_ARB_program_interface_query */
-
 // #ifndef GL_ARB_provoking_vertex
 // #define GL_ARB_provoking_vertex 1
 // #endif /* GL_ARB_provoking_vertex */
-
 // #ifndef GL_ARB_query_buffer_object
 // #define GL_ARB_query_buffer_object 1
 // #endif /* GL_ARB_query_buffer_object */
-
 // #ifndef GL_ARB_robust_buffer_access_behavior
 // #define GL_ARB_robust_buffer_access_behavior 1
 // #endif /* GL_ARB_robust_buffer_access_behavior */
-
 // #ifndef GL_ARB_robustness
 // #define GL_ARB_robustness 1
 // #define GL_CONTEXT_FLAG_ROBUST_ACCESS_BIT_ARB 0x00000004
@@ -3281,11 +3204,9 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glGetnUniformdvARB (GLuint program, GLint location, GLsizei bufSize, GLdouble *params);
 // #endif
 // #endif /* GL_ARB_robustness */
-
 // #ifndef GL_ARB_robustness_isolation
 // #define GL_ARB_robustness_isolation 1
 // #endif /* GL_ARB_robustness_isolation */
-
 // #ifndef GL_ARB_sample_shading
 // #define GL_ARB_sample_shading 1
 // #define GL_SAMPLE_SHADING_ARB             0x8C36
@@ -3295,71 +3216,54 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glMinSampleShadingARB (GLfloat value);
 // #endif
 // #endif /* GL_ARB_sample_shading */
-
 // #ifndef GL_ARB_sampler_objects
 // #define GL_ARB_sampler_objects 1
 // #endif /* GL_ARB_sampler_objects */
-
 // #ifndef GL_ARB_seamless_cube_map
 // #define GL_ARB_seamless_cube_map 1
 // #endif /* GL_ARB_seamless_cube_map */
-
 // #ifndef GL_ARB_seamless_cubemap_per_texture
 // #define GL_ARB_seamless_cubemap_per_texture 1
 // #endif /* GL_ARB_seamless_cubemap_per_texture */
-
 // #ifndef GL_ARB_separate_shader_objects
 // #define GL_ARB_separate_shader_objects 1
 // #endif /* GL_ARB_separate_shader_objects */
-
 // #ifndef GL_ARB_shader_atomic_counters
 // #define GL_ARB_shader_atomic_counters 1
 // #endif /* GL_ARB_shader_atomic_counters */
-
 // #ifndef GL_ARB_shader_bit_encoding
 // #define GL_ARB_shader_bit_encoding 1
 // #endif /* GL_ARB_shader_bit_encoding */
-
 // #ifndef GL_ARB_shader_draw_parameters
 // #define GL_ARB_shader_draw_parameters 1
 // #endif /* GL_ARB_shader_draw_parameters */
-
 // #ifndef GL_ARB_shader_group_vote
 // #define GL_ARB_shader_group_vote 1
 // #endif /* GL_ARB_shader_group_vote */
-
 // #ifndef GL_ARB_shader_image_load_store
 // #define GL_ARB_shader_image_load_store 1
 // #endif /* GL_ARB_shader_image_load_store */
-
 // #ifndef GL_ARB_shader_image_size
 // #define GL_ARB_shader_image_size 1
 // #endif /* GL_ARB_shader_image_size */
-
 // #ifndef GL_ARB_shader_precision
 // #define GL_ARB_shader_precision 1
 // #endif /* GL_ARB_shader_precision */
-
 // #ifndef GL_ARB_shader_stencil_export
 // #define GL_ARB_shader_stencil_export 1
 // #endif /* GL_ARB_shader_stencil_export */
-
 // #ifndef GL_ARB_shader_storage_buffer_object
 // #define GL_ARB_shader_storage_buffer_object 1
 // #endif /* GL_ARB_shader_storage_buffer_object */
-
 // #ifndef GL_ARB_shader_subroutine
 // #define GL_ARB_shader_subroutine 1
 // #endif /* GL_ARB_shader_subroutine */
-
 // #ifndef GL_ARB_shader_texture_image_samples
 // #define GL_ARB_shader_texture_image_samples 1
 // #endif /* GL_ARB_shader_texture_image_samples */
-
 // #ifndef GL_ARB_shading_language_420pack
 // #define GL_ARB_shading_language_420pack 1
 // #endif /* GL_ARB_shading_language_420pack */
-
 // #ifndef GL_ARB_shading_language_include
 // #define GL_ARB_shading_language_include 1
 // #define GL_SHADER_INCLUDE_ARB             0x8DAE
@@ -3380,11 +3284,9 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glGetNamedStringivARB (GLint namelen, const GLchar *name, GLenum pname, GLint *params);
 // #endif
 // #endif /* GL_ARB_shading_language_include */
-
 // #ifndef GL_ARB_shading_language_packing
 // #define GL_ARB_shading_language_packing 1
 // #endif /* GL_ARB_shading_language_packing */
-
 // #ifndef GL_ARB_sparse_buffer
 // #define GL_ARB_sparse_buffer 1
 // #define GL_SPARSE_STORAGE_BIT_ARB         0x0400
@@ -3398,7 +3300,6 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glNamedBufferPageCommitmentARB (GLuint buffer, GLintptr offset, GLsizeiptr size, GLboolean commit);
 // #endif
 // #endif /* GL_ARB_sparse_buffer */
-
 // #ifndef GL_ARB_sparse_texture
 // #define GL_ARB_sparse_texture 1
 // #define GL_TEXTURE_SPARSE_ARB             0x91A6
@@ -3417,31 +3318,24 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // GLAPI void APIENTRY glTexPageCommitmentARB (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLboolean commit);
 // #endif
 // #endif /* GL_ARB_sparse_texture */
-
 // #ifndef GL_ARB_stencil_texturing
 // #define GL_ARB_stencil_texturing 1
 // #endif /* GL_ARB_stencil_texturing */
-
 // #ifndef GL_ARB_sync
 // #define GL_ARB_sync 1
 // #endif /* GL_ARB_sync */
-
 // #ifndef GL_ARB_tessellation_shader
 // #define GL_ARB_tessellation_shader 1
 // #endif /* GL_ARB_tessellation_shader */
-
 // #ifndef GL_ARB_texture_barrier
 // #define GL_ARB_texture_barrier 1
 // #endif /* GL_ARB_texture_barrier */
-
 // #ifndef GL_ARB_texture_buffer_object_rgb32
 // #define GL_ARB_texture_buffer_object_rgb32 1
 // #endif /* GL_ARB_texture_buffer_object_rgb32 */
-
 // #ifndef GL_ARB_texture_buffer_range
 // #define GL_ARB_texture_buffer_range 1
 // #endif /* GL_ARB_texture_buffer_range */
-
 // #ifndef GL_ARB_texture_compression_bptc
 // #define GL_ARB_texture_compression_bptc 1
 // #define GL_COMPRESSED_RGBA_BPTC_UNORM_ARB 0x8E8C
@@ -3449,11 +3343,9 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // #define GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB 0x8E8E
 // #define GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB 0x8E8F
 // #endif /* GL_ARB_texture_compression_bptc */
-
 // #ifndef GL_ARB_texture_compression_rgtc
 // #define GL_ARB_texture_compression_rgtc 1
 // #endif /* GL_ARB_texture_compression_rgtc */
-
 // #ifndef GL_ARB_texture_cube_map_array
 // #define GL_ARB_texture_cube_map_array 1
 // #define GL_TEXTURE_CUBE_MAP_ARRAY_ARB     0x9009
@@ -3464,134 +3356,103 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // #define GL_INT_SAMPLER_CUBE_MAP_ARRAY_ARB 0x900E
 // #define GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY_ARB 0x900F
 // #endif /* GL_ARB_texture_cube_map_array */
-
 // #ifndef GL_ARB_texture_gather
 // #define GL_ARB_texture_gather 1
 // #define GL_MIN_PROGRAM_TEXTURE_GATHER_OFFSET_ARB 0x8E5E
 // #define GL_MAX_PROGRAM_TEXTURE_GATHER_OFFSET_ARB 0x8E5F
 // #define GL_MAX_PROGRAM_TEXTURE_GATHER_COMPONENTS_ARB 0x8F9F
 // #endif /* GL_ARB_texture_gather */
-
 // #ifndef GL_ARB_texture_mirror_clamp_to_edge
 // #define GL_ARB_texture_mirror_clamp_to_edge 1
 // #endif /* GL_ARB_texture_mirror_clamp_to_edge */
-
 // #ifndef GL_ARB_texture_multisample
 // #define GL_ARB_texture_multisample 1
 // #endif /* GL_ARB_texture_multisample */
-
 // #ifndef GL_ARB_texture_query_levels
 // #define GL_ARB_texture_query_levels 1
 // #endif /* GL_ARB_texture_query_levels */
-
 // #ifndef GL_ARB_texture_query_lod
 // #define GL_ARB_texture_query_lod 1
 // #endif /* GL_ARB_texture_query_lod */
-
 // #ifndef GL_ARB_texture_rg
 // #define GL_ARB_texture_rg 1
 // #endif /* GL_ARB_texture_rg */
-
 // #ifndef GL_ARB_texture_rgb10_a2ui
 // #define GL_ARB_texture_rgb10_a2ui 1
 // #endif /* GL_ARB_texture_rgb10_a2ui */
-
 // #ifndef GL_ARB_texture_stencil8
 // #define GL_ARB_texture_stencil8 1
 // #endif /* GL_ARB_texture_stencil8 */
-
 // #ifndef GL_ARB_texture_storage
 // #define GL_ARB_texture_storage 1
 // #endif /* GL_ARB_texture_storage */
-
 // #ifndef GL_ARB_texture_storage_multisample
 // #define GL_ARB_texture_storage_multisample 1
 // #endif /* GL_ARB_texture_storage_multisample */
-
 // #ifndef GL_ARB_texture_swizzle
 // #define GL_ARB_texture_swizzle 1
 // #endif /* GL_ARB_texture_swizzle */
-
 // #ifndef GL_ARB_texture_view
 // #define GL_ARB_texture_view 1
 // #endif /* GL_ARB_texture_view */
-
 // #ifndef GL_ARB_timer_query
 // #define GL_ARB_timer_query 1
 // #endif /* GL_ARB_timer_query */
-
 // #ifndef GL_ARB_transform_feedback2
 // #define GL_ARB_transform_feedback2 1
 // #endif /* GL_ARB_transform_feedback2 */
-
 // #ifndef GL_ARB_transform_feedback3
 // #define GL_ARB_transform_feedback3 1
 // #endif /* GL_ARB_transform_feedback3 */
-
 // #ifndef GL_ARB_transform_feedback_instanced
 // #define GL_ARB_transform_feedback_instanced 1
 // #endif /* GL_ARB_transform_feedback_instanced */
-
 // #ifndef GL_ARB_transform_feedback_overflow_query
 // #define GL_ARB_transform_feedback_overflow_query 1
 // #define GL_TRANSFORM_FEEDBACK_OVERFLOW_ARB 0x82EC
 // #define GL_TRANSFORM_FEEDBACK_STREAM_OVERFLOW_ARB 0x82ED
 // #endif /* GL_ARB_transform_feedback_overflow_query */
-
 // #ifndef GL_ARB_uniform_buffer_object
 // #define GL_ARB_uniform_buffer_object 1
 // #endif /* GL_ARB_uniform_buffer_object */
-
 // #ifndef GL_ARB_vertex_array_bgra
 // #define GL_ARB_vertex_array_bgra 1
 // #endif /* GL_ARB_vertex_array_bgra */
-
 // #ifndef GL_ARB_vertex_array_object
 // #define GL_ARB_vertex_array_object 1
 // #endif /* GL_ARB_vertex_array_object */
-
 // #ifndef GL_ARB_vertex_attrib_64bit
 // #define GL_ARB_vertex_attrib_64bit 1
 // #endif /* GL_ARB_vertex_attrib_64bit */
-
 // #ifndef GL_ARB_vertex_attrib_binding
 // #define GL_ARB_vertex_attrib_binding 1
 // #endif /* GL_ARB_vertex_attrib_binding */
-
 // #ifndef GL_ARB_vertex_type_10f_11f_11f_rev
 // #define GL_ARB_vertex_type_10f_11f_11f_rev 1
 // #endif /* GL_ARB_vertex_type_10f_11f_11f_rev */
-
 // #ifndef GL_ARB_vertex_type_2_10_10_10_rev
 // #define GL_ARB_vertex_type_2_10_10_10_rev 1
 // #endif /* GL_ARB_vertex_type_2_10_10_10_rev */
-
 // #ifndef GL_ARB_viewport_array
 // #define GL_ARB_viewport_array 1
 // #endif /* GL_ARB_viewport_array */
-
 // #ifndef GL_KHR_context_flush_control
 // #define GL_KHR_context_flush_control 1
 // #endif /* GL_KHR_context_flush_control */
-
 // #ifndef GL_KHR_debug
 // #define GL_KHR_debug 1
 // #endif /* GL_KHR_debug */
-
 // #ifndef GL_KHR_no_error
 // #define GL_KHR_no_error 1
 // #define GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR  0x00000008
 // #endif /* GL_KHR_no_error */
-
 // #ifndef GL_KHR_robust_buffer_access_behavior
 // #define GL_KHR_robust_buffer_access_behavior 1
 // #endif /* GL_KHR_robust_buffer_access_behavior */
-
 // #ifndef GL_KHR_robustness
 // #define GL_KHR_robustness 1
 // #define GL_CONTEXT_ROBUST_ACCESS          0x90F3
 // #endif /* GL_KHR_robustness */
-
 // #ifndef GL_KHR_texture_compression_astc_hdr
 // #define GL_KHR_texture_compression_astc_hdr 1
 // #define GL_COMPRESSED_RGBA_ASTC_4x4_KHR   0x93B0
@@ -3623,15 +3484,12 @@ pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
 // #define GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR 0x93DC
 // #define GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR 0x93DD
 // #endif /* GL_KHR_texture_compression_astc_hdr */
-
 // #ifndef GL_KHR_texture_compression_astc_ldr
 // #define GL_KHR_texture_compression_astc_ldr 1
 // #endif /* GL_KHR_texture_compression_astc_ldr */
-
 // #ifndef GL_KHR_texture_compression_astc_sliced_3d
 // #define GL_KHR_texture_compression_astc_sliced_3d 1
 // #endif /* GL_KHR_texture_compression_astc_sliced_3d */
-
 // #ifdef __cplusplus
 // }
 // #endif

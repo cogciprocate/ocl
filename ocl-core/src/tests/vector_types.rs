@@ -3,21 +3,28 @@
 
 #![cfg(feature = "ocl-core-vector")]
 
+use crate::tests::get_available_contexts;
+use crate::{CommandQueue, Context, Kernel, Mem, OclVec};
 use std::ffi::CString;
-use crate::{OclVec, Kernel, Context, CommandQueue, Mem};
-use crate::tests::{get_available_contexts};
 
 const DATASET_SIZE: usize = 1 << 14;
 const DIMS: [usize; 3] = [DATASET_SIZE, 1, 1usize];
 
 fn kernel<V>(context: &Context, src: &str, buffer: &Mem, addend: V) -> Kernel
-        where V: OclVec
+where
+    V: OclVec,
 {
     // Create program:
     let src_cstring = CString::new(src).unwrap();
     let program = crate::create_program_with_source(context, &[src_cstring]).unwrap();
-    crate::build_program(&program, None::<&[()]>, &CString::new("").unwrap(),
-        None, None).unwrap();
+    crate::build_program(
+        &program,
+        None::<&[()]>,
+        &CString::new("").unwrap(),
+        None,
+        None,
+    )
+    .unwrap();
 
     // Create kernel:
     let kernel = crate::create_kernel(&program, "add").unwrap();
@@ -27,27 +34,58 @@ fn kernel<V>(context: &Context, src: &str, buffer: &Mem, addend: V) -> Kernel
     kernel
 }
 
-fn create_enqueue_verify<V>(context: &Context, queue: &CommandQueue,
-        src: &str, start_val: V, addend: V)
-        where V: OclVec
+fn create_enqueue_verify<V>(
+    context: &Context,
+    queue: &CommandQueue,
+    src: &str,
+    start_val: V,
+    addend: V,
+) where
+    V: OclVec,
 {
     // Create vec and buffer:
     let mut vec = vec![start_val; DATASET_SIZE];
-    let buf = unsafe { crate::create_buffer(context, crate::MEM_READ_WRITE |
-        crate::MEM_COPY_HOST_PTR, DATASET_SIZE, Some(&vec)).unwrap() };
+    let buf = unsafe {
+        crate::create_buffer(
+            context,
+            crate::MEM_READ_WRITE | crate::MEM_COPY_HOST_PTR,
+            DATASET_SIZE,
+            Some(&vec),
+        )
+        .unwrap()
+    };
 
     // Create program and kernel:
     let kernel = kernel(context, src, &buf, addend);
 
     // Enqueue kernel:
     unsafe {
-        crate::enqueue_kernel(&queue, &kernel, 1, None, &DIMS,
-            None, None::<crate::Event>, None::<&mut crate::Event>).unwrap();
+        crate::enqueue_kernel(
+            &queue,
+            &kernel,
+            1,
+            None,
+            &DIMS,
+            None,
+            None::<crate::Event>,
+            None::<&mut crate::Event>,
+        )
+        .unwrap();
     }
 
     // Read from buffer:
-    unsafe { crate::enqueue_read_buffer(&queue, &buf, true, 0, &mut vec,
-        None::<crate::Event>, None::<&mut crate::Event>).unwrap() };
+    unsafe {
+        crate::enqueue_read_buffer(
+            &queue,
+            &buf,
+            true,
+            0,
+            &mut vec,
+            None::<crate::Event>,
+            None::<&mut crate::Event>,
+        )
+        .unwrap()
+    };
 
     let mut iter_v = V::zero();
 
@@ -85,10 +123,13 @@ fn add_double16(context: &Context, queue: &CommandQueue) {
         }
     "#;
 
-    let start_val = Double16::new(9.0, 11.0, 14.0, 1.0, 9.0, 11.0, 14.0, 1.0,
-        9.0, 11.0, 14.0, 1.0, 9.0, 11.0, 14.0, 1.0);
-    let addend = Double16::from([10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
-        10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0f64]);
+    let start_val = Double16::new(
+        9.0, 11.0, 14.0, 1.0, 9.0, 11.0, 14.0, 1.0, 9.0, 11.0, 14.0, 1.0, 9.0, 11.0, 14.0, 1.0,
+    );
+    let addend = Double16::from([
+        10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+        10.0f64,
+    ]);
 
     create_enqueue_verify(context, queue, src, start_val, addend);
 }
@@ -141,7 +182,6 @@ fn add_float3(context: &Context, queue: &CommandQueue) {
     create_enqueue_verify(context, queue, src, start_val, addend);
 }
 
-
 fn add_float4(context: &Context, queue: &CommandQueue) {
     use crate::Float4;
 
@@ -168,10 +208,13 @@ fn add_float16(context: &Context, queue: &CommandQueue) {
         }
     "#;
 
-    let start_val = Float16::new(9.0, 11.0, 14.0, 1.0, 9.0, 11.0, 14.0, 1.0,
-        9.0, 11.0, 14.0, 1.0, 9.0, 11.0, 14.0, 1.0);
-    let addend = Float16::from([10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
-        10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0f32]);
+    let start_val = Float16::new(
+        9.0, 11.0, 14.0, 1.0, 9.0, 11.0, 14.0, 1.0, 9.0, 11.0, 14.0, 1.0, 9.0, 11.0, 14.0, 1.0,
+    );
+    let addend = Float16::from([
+        10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+        10.0f32,
+    ]);
 
     create_enqueue_verify(context, queue, src, start_val, addend);
 }
@@ -251,7 +294,9 @@ fn add_int16(context: &Context, queue: &CommandQueue) {
     "#;
 
     let start_val = Int16::new(9, 11, 14, 1, 9, 11, 14, 1, 9, 11, 14, 1, 9, 11, 14, 1);
-    let addend = Int16::from([10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10i32]);
+    let addend = Int16::from([
+        10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10i32,
+    ]);
 
     create_enqueue_verify(context, queue, src, start_val, addend);
 }
@@ -299,7 +344,9 @@ fn add_char16(context: &Context, queue: &CommandQueue) {
     "#;
 
     let start_val = Char16::new(9, 11, 14, 1, 9, 11, 14, 1, 9, 11, 14, 1, 9, 11, 14, 1);
-    let addend = Char16::from([10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10i8]);
+    let addend = Char16::from([
+        10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10i8,
+    ]);
 
     create_enqueue_verify(context, queue, src, start_val, addend);
 }

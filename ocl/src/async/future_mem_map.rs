@@ -1,11 +1,10 @@
 // use std::sync::Arc;
 // use std::sync::atomic::AtomicBool;
-use futures::{Future, Poll, Async};
-use crate::core::{OclPrm, MemMap as MemMapCore, Mem, ClNullEventPtr};
-use crate::r#async::MemMap;
+use crate::core::{ClNullEventPtr, Mem, MemMap as MemMapCore, OclPrm};
 use crate::error::{Error as OclError, Result as OclResult};
-use crate::{Event, Queue, EventList};
-
+use crate::r#async::MemMap;
+use crate::{Event, EventList, Queue};
+use futures::{Async, Future, Poll};
 
 /// A future which resolves to a `MemMap` as soon as its creating command
 /// completes.
@@ -27,8 +26,14 @@ pub struct FutureMemMap<T: OclPrm> {
 
 impl<T: OclPrm> FutureMemMap<T> {
     /// Returns a new `FutureMemMap`.
-    pub unsafe fn new(core: MemMapCore<T>, len: usize, map_event: Event, buffer: Mem, queue: Queue,
-            /*buffer_is_mapped: Arc<AtomicBool>*/) -> FutureMemMap<T> {
+    pub unsafe fn new(
+        core: MemMapCore<T>,
+        len: usize,
+        map_event: Event,
+        buffer: Mem,
+        queue: Queue,
+        /*buffer_is_mapped: Arc<AtomicBool>*/
+    ) -> FutureMemMap<T> {
         FutureMemMap {
             core: Some(core),
             len,
@@ -48,7 +53,10 @@ impl<T: OclPrm> FutureMemMap<T> {
     /// later if/when calling unmap manually.
     ///
     /// [UNSTABLE]: This method may be renamed or otherwise changed.
-    pub fn set_unmap_wait_events<El>(&mut self, wait_events: El) where El: Into<EventList> {
+    pub fn set_unmap_wait_events<El>(&mut self, wait_events: El)
+    where
+        El: Into<EventList>,
+    {
         self.unmap_wait_events = Some(wait_events.into())
     }
 
@@ -88,11 +96,14 @@ impl<T: OclPrm> FutureMemMap<T> {
     ///
     /// See `::create_unmap_event`.
     pub fn enew_unmap<En>(mut self, mut enew: En) -> FutureMemMap<T>
-            where En: ClNullEventPtr {
+    where
+        En: ClNullEventPtr,
+    {
         {
-            let unmap_event = self.create_unmap_event()
-                .expect("FutureMemMap::enew_unmap");
-            unsafe { enew.clone_from(unmap_event); }
+            let unmap_event = self.create_unmap_event().expect("FutureMemMap::enew_unmap");
+            unsafe {
+                enew.clone_from(unmap_event);
+            }
         }
         self
     }
@@ -127,26 +138,35 @@ impl<T: OclPrm> FutureMemMap<T> {
         match (self.core.take(), self.buffer.take(), self.queue.take()) {
             (Some(core), Some(buffer), Some(queue)) => {
                 // TODO: Add `buffer_is_mapped` to list of joined stuff.
-                unsafe { Ok(MemMap::new(core, self.len, self.unmap_wait_events.take(),
-                    self.unmap_event.take(), buffer, queue,
-                    /*self.buffer_is_mapped.take().unwrap()*/)) }
-            },
+                unsafe {
+                    Ok(MemMap::new(
+                        core,
+                        self.len,
+                        self.unmap_wait_events.take(),
+                        self.unmap_event.take(),
+                        buffer,
+                        queue,
+                        /*self.buffer_is_mapped.take().unwrap()*/
+                    ))
+                }
+            }
             _ => Err("FutureMemMap::create_unmap_event: No queue and/or buffer found!".into()),
         }
     }
 }
 
 #[cfg(not(feature = "async_block"))]
-impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
+impl<T> Future for FutureMemMap<T>
+where
+    T: OclPrm + 'static,
+{
     type Item = MemMap<T>;
     type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         // println!("Polling FutureMemMap...");
         match self.map_event.is_complete() {
-            Ok(true) => {
-                self.to_mapped_mem().map(|mm| Async::Ready(mm))
-            }
+            Ok(true) => self.to_mapped_mem().map(|mm| Async::Ready(mm)),
             Ok(false) => {
                 if !self.callback_is_set {
                     self.map_event.set_unpark_callback()?;
@@ -154,7 +174,7 @@ impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
                 }
 
                 Ok(Async::NotReady)
-            },
+            }
             Err(err) => Err(err.into()),
         }
     }
@@ -176,6 +196,3 @@ impl<T: OclPrm> Future for FutureMemMap<T> {
 
 unsafe impl<T: OclPrm> Send for FutureMemMap<T> {}
 unsafe impl<T: OclPrm> Sync for FutureMemMap<T> {}
-
-
-

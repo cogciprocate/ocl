@@ -1,12 +1,12 @@
 extern crate gl;
+extern crate glfw;
 extern crate glutin;
 extern crate ocl;
 extern crate ocl_interop;
-extern crate glfw;
 extern crate sdl2;
 
-use ocl::ProQue;
 use gl::types::*;
+use ocl::ProQue;
 
 // 3 triangles, 3 Vertices per triangle, 2 floats per vertex
 const BUFFER_LENGTH: usize = 18;
@@ -156,7 +156,8 @@ impl TestContent for CLGenVBO {
 
         // get GL Objects
         let mut acquire_globj_event: ocl::Event = ocl::Event::empty();
-        cl_buff.cmd()
+        cl_buff
+            .cmd()
             .gl_acquire()
             .enew(&mut acquire_globj_event)
             .enq()
@@ -198,7 +199,8 @@ impl TestContent for CLGenVBO {
         }
 
         // Release GL OBJs
-        cl_buff.cmd()
+        cl_buff
+            .cmd()
             .gl_release()
             // .ewait(&kernel_run_event)
             .ewait(&read_buffer_event)
@@ -310,16 +312,16 @@ fn sdl2_works() {
 }
 
 fn glutin_works() {
+    use glutin::dpi::*;
     use glutin::event::{Event, WindowEvent};
     use glutin::event_loop::{ControlFlow, EventLoopBuilder};
     use glutin::window::WindowBuilder;
     use glutin::ContextBuilder;
-    use glutin::dpi::*;
 
-    #[cfg(target_os = "windows")]
-    use glutin::platform::windows::EventLoopBuilderExtWindows;
     #[cfg(target_os = "linux")]
     use glutin::platform::unix::EventLoopBuilderExtUnix;
+    #[cfg(target_os = "windows")]
+    use glutin::platform::windows::EventLoopBuilderExtWindows;
 
     #[cfg(any(target_os = "windows", target_os = "linux"))]
     let events_loop = EventLoopBuilder::new().with_any_thread(true).build();
@@ -329,8 +331,14 @@ fn glutin_works() {
 
     let window = WindowBuilder::new()
         .with_title("Glutin Window")
-        .with_inner_size(PhysicalSize { width: WINDOW_WIDTH, height: WINDOW_HEIGHT });
-    let gl_window = ContextBuilder::new().with_vsync(true).build_windowed(window, &events_loop).unwrap();
+        .with_inner_size(PhysicalSize {
+            width: WINDOW_WIDTH,
+            height: WINDOW_HEIGHT,
+        });
+    let gl_window = ContextBuilder::new()
+        .with_vsync(true)
+        .build_windowed(window, &events_loop)
+        .unwrap();
 
     let mut thing = CLGenVBO::new();
 
@@ -338,7 +346,9 @@ fn glutin_works() {
     let gl_window = unsafe { gl_window.make_current().unwrap() };
 
     gl::load_with(|symbol| gl_window.context().get_proc_address(symbol) as *const _);
-    unsafe { gl::ClearColor(0.0, 1.0, 0.333, 1.0); }
+    unsafe {
+        gl::ClearColor(0.0, 1.0, 0.333, 1.0);
+    }
 
     thing.init();
 
@@ -347,7 +357,9 @@ fn glutin_works() {
         *control_flow = ControlFlow::Poll;
         match event {
             Event::WindowEvent { event, .. } => match event {
-                WindowEvent::CloseRequested => { *control_flow = ControlFlow::Exit; },
+                WindowEvent::CloseRequested => {
+                    *control_flow = ControlFlow::Exit;
+                }
                 WindowEvent::Resized(physical_size) => gl_window.resize(physical_size),
                 _ => (),
             },
@@ -358,13 +370,13 @@ fn glutin_works() {
                 if frame_count >= MAX_FRAME_COUNT {
                     *control_flow = ControlFlow::Exit;
                 }
-            },
+            }
             Event::MainEventsCleared => {
                 gl_window.window().request_redraw();
-            },
+            }
             Event::LoopDestroyed => {
                 thing.clean_up();
-            },
+            }
             _ => (),
         }
     });
@@ -375,12 +387,14 @@ fn glfw_works() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
     // Create a windowed mode window and its OpenGL context
-    let (mut window, events) = glfw.create_window(
-        WINDOW_WIDTH,
-        WINDOW_HEIGHT,
-        "GLFW Window",
-        glfw::WindowMode::Windowed,
-    ).expect("Failed to create GLFW window.");
+    let (mut window, events) = glfw
+        .create_window(
+            WINDOW_WIDTH,
+            WINDOW_HEIGHT,
+            "GLFW Window",
+            glfw::WindowMode::Windowed,
+        )
+        .expect("Failed to create GLFW window.");
 
     gl::load_with(|name| window.get_proc_address(name) as *const _);
     glfw::Context::make_current(&mut window);

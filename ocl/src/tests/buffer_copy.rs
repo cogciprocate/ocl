@@ -1,13 +1,12 @@
-
 const IDX: usize = 200007;
 const ADDEND: f32 = 10.0;
 const DATASET_SIZE: usize = 1 << 20;
 
 #[test]
 fn buffer_copy_core() {
-    use std::ffi::CString;
-    use crate::core::{self, ContextProperties, ArgVal};
+    use crate::core::{self, ArgVal, ContextProperties};
     use crate::flags;
+    use std::ffi::CString;
 
     let src = r#"
         __kernel void add(__global float* buffer, float addend) {
@@ -21,23 +20,43 @@ fn buffer_copy_core() {
     let device_ids = core::get_device_ids(&platform_id, None, None).unwrap();
     let device_id = device_ids[0];
     let context_properties = ContextProperties::new().platform(platform_id);
-    let context = core::create_context(Some(&context_properties),
-        &[device_id], None, None).unwrap();
+    let context =
+        core::create_context(Some(&context_properties), &[device_id], None, None).unwrap();
     let src_cstring = CString::new(src).unwrap();
     let program = core::create_program_with_source(&context, &[src_cstring]).unwrap();
-    core::build_program(&program, None::<&[()]>, &CString::new("").unwrap(),
-        None, None).unwrap();
+    core::build_program(
+        &program,
+        None::<&[()]>,
+        &CString::new("").unwrap(),
+        None,
+        None,
+    )
+    .unwrap();
     let queue = core::create_command_queue(&context, &device_id, None).unwrap();
     let dims = [DATASET_SIZE, 1, 1usize];
 
     // Source buffer:
     let mut src_buffer_vec = vec![0.0f32; dims[0]];
-    let src_buffer = unsafe { core::create_buffer(&context, flags::MEM_READ_WRITE |
-        flags::MEM_COPY_HOST_PTR, dims[0], Some(&src_buffer_vec)).unwrap() };
+    let src_buffer = unsafe {
+        core::create_buffer(
+            &context,
+            flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
+            dims[0],
+            Some(&src_buffer_vec),
+        )
+        .unwrap()
+    };
     // Dst buffer
     let mut dst_buffer_vec = vec![0.0f32; dims[0]];
-    let dst_buffer = unsafe { core::create_buffer(&context, flags::MEM_READ_WRITE |
-        flags::MEM_COPY_HOST_PTR, dims[0], Some(&dst_buffer_vec)).unwrap() };
+    let dst_buffer = unsafe {
+        core::create_buffer(
+            &context,
+            flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
+            dims[0],
+            Some(&dst_buffer_vec),
+        )
+        .unwrap()
+    };
 
     // Kernel:
     let kernel = core::create_kernel(&program, "add").unwrap();
@@ -46,22 +65,59 @@ fn buffer_copy_core() {
 
     // Run the kernel:
     unsafe {
-        core::enqueue_kernel(&queue, &kernel, 1, None, &dims,
-            None, None::<core::Event>, None::<&mut core::Event>).unwrap();
+        core::enqueue_kernel(
+            &queue,
+            &kernel,
+            1,
+            None,
+            &dims,
+            None,
+            None::<core::Event>,
+            None::<&mut core::Event>,
+        )
+        .unwrap();
     }
 
     // Copy src_buffer to dst_buffer:
     let copy_range = (153, 150000);
-    core::enqueue_copy_buffer::<f32, _, _, _>(&queue, &src_buffer, &dst_buffer,
-        copy_range.0, copy_range.0, copy_range.1 - copy_range.0, None::<core::Event>,
-        None::<&mut core::Event>).unwrap();
+    core::enqueue_copy_buffer::<f32, _, _, _>(
+        &queue,
+        &src_buffer,
+        &dst_buffer,
+        copy_range.0,
+        copy_range.0,
+        copy_range.1 - copy_range.0,
+        None::<core::Event>,
+        None::<&mut core::Event>,
+    )
+    .unwrap();
 
     // Read results from src_buffer:
-    unsafe { core::enqueue_read_buffer(&queue, &src_buffer, true, 0, &mut src_buffer_vec,
-        None::<core::Event>, None::<&mut core::Event>).unwrap() };
+    unsafe {
+        core::enqueue_read_buffer(
+            &queue,
+            &src_buffer,
+            true,
+            0,
+            &mut src_buffer_vec,
+            None::<core::Event>,
+            None::<&mut core::Event>,
+        )
+        .unwrap()
+    };
     // Read results from dst_buffer:
-    unsafe { core::enqueue_read_buffer(&queue, &dst_buffer, true, 0, &mut dst_buffer_vec,
-        None::<core::Event>, None::<&mut core::Event>).unwrap() };
+    unsafe {
+        core::enqueue_read_buffer(
+            &queue,
+            &dst_buffer,
+            true,
+            0,
+            &mut dst_buffer_vec,
+            None::<core::Event>,
+            None::<&mut core::Event>,
+        )
+        .unwrap()
+    };
 
     for i in 0..dims[0] {
         assert_eq!(src_buffer_vec[i], ADDEND);
@@ -69,7 +125,12 @@ fn buffer_copy_core() {
         if i >= copy_range.0 && i < copy_range.1 {
             assert_eq!(dst_buffer_vec[i], ADDEND);
         } else {
-            assert!(dst_buffer_vec[i] == 0.0, "dst_vec: {}, idx: {}", dst_buffer_vec[i], i);
+            assert!(
+                dst_buffer_vec[i] == 0.0,
+                "dst_vec: {}, idx: {}",
+                dst_buffer_vec[i],
+                i
+            );
         }
     }
 }
@@ -87,7 +148,8 @@ fn buffer_copy_standard() {
         .src(src)
         .device(1)
         .dims(DATASET_SIZE)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     let src_buffer = pro_que.create_buffer::<f32>().unwrap();
     src_buffer.cmd().fill(0.0f32, None).enq().unwrap();
@@ -97,17 +159,28 @@ fn buffer_copy_standard() {
     dst_buffer.cmd().fill(0.0f32, None).enq().unwrap();
     let mut dst_vec = vec![0.0f32; dst_buffer.len()];
 
-    let kernel = pro_que.kernel_builder("add")
+    let kernel = pro_que
+        .kernel_builder("add")
         .arg(&src_buffer)
         .arg(ADDEND)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
-    unsafe { kernel.enq().unwrap(); }
+    unsafe {
+        kernel.enq().unwrap();
+    }
 
     // Copy src to dst:
     let copy_range = (IDX, pro_que.dims()[0] - 100);
-    src_buffer.cmd().copy(&dst_buffer, Some(copy_range.0), Some(copy_range.1 - copy_range.0))
-        .enq().unwrap();
+    src_buffer
+        .cmd()
+        .copy(
+            &dst_buffer,
+            Some(copy_range.0),
+            Some(copy_range.1 - copy_range.0),
+        )
+        .enq()
+        .unwrap();
 
     // Read both buffers from device.
     src_buffer.read(&mut src_vec).enq().unwrap();
@@ -119,7 +192,12 @@ fn buffer_copy_standard() {
         if i >= copy_range.0 && i < copy_range.1 {
             assert!((dst_vec[i] - ADDEND).abs() < 0.001);
         } else {
-            assert!((dst_vec[i] - 0.0).abs() < 0.001, "dst_buf: {}, idx: {}", dst_vec[i], i);
+            assert!(
+                (dst_vec[i] - 0.0).abs() < 0.001,
+                "dst_buf: {}, idx: {}",
+                dst_vec[i],
+                i
+            );
         }
     }
 }

@@ -12,12 +12,12 @@
 
 // #![allow(unused_imports)]
 
-use std::fmt::{Display, Formatter, Result as FmtResult};
-use std::ops::*;
-use std::iter::{Sum, Product};
-use std::hash::{Hash, Hasher};
+use num_traits::{One, Zero};
 use std::cmp::{Eq, Ord, Ordering};
-use num_traits::{Zero, One};
+use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::hash::{Hash, Hasher};
+use std::iter::{Product, Sum};
+use std::ops::*;
 // use ::{OclPrm, OclVec};
 
 // pub trait Splat {
@@ -26,11 +26,9 @@ use num_traits::{Zero, One};
 //     fn splat(Self::Scalar) -> Self;
 // }
 
-
 macro_rules! expand_val {
     ($( $junk:expr, $val:expr ),+) => ( $($val),+ );
 }
-
 
 // implements the unary operator "op &T"
 // based on "op T" where T is expected to be `Copy`able
@@ -46,7 +44,7 @@ macro_rules! forward_ref_unop {
                 $imp::$method(*self)
             }
         }
-    }
+    };
 }
 
 // implements binary operators "&T op U", "T op &U", "&T op &U"
@@ -81,9 +79,8 @@ macro_rules! forward_ref_binop {
                 $imp::$method(*self, *rhs)
             }
         }
-    }
+    };
 }
-
 
 macro_rules! impl_sh_unsigned {
     ($name:ident, $f:ident: $( $idx:expr ),+) => (
@@ -190,34 +187,33 @@ macro_rules! impl_sh_all {
     )
 }
 
-
 // Adapted from: `https://doc.rust-lang.org/src/core/iter/traits.rs.html`.
 macro_rules! impl_sum_product {
-    ($a:ident) => (
+    ($a:ident) => {
         impl Sum for $a {
-            fn sum<I: Iterator<Item=$a>>(iter: I) -> $a {
+            fn sum<I: Iterator<Item = $a>>(iter: I) -> $a {
                 iter.fold($a::zero(), |a, b| a + b)
             }
         }
 
         impl Product for $a {
-            fn product<I: Iterator<Item=$a>>(iter: I) -> $a {
+            fn product<I: Iterator<Item = $a>>(iter: I) -> $a {
                 iter.fold($a::one(), |a, b| a * b)
             }
         }
 
         impl<'a> Sum<&'a $a> for $a {
-            fn sum<I: Iterator<Item=&'a $a>>(iter: I) -> $a {
+            fn sum<I: Iterator<Item = &'a $a>>(iter: I) -> $a {
                 iter.fold($a::zero(), |a, b| a + *b)
             }
         }
 
         impl<'a> Product<&'a $a> for $a {
-            fn product<I: Iterator<Item=&'a $a>>(iter: I) -> $a {
+            fn product<I: Iterator<Item = &'a $a>>(iter: I) -> $a {
                 iter.fold($a::one(), |a, b| a * *b)
             }
         }
-    )
+    };
 }
 
 // Implements integer-specific operators.
@@ -356,7 +352,6 @@ macro_rules! impl_int_ops {
     }
 }
 
-
 // Implements floating-point-specific operators.
 macro_rules! impl_float_ops {
     ($name:ident, $cardinality:expr, $ty:ty, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
@@ -415,7 +410,6 @@ macro_rules! impl_float_ops {
 
     }
 }
-
 
 // Implements operators common to both floating point and integer types.
 macro_rules! impl_common {
@@ -567,7 +561,6 @@ macro_rules! impl_cl_vec {
         impl_sh_unsigned! { $name, usize: $( $idx ),+ }
     };
 }
-
 
 // Vec3s need their own special treatment until some sort of repr(align)
 // exists, if ever.
@@ -735,9 +728,6 @@ macro_rules! cl_vec {
     );
 }
 
-
-
-
 // // ###### CL_CHAR ######
 cl_vec!(Char, 1, i8, i);
 
@@ -760,7 +750,6 @@ cl_vec!(Char2, 2, i8, i);
 // unsafe impl OclVec for ClChar3 {}
 cl_vec!(Char3, 3, i8, i);
 
-
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClChar4(pub i8, pub i8, pub i8, pub i8);
 // unsafe impl OclPrm for ClChar4 {}
@@ -774,14 +763,12 @@ cl_vec!(Char4, 4, i8, i);
 // unsafe impl OclVec for ClChar8 {}
 cl_vec!(Char8, 8, i8, i);
 
-
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClChar16(pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8,
 //     pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8);
 // unsafe impl OclPrm for ClChar16 {}
 // unsafe impl OclVec for ClChar16 {}
 cl_vec!(Char16, 16, i8, i);
-
 
 // // ###### CL_UCHAR ######
 cl_vec!(Uchar, 1, u8, u);
@@ -805,7 +792,6 @@ cl_vec!(Uchar2, 2, u8, u);
 // unsafe impl OclPrm for ClUchar3 {}
 // unsafe impl OclVec for ClUchar3 {}
 cl_vec!(Uchar3, 3, u8, u);
-
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUchar4(pub u8, pub u8, pub u8, pub u8);
@@ -849,20 +835,17 @@ cl_vec!(Short2, 2, i16, i);
 // unsafe impl OclVec for ClShort3 {}
 cl_vec!(Short3, 3, i16, i);
 
-
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClShort4(pub i16, pub i16, pub i16, pub i16);
 // unsafe impl OclPrm for ClShort4 {}
 // unsafe impl OclVec for ClShort4 {}
 cl_vec!(Short4, 4, i16, i);
 
-
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClShort8(pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16);
 // unsafe impl OclPrm for ClShort8 {}
 // unsafe impl OclVec for ClShort8 {}
 cl_vec!(Short8, 8, i16, i);
-
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClShort16(pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16,
@@ -901,7 +884,6 @@ cl_vec!(Ushort3, 3, u16, u);
 // unsafe impl OclVec for ClUshort4 {}
 
 cl_vec!(Ushort4, 4, u16, u);
-
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUshort8(pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16);
@@ -1272,7 +1254,6 @@ cl_vec!(Double8, 8, f64, f);
 // unsafe impl OclVec for ClDouble16 {}
 
 cl_vec!(Double16, 16, f64, f);
-
 
 // Copied from `https://doc.rust-lang.org/src/core/num/wrapping.rs.html`.
 mod shift_max {

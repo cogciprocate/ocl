@@ -2,48 +2,55 @@
 //!
 //! * TODO: This module needs a rename.
 
-mod platform;
-mod device;
-mod context;
-mod program;
-mod kernel;
-mod queue;
 mod buffer;
-mod image;
-mod sampler;
-mod pro_que;
+mod context;
+mod device;
 mod event;
+mod image;
+mod kernel;
+mod platform;
+mod pro_que;
+mod program;
+mod queue;
+mod sampler;
 mod spatial_dims;
 
-pub use self::platform::{PlatformError, Extensions, Platform};
-pub use self::device::{DeviceError, Device, DeviceSpecifier};
-pub use self::context::{Context, ContextBuilder};
-pub use self::program::{Program, ProgramBuilder, BuildOpt};
-pub use self::queue::Queue;
-pub use self::kernel::{KernelError, KernelCmd, Kernel, KernelBuilder};
-pub use self::buffer::{BufferCmdKind, BufferCmdDataShape, BufferCmd, Buffer, QueCtx,
-    BufferBuilder, BufferReadCmd, BufferWriteCmd, BufferMapCmd, BufferCmdError, WriteSrc};
-pub use self::image::{ImageCmdKind, ImageCmd, Image, ImageBuilder};
-pub use self::sampler::Sampler;
-pub use self::pro_que::{ProQue, ProQueBuilder};
-pub use self::event::{Event, EventArray, EventList, IntoMarker, RawEventArray, IntoRawEventArray};
-pub use self::spatial_dims::SpatialDims;
+pub use self::buffer::{
+    Buffer, BufferBuilder, BufferCmd, BufferCmdDataShape, BufferCmdError, BufferCmdKind,
+    BufferMapCmd, BufferReadCmd, BufferWriteCmd, QueCtx, WriteSrc,
+};
 #[cfg(not(feature = "async_block"))]
 pub use self::cb::{_unpark_task, box_raw_void};
+pub use self::context::{Context, ContextBuilder};
+pub use self::device::{Device, DeviceError, DeviceSpecifier};
+pub use self::event::{Event, EventArray, EventList, IntoMarker, IntoRawEventArray, RawEventArray};
+pub use self::image::{Image, ImageBuilder, ImageCmd, ImageCmdKind};
+pub use self::kernel::{Kernel, KernelBuilder, KernelCmd, KernelError};
+pub use self::platform::{Extensions, Platform, PlatformError};
+pub use self::pro_que::{ProQue, ProQueBuilder};
+pub use self::program::{BuildOpt, Program, ProgramBuilder};
+pub use self::queue::Queue;
+pub use self::sampler::Sampler;
+pub use self::spatial_dims::SpatialDims;
 pub use self::traits::{MemLen, WorkDims};
 pub use self::types::{ClNullEventPtrEnum, ClWaitListPtrEnum};
-
 
 // use core::OclPrm;
 
 #[derive(Debug)]
-enum HostSlice<'a, T> where T: 'a {
+enum HostSlice<'a, T>
+where
+    T: 'a,
+{
     None,
     Use(&'a [T]),
     Copy(&'a [T]),
 }
 
-impl<'a, T> HostSlice<'a, T> where T: 'a {
+impl<'a, T> HostSlice<'a, T>
+where
+    T: 'a,
+{
     fn is_none(&self) -> bool {
         match *self {
             HostSlice::None => true,
@@ -65,10 +72,10 @@ impl<'a, T> HostSlice<'a, T> where T: 'a {
 #[cfg(not(feature = "async_block"))]
 mod cb {
     use crate::core::ffi::c_void;
-    use num_traits::FromPrimitive;
-    use futures::task::Task;
-    use crate::ffi::cl_event;
     use crate::core::{CommandExecutionStatus, Status};
+    use crate::ffi::cl_event;
+    use futures::task::Task;
+    use num_traits::FromPrimitive;
 
     pub fn box_raw_void<T>(item: T) -> *mut c_void {
         let item_box = Box::new(item);
@@ -76,7 +83,6 @@ mod cb {
     }
 
     pub extern "C" fn _unpark_task(event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
-
         let _ = event_ptr;
         // println!("'_unpark_task' has been called.");
         if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
@@ -92,28 +98,28 @@ mod cb {
                 format!("{:?}", CommandExecutionStatus::from_i32(event_status))
             };
 
-            panic!("ocl::standard::_unpark_task: \n\nWake up user data is null or event is not \
+            panic!(
+                "ocl::standard::_unpark_task: \n\nWake up user data is null or event is not \
                 complete: {{ status: {:?}, user_data: {:?} }}. If you are getting \
                 `DEVICE_NOT_AVAILABLE` and you are using Intel drivers, switch to AMD OpenCL \
-                drivers instead (will work with Intel CPUs).\n\n", status, user_data);
+                drivers instead (will work with Intel CPUs).\n\n",
+                status, user_data
+            );
         }
     }
 }
-
-
-
 
 //=============================================================================
 //================================== TYPES ====================================
 //=============================================================================
 
 mod types {
-    use std::ptr;
-    use std::cell::Ref;
-    use crate::standard::{Event, EventList, RawEventArray, Queue};
     use crate::core::ffi::cl_event;
-    use crate::core::{Event as EventCore, ClNullEventPtr, ClWaitListPtr};
+    use crate::core::{ClNullEventPtr, ClWaitListPtr, Event as EventCore};
     use crate::error::Result as OclResult;
+    use crate::standard::{Event, EventList, Queue, RawEventArray};
+    use std::cell::Ref;
+    use std::ptr;
 
     /// An enum which can represent several different ways of representing a
     /// event wait list.
@@ -180,7 +186,6 @@ mod types {
                 ClWaitListPtrEnum::RefEventList(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::RefTraitObj(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::BoxTraitObj(ref e) => e.as_ptr_ptr(),
-
             }
         }
 
@@ -305,7 +310,9 @@ mod types {
     }
 
     impl<'a, Ewl> From<Option<Ewl>> for ClWaitListPtrEnum<'a>
-            where Ewl: Into<ClWaitListPtrEnum<'a>> {
+    where
+        Ewl: Into<ClWaitListPtrEnum<'a>>,
+    {
         fn from(e: Option<Ewl>) -> ClWaitListPtrEnum<'a> {
             match e {
                 Some(e) => e.into(),
@@ -313,7 +320,6 @@ mod types {
             }
         }
     }
-
 
     #[derive(Debug)]
     pub enum ClNullEventPtrEnum<'a> {
@@ -331,7 +337,8 @@ mod types {
             }
         }
 
-        #[inline] unsafe fn clone_from<E: AsRef<EventCore>>(&mut self, ev: E) {
+        #[inline]
+        unsafe fn clone_from<E: AsRef<EventCore>>(&mut self, ev: E) {
             match *self {
                 ClNullEventPtrEnum::Null => panic!("Void events cannot be used."),
                 ClNullEventPtrEnum::Event(ref mut e) => e.clone_from(ev),
@@ -359,7 +366,9 @@ mod types {
     }
 
     impl<'a, E> From<Option<E>> for ClNullEventPtrEnum<'a>
-            where E: Into<ClNullEventPtrEnum<'a>> {
+    where
+        E: Into<ClNullEventPtrEnum<'a>>,
+    {
         fn from(e: Option<E>) -> ClNullEventPtrEnum<'a> {
             match e {
                 Some(e) => e.into(),
@@ -374,10 +383,10 @@ mod types {
 //=============================================================================
 
 mod traits {
-    use std::fmt::Debug;
-    use num_traits::{Num, ToPrimitive};
-    use crate::SpatialDims;
     use super::spatial_dims::to_usize;
+    use crate::SpatialDims;
+    use num_traits::{Num, ToPrimitive};
+    use std::fmt::Debug;
 
     /// Types which have properties describing the amount of work to be done
     /// in multiple dimensions.
@@ -400,7 +409,6 @@ mod traits {
         fn to_work_offset(&self) -> Option<[usize; 3]>;
     }
 
-
     /// Types which have properties allowing them to be used to define the size
     /// of a volume of memory.
     ///
@@ -419,75 +427,110 @@ mod traits {
         fn to_lens(&self) -> [usize; 3];
     }
 
-    impl<'a, D> MemLen for &'a D where D: MemLen {
-        fn to_len(&self) -> usize { (*self).to_len() }
-        fn to_len_padded(&self, incr: usize) -> usize { (*self).to_len_padded(incr) }
-        fn to_lens(&self) -> [usize; 3] { (*self).to_lens() }
+    impl<'a, D> MemLen for &'a D
+    where
+        D: MemLen,
+    {
+        fn to_len(&self) -> usize {
+            (*self).to_len()
+        }
+        fn to_len_padded(&self, incr: usize) -> usize {
+            (*self).to_len_padded(incr)
+        }
+        fn to_lens(&self) -> [usize; 3] {
+            (*self).to_lens()
+        }
     }
 
-    impl<D> MemLen for (D, ) where D: Num + ToPrimitive + Debug + Copy {
+    impl<D> MemLen for (D,)
+    where
+        D: Num + ToPrimitive + Debug + Copy,
+    {
         fn to_len(&self) -> usize {
             SpatialDims::One(to_usize(self.0)).to_len()
         }
         fn to_len_padded(&self, incr: usize) -> usize {
             SpatialDims::One(to_usize(self.0)).to_len_padded(incr)
         }
-        fn to_lens(&self) -> [usize; 3] { [to_usize(self.0), 1, 1] }
+        fn to_lens(&self) -> [usize; 3] {
+            [to_usize(self.0), 1, 1]
+        }
     }
 
-    impl<D> MemLen for [D; 1] where D: Num + ToPrimitive + Debug + Copy {
+    impl<D> MemLen for [D; 1]
+    where
+        D: Num + ToPrimitive + Debug + Copy,
+    {
         fn to_len(&self) -> usize {
             SpatialDims::One(to_usize(self[0])).to_len()
         }
         fn to_len_padded(&self, incr: usize) -> usize {
             SpatialDims::One(to_usize(self[0])).to_len_padded(incr)
         }
-        fn to_lens(&self) -> [usize; 3] { [to_usize(self[0]), 1, 1] }
+        fn to_lens(&self) -> [usize; 3] {
+            [to_usize(self[0]), 1, 1]
+        }
     }
 
-    impl<D> MemLen for (D, D) where D: Num + ToPrimitive + Debug + Copy {
+    impl<D> MemLen for (D, D)
+    where
+        D: Num + ToPrimitive + Debug + Copy,
+    {
         fn to_len(&self) -> usize {
             SpatialDims::Two(to_usize(self.0), to_usize(self.1)).to_len()
         }
         fn to_len_padded(&self, incr: usize) -> usize {
             SpatialDims::Two(to_usize(self.0), to_usize(self.1)).to_len_padded(incr)
         }
-        fn to_lens(&self) -> [usize; 3] { [to_usize(self.0), to_usize(self.1), 1] }
+        fn to_lens(&self) -> [usize; 3] {
+            [to_usize(self.0), to_usize(self.1), 1]
+        }
     }
 
-    impl<D> MemLen for [D; 2] where D: Num + ToPrimitive + Debug + Copy {
+    impl<D> MemLen for [D; 2]
+    where
+        D: Num + ToPrimitive + Debug + Copy,
+    {
         fn to_len(&self) -> usize {
             SpatialDims::Two(to_usize(self[0]), to_usize(self[1])).to_len()
         }
         fn to_len_padded(&self, incr: usize) -> usize {
             SpatialDims::Two(to_usize(self[0]), to_usize(self[1])).to_len_padded(incr)
         }
-        fn to_lens(&self) -> [usize; 3] { [to_usize(self[0]), to_usize(self[1]), 1] }
+        fn to_lens(&self) -> [usize; 3] {
+            [to_usize(self[0]), to_usize(self[1]), 1]
+        }
     }
 
-    impl<'a, D> MemLen for (D, D, D) where D: Num + ToPrimitive + Debug + Copy {
+    impl<'a, D> MemLen for (D, D, D)
+    where
+        D: Num + ToPrimitive + Debug + Copy,
+    {
         fn to_len(&self) -> usize {
-            SpatialDims::Three(to_usize(self.0), to_usize(self.1), to_usize(self.2))
-                .to_len()
+            SpatialDims::Three(to_usize(self.0), to_usize(self.1), to_usize(self.2)).to_len()
         }
         fn to_len_padded(&self, incr: usize) -> usize {
             SpatialDims::Three(to_usize(self.0), to_usize(self.1), to_usize(self.2))
                 .to_len_padded(incr)
         }
-        fn to_lens(&self) -> [usize; 3] { [to_usize(self.0), to_usize(self.1), to_usize(self.2)] }
+        fn to_lens(&self) -> [usize; 3] {
+            [to_usize(self.0), to_usize(self.1), to_usize(self.2)]
+        }
     }
 
-    impl<'a, D> MemLen for [D; 3] where D: Num + ToPrimitive + Debug + Copy {
+    impl<'a, D> MemLen for [D; 3]
+    where
+        D: Num + ToPrimitive + Debug + Copy,
+    {
         fn to_len(&self) -> usize {
-            SpatialDims::Three(to_usize(self[0]), to_usize(self[1]), to_usize(self[2]))
-                .to_len()
+            SpatialDims::Three(to_usize(self[0]), to_usize(self[1]), to_usize(self[2])).to_len()
         }
         fn to_len_padded(&self, incr: usize) -> usize {
             SpatialDims::Three(to_usize(self[0]), to_usize(self[1]), to_usize(self[2]))
                 .to_len_padded(incr)
         }
-        fn to_lens(&self) -> [usize; 3] { [to_usize(self[0]), to_usize(self[1]), to_usize(self[2])] }
+        fn to_lens(&self) -> [usize; 3] {
+            [to_usize(self[0]), to_usize(self[1]), to_usize(self[2])]
+        }
     }
 }
-
-

@@ -47,7 +47,6 @@ pub type cl_egl_image_properties_khr = intptr_t;
 //  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 //  * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
 //  ******************************************************************************/
-
 // #ifndef __OPENCL_CL_EGL_H
 // #define __OPENCL_CL_EGL_H
 
@@ -55,12 +54,11 @@ pub type cl_egl_image_properties_khr = intptr_t;
 
 // #else
 // #include <CL/cl.h>
-// #endif  
+// #endif
 
 // #ifdef __cplusplus
 // extern "C" {
 // #endif
-
 
 // /* Command type for events created with clEnqueueAcquireEGLObjectsKHR */
 // #define CL_COMMAND_EGL_FENCE_SYNC_OBJECT_KHR  0x202F
@@ -83,7 +81,6 @@ pub type cl_egl_image_properties_khr = intptr_t;
 // /* properties passed to clCreateFromEGLImageKHR */
 // typedef intptr_t cl_egl_image_properties_khr;
 
-
 // #define cl_khr_egl_image 1
 
 // extern CL_API_ENTRY cl_mem CL_API_CALL
@@ -102,7 +99,6 @@ pub type cl_egl_image_properties_khr = intptr_t;
 // 	const cl_egl_image_properties_khr * properties,
 // 	cl_int *                    errcode_ret);
 
-
 // extern CL_API_ENTRY cl_int CL_API_CALL
 // clEnqueueAcquireEGLObjectsKHR(cl_command_queue /* command_queue */,
 //                               cl_uint          /* num_objects */,
@@ -119,7 +115,6 @@ pub type cl_egl_image_properties_khr = intptr_t;
 // 	const cl_event * event_wait_list,
 // 	cl_event *       event);
 
-
 // extern CL_API_ENTRY cl_int CL_API_CALL
 // clEnqueueReleaseEGLObjectsKHR(cl_command_queue /* command_queue */,
 //                               cl_uint          /* num_objects */,
@@ -135,7 +130,6 @@ pub type cl_egl_image_properties_khr = intptr_t;
 // 	cl_uint          num_events_in_wait_list,
 // 	const cl_event * event_wait_list,
 // 	cl_event *       event);
-
 
 // #define cl_khr_egl_event 1
 

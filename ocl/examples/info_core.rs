@@ -4,12 +4,15 @@
 
 extern crate ocl;
 
-use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo,
-    CommandQueueInfo, MemInfo, ImageInfo, SamplerInfo, ProgramInfo,
-    ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo,
-    EventInfo, ProfilingInfo, Status};
-use ocl::{Platform, Device, Context, Queue, Buffer, Image, Sampler, Program,
-    Kernel, Event, EventList, SpatialDims};
+use ocl::core::{
+    self, CommandQueueInfo, ContextInfo, DeviceInfo, EventInfo, ImageInfo, KernelArgInfo,
+    KernelInfo, KernelWorkGroupInfo, MemInfo, PlatformInfo, ProfilingInfo, ProgramBuildInfo,
+    ProgramInfo, SamplerInfo, Status,
+};
+use ocl::{
+    Buffer, Context, Device, Event, EventList, Image, Kernel, Platform, Program, Queue, Sampler,
+    SpatialDims,
+};
 
 const WORK_SIZE: [usize; 3] = [1024, 64, 16];
 const INFO_FORMAT_MULTILINE: bool = true;
@@ -25,22 +28,26 @@ macro_rules! to_string {
     ( $ expr : expr ) => {
         match $expr {
             Ok(info) => info.to_string(),
-            Err(err) => {
-                match err.api_status() {
-                    Some(Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE) => "Not available".into(),
-                    _ => err.to_string(),
-                }
+            Err(err) => match err.api_status() {
+                Some(Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE) => "Not available".into(),
+                _ => err.to_string(),
             },
         }
     };
 }
 
-
-fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
-        device: Device) -> ocl::Result<()> {
+fn print_platform_device(
+    plat_idx: usize,
+    platform: Platform,
+    device_idx: usize,
+    device: Device,
+) -> ocl::Result<()> {
     let work_dims = SpatialDims::from(WORK_SIZE);
 
-    let context = Context::builder().platform(platform).devices(device).build()?;
+    let context = Context::builder()
+        .platform(platform)
+        .devices(device)
+        .build()?;
     let program = Program::builder()
         .devices(device)
         .src(SRC)
@@ -55,7 +62,7 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         .queue(queue.clone())
         .build()?;
     let sampler = Sampler::with_defaults(&context)?;
-        let kernel = Kernel::builder()
+    let kernel = Kernel::builder()
         .name("multiply")
         .program(&program)
         .queue(queue.clone())
@@ -65,11 +72,17 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         .build()?;
 
     let mut event_list = EventList::new();
-    unsafe { kernel.cmd().enew(&mut event_list).enq()?; }
+    unsafe {
+        kernel.cmd().enew(&mut event_list).enq()?;
+    }
     event_list.wait_for()?;
 
     let mut event = Event::empty();
-    buffer.cmd().write(&vec![0.0; work_dims.to_len()]).enew(&mut event).enq()?;
+    buffer
+        .cmd()
+        .write(&vec![0.0; work_dims.to_len()])
+        .enew(&mut event)
+        .enq()?;
     event.wait_for()?;
 
     let device_version = device.version()?;
@@ -87,7 +100,8 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
     // #################### PLATFORM ####################
     // ##################################################
 
-    println!("Platform [{}]:{b}\
+    println!(
+        "Platform [{}]:{b}\
             Profile: {}{d}\
             Version: {}{d}\
             Name: {}{d}\
@@ -100,9 +114,10 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         to_string!(core::get_platform_info(platform, PlatformInfo::Name)),
         to_string!(core::get_platform_info(platform, PlatformInfo::Vendor)),
         to_string!(core::get_platform_info(platform, PlatformInfo::Extensions)),
-        b = begin, d = delim, e = end,
+        b = begin,
+        d = delim,
+        e = end,
     );
-
 
     // ##################################################
     // #################### DEVICES #####################
@@ -110,7 +125,8 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
 
     debug_assert!(context.devices().len() == 1);
 
-    println!("Device [{}]: {b}\
+    println!(
+        "Device [{}]: {b}\
             Type: {}{d}\
             VendorId: {}{d}\
             MaxComputeUnits: {}{d}\
@@ -192,19 +208,46 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         to_string!(core::get_device_info(&device, DeviceInfo::Type)),
         to_string!(core::get_device_info(&device, DeviceInfo::VendorId)),
         to_string!(core::get_device_info(&device, DeviceInfo::MaxComputeUnits)),
-        to_string!(core::get_device_info(&device, DeviceInfo::MaxWorkItemDimensions)),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::MaxWorkItemDimensions
+        )),
         to_string!(core::get_device_info(&device, DeviceInfo::MaxWorkGroupSize)),
         to_string!(core::get_device_info(&device, DeviceInfo::MaxWorkItemSizes)),
-        to_string!(core::get_device_info(&device, DeviceInfo::PreferredVectorWidthChar)),
-        to_string!(core::get_device_info(&device, DeviceInfo::PreferredVectorWidthShort)),
-        to_string!(core::get_device_info(&device, DeviceInfo::PreferredVectorWidthInt)),
-        to_string!(core::get_device_info(&device, DeviceInfo::PreferredVectorWidthLong)),
-        to_string!(core::get_device_info(&device, DeviceInfo::PreferredVectorWidthFloat)),
-        to_string!(core::get_device_info(&device, DeviceInfo::PreferredVectorWidthDouble)),
-        to_string!(core::get_device_info(&device, DeviceInfo::MaxClockFrequency)),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::PreferredVectorWidthChar
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::PreferredVectorWidthShort
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::PreferredVectorWidthInt
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::PreferredVectorWidthLong
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::PreferredVectorWidthFloat
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::PreferredVectorWidthDouble
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::MaxClockFrequency
+        )),
         to_string!(core::get_device_info(&device, DeviceInfo::AddressBits)),
         to_string!(core::get_device_info(&device, DeviceInfo::MaxReadImageArgs)),
-        to_string!(core::get_device_info(&device, DeviceInfo::MaxWriteImageArgs)),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::MaxWriteImageArgs
+        )),
         to_string!(core::get_device_info(&device, DeviceInfo::MaxMemAllocSize)),
         to_string!(core::get_device_info(&device, DeviceInfo::Image2dMaxWidth)),
         to_string!(core::get_device_info(&device, DeviceInfo::Image2dMaxHeight)),
@@ -215,22 +258,49 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         to_string!(core::get_device_info(&device, DeviceInfo::MaxParameterSize)),
         to_string!(core::get_device_info(&device, DeviceInfo::MaxSamplers)),
         to_string!(core::get_device_info(&device, DeviceInfo::MemBaseAddrAlign)),
-        to_string!(core::get_device_info(&device, DeviceInfo::MinDataTypeAlignSize)),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::MinDataTypeAlignSize
+        )),
         to_string!(core::get_device_info(&device, DeviceInfo::SingleFpConfig)),
-        to_string!(core::get_device_info(&device, DeviceInfo::GlobalMemCacheType)),
-        to_string!(core::get_device_info(&device, DeviceInfo::GlobalMemCachelineSize)),
-        to_string!(core::get_device_info(&device, DeviceInfo::GlobalMemCacheSize)),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::GlobalMemCacheType
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::GlobalMemCachelineSize
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::GlobalMemCacheSize
+        )),
         to_string!(core::get_device_info(&device, DeviceInfo::GlobalMemSize)),
-        to_string!(core::get_device_info(&device, DeviceInfo::MaxConstantBufferSize)),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::MaxConstantBufferSize
+        )),
         to_string!(core::get_device_info(&device, DeviceInfo::MaxConstantArgs)),
         to_string!(core::get_device_info(&device, DeviceInfo::LocalMemType)),
         to_string!(core::get_device_info(&device, DeviceInfo::LocalMemSize)),
-        to_string!(core::get_device_info(&device, DeviceInfo::ErrorCorrectionSupport)),
-        to_string!(core::get_device_info(&device, DeviceInfo::ProfilingTimerResolution)),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::ErrorCorrectionSupport
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::ProfilingTimerResolution
+        )),
         to_string!(core::get_device_info(&device, DeviceInfo::EndianLittle)),
         to_string!(core::get_device_info(&device, DeviceInfo::Available)),
-        to_string!(core::get_device_info(&device, DeviceInfo::CompilerAvailable)),
-        to_string!(core::get_device_info(&device, DeviceInfo::ExecutionCapabilities)),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::CompilerAvailable
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::ExecutionCapabilities
+        )),
         to_string!(core::get_device_info(&device, DeviceInfo::QueueProperties)),
         to_string!(core::get_device_info(&device, DeviceInfo::Name)),
         to_string!(core::get_device_info(&device, DeviceInfo::Vendor)),
@@ -241,75 +311,147 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         to_string!(core::get_device_info(&device, DeviceInfo::Platform)),
         to_string!(core::get_device_info(&device, DeviceInfo::DoubleFpConfig)),
         to_string!(core::get_device_info(&device, DeviceInfo::HalfFpConfig)),
-        to_string!(core::get_device_info(&device, DeviceInfo::PreferredVectorWidthHalf)),
-        to_string!(core::get_device_info(&device, DeviceInfo::HostUnifiedMemory)),
-        to_string!(core::get_device_info(&device, DeviceInfo::NativeVectorWidthChar)),
-        to_string!(core::get_device_info(&device, DeviceInfo::NativeVectorWidthShort)),
-        to_string!(core::get_device_info(&device, DeviceInfo::NativeVectorWidthInt)),
-        to_string!(core::get_device_info(&device, DeviceInfo::NativeVectorWidthLong)),
-        to_string!(core::get_device_info(&device, DeviceInfo::NativeVectorWidthFloat)),
-        to_string!(core::get_device_info(&device, DeviceInfo::NativeVectorWidthDouble)),
-        to_string!(core::get_device_info(&device, DeviceInfo::NativeVectorWidthHalf)),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::PreferredVectorWidthHalf
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::HostUnifiedMemory
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::NativeVectorWidthChar
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::NativeVectorWidthShort
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::NativeVectorWidthInt
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::NativeVectorWidthLong
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::NativeVectorWidthFloat
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::NativeVectorWidthDouble
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::NativeVectorWidthHalf
+        )),
         to_string!(core::get_device_info(&device, DeviceInfo::OpenclCVersion)),
         to_string!(core::get_device_info(&device, DeviceInfo::LinkerAvailable)),
         to_string!(core::get_device_info(&device, DeviceInfo::BuiltInKernels)),
-        to_string!(core::get_device_info(&device, DeviceInfo::ImageMaxBufferSize)),
-        to_string!(core::get_device_info(&device, DeviceInfo::ImageMaxArraySize)),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::ImageMaxBufferSize
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::ImageMaxArraySize
+        )),
         to_string!(core::get_device_info(&device, DeviceInfo::ParentDevice)),
-        to_string!(core::get_device_info(&device, DeviceInfo::PartitionMaxSubDevices)),
-        to_string!(core::get_device_info(&device, DeviceInfo::PartitionProperties)),
-        to_string!(core::get_device_info(&device, DeviceInfo::PartitionAffinityDomain)),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::PartitionMaxSubDevices
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::PartitionProperties
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::PartitionAffinityDomain
+        )),
         to_string!(core::get_device_info(&device, DeviceInfo::PartitionType)),
         to_string!(core::get_device_info(&device, DeviceInfo::ReferenceCount)),
-        to_string!(core::get_device_info(&device, DeviceInfo::PreferredInteropUserSync)),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::PreferredInteropUserSync
+        )),
         to_string!(core::get_device_info(&device, DeviceInfo::PrintfBufferSize)),
-        to_string!(core::get_device_info(&device, DeviceInfo::ImagePitchAlignment)),
-        to_string!(core::get_device_info(&device, DeviceInfo::ImageBaseAddressAlignment)),
-        b = begin, d = delim, e = end,
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::ImagePitchAlignment
+        )),
+        to_string!(core::get_device_info(
+            &device,
+            DeviceInfo::ImageBaseAddressAlignment
+        )),
+        b = begin,
+        d = delim,
+        e = end,
     );
-
 
     // ##################################################
     // #################### CONTEXT #####################
     // ##################################################
 
-    println!("Context:{b}\
+    println!(
+        "Context:{b}\
             Reference Count: {}{d}\
             Devices: {}{d}\
             Properties: {}{d}\
             Device Count: {}{e}\
         ",
-        to_string!(core::get_context_info(&context, ContextInfo::ReferenceCount)),
+        to_string!(core::get_context_info(
+            &context,
+            ContextInfo::ReferenceCount
+        )),
         to_string!(core::get_context_info(&context, ContextInfo::Devices)),
         to_string!(core::get_context_info(&context, ContextInfo::Properties)),
         to_string!(core::get_context_info(&context, ContextInfo::NumDevices)),
-        b = begin, d = delim, e = end,
+        b = begin,
+        d = delim,
+        e = end,
     );
-
 
     // ##################################################
     // ##################### QUEUE ######################
     // ##################################################
 
-    println!("Command Queue:{b}\
+    println!(
+        "Command Queue:{b}\
             Context: {}{d}\
             Device: {}{d}\
             ReferenceCount: {}{d}\
             Properties: {}{e}\
         ",
-        to_string!(core::get_command_queue_info(&queue, CommandQueueInfo::Context)),
-        to_string!(core::get_command_queue_info(&queue, CommandQueueInfo::Device)),
-        to_string!(core::get_command_queue_info(&queue, CommandQueueInfo::ReferenceCount)),
-        to_string!(core::get_command_queue_info(&queue, CommandQueueInfo::Properties)),
-        b = begin, d = delim, e = end,
+        to_string!(core::get_command_queue_info(
+            &queue,
+            CommandQueueInfo::Context
+        )),
+        to_string!(core::get_command_queue_info(
+            &queue,
+            CommandQueueInfo::Device
+        )),
+        to_string!(core::get_command_queue_info(
+            &queue,
+            CommandQueueInfo::ReferenceCount
+        )),
+        to_string!(core::get_command_queue_info(
+            &queue,
+            CommandQueueInfo::Properties
+        )),
+        b = begin,
+        d = delim,
+        e = end,
     );
-
 
     // ##################################################
     // ################### MEM OBJECT ###################
     // ##################################################
 
-    println!("Buffer Memory:{b}\
+    println!(
+        "Buffer Memory:{b}\
             Type: {}{d}\
             Flags: {}{d}\
             Size: {}{d}\
@@ -327,17 +469,22 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         to_string!(core::get_mem_object_info(&buffer, MemInfo::MapCount)),
         to_string!(core::get_mem_object_info(&buffer, MemInfo::ReferenceCount)),
         to_string!(core::get_mem_object_info(&buffer, MemInfo::Context)),
-        to_string!(core::get_mem_object_info(&buffer, MemInfo::AssociatedMemobject)),
+        to_string!(core::get_mem_object_info(
+            &buffer,
+            MemInfo::AssociatedMemobject
+        )),
         to_string!(core::get_mem_object_info(&buffer, MemInfo::Offset)),
-        b = begin, d = delim, e = end,
+        b = begin,
+        d = delim,
+        e = end,
     );
-
 
     // ##################################################
     // ##################### IMAGE ######################
     // ##################################################
 
-    println!("Image: {b}\
+    println!(
+        "Image: {b}\
             ElementSize: {}{d}\
             RowPitch: {}{d}\
             SlicePitch: {}{d}\
@@ -359,10 +506,13 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         to_string!(core::get_image_info(&image, ImageInfo::Buffer)),
         to_string!(core::get_image_info(&image, ImageInfo::NumMipLevels)),
         to_string!(core::get_image_info(&image, ImageInfo::NumSamples)),
-        b = begin, d = delim, e = end,
+        b = begin,
+        d = delim,
+        e = end,
     );
 
-    println!("Image Memory:{b}\
+    println!(
+        "Image Memory:{b}\
             Type: {}{d}\
             Flags: {}{d}\
             Size: {}{d}\
@@ -380,36 +530,53 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         to_string!(core::get_mem_object_info(&buffer, MemInfo::MapCount)),
         to_string!(core::get_mem_object_info(&buffer, MemInfo::ReferenceCount)),
         to_string!(core::get_mem_object_info(&buffer, MemInfo::Context)),
-        to_string!(core::get_mem_object_info(&buffer, MemInfo::AssociatedMemobject)),
+        to_string!(core::get_mem_object_info(
+            &buffer,
+            MemInfo::AssociatedMemobject
+        )),
         to_string!(core::get_mem_object_info(&buffer, MemInfo::Offset)),
-        b = begin, d = delim, e = end,
+        b = begin,
+        d = delim,
+        e = end,
     );
 
     // ##################################################
     // #################### SAMPLER #####################
     // ##################################################
 
-
-    println!("Sampler:{b}\
+    println!(
+        "Sampler:{b}\
             ReferenceCount: {}{d}\
             Context: {}{d}\
             NormalizedCoords: {}{d}\
             AddressingMode: {}{d}\
             FilterMode: {}{e}\
         ",
-        to_string!(core::get_sampler_info(&sampler, SamplerInfo::ReferenceCount)),
+        to_string!(core::get_sampler_info(
+            &sampler,
+            SamplerInfo::ReferenceCount
+        )),
         to_string!(core::get_sampler_info(&sampler, SamplerInfo::Context)),
-        to_string!(core::get_sampler_info(&sampler, SamplerInfo::NormalizedCoords)),
-        to_string!(core::get_sampler_info(&sampler, SamplerInfo::AddressingMode)),
+        to_string!(core::get_sampler_info(
+            &sampler,
+            SamplerInfo::NormalizedCoords
+        )),
+        to_string!(core::get_sampler_info(
+            &sampler,
+            SamplerInfo::AddressingMode
+        )),
         to_string!(core::get_sampler_info(&sampler, SamplerInfo::FilterMode)),
-        b = begin, d = delim, e = end,
+        b = begin,
+        d = delim,
+        e = end,
     );
 
     // ##################################################
     // #################### PROGRAM #####################
     // ##################################################
 
-    println!("Program:{b}\
+    println!(
+        "Program:{b}\
             ReferenceCount: {}{d}\
             Context: {}{d}\
             NumDevices: {}{d}\
@@ -420,42 +587,64 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
             NumKernels: {}{d}\
             KernelNames: {}{e}\
         ",
-        to_string!(core::get_program_info(&program, ProgramInfo::ReferenceCount)),
+        to_string!(core::get_program_info(
+            &program,
+            ProgramInfo::ReferenceCount
+        )),
         to_string!(core::get_program_info(&program, ProgramInfo::Context)),
         to_string!(core::get_program_info(&program, ProgramInfo::NumDevices)),
         to_string!(core::get_program_info(&program, ProgramInfo::Devices)),
         to_string!(core::get_program_info(&program, ProgramInfo::Source)),
-        to_string!(core::get_program_info(&program, ProgramInfo::BinarySizes)
-            .map(|_| "{Omitted}")),
+        to_string!(core::get_program_info(&program, ProgramInfo::BinarySizes).map(|_| "{Omitted}")),
         to_string!(core::get_program_info(&program, ProgramInfo::NumKernels)),
         to_string!(core::get_program_info(&program, ProgramInfo::KernelNames)),
-        b = begin, d = delim, e = end,
+        b = begin,
+        d = delim,
+        e = end,
     );
-
 
     // ##################################################
     // ################# PROGRAM BUILD ##################
     // ##################################################
 
-    println!("Program Build:{b}\
+    println!(
+        "Program Build:{b}\
             BuildStatus: {}{d}\
             BuildOptions: {}{d}\
             BuildLog: \n\n{}{d}\n\
             BinaryType: {}{e}\
         ",
-        to_string!(core::get_program_build_info(&program, &device, ProgramBuildInfo::BuildStatus)),
-        to_string!(core::get_program_build_info(&program, &device, ProgramBuildInfo::BuildOptions)),
-        to_string!(core::get_program_build_info(&program, &device, ProgramBuildInfo::BuildLog)),
-        to_string!(core::get_program_build_info(&program, &device, ProgramBuildInfo::BinaryType)),
-        b = begin, d = delim, e = end,
+        to_string!(core::get_program_build_info(
+            &program,
+            &device,
+            ProgramBuildInfo::BuildStatus
+        )),
+        to_string!(core::get_program_build_info(
+            &program,
+            &device,
+            ProgramBuildInfo::BuildOptions
+        )),
+        to_string!(core::get_program_build_info(
+            &program,
+            &device,
+            ProgramBuildInfo::BuildLog
+        )),
+        to_string!(core::get_program_build_info(
+            &program,
+            &device,
+            ProgramBuildInfo::BinaryType
+        )),
+        b = begin,
+        d = delim,
+        e = end,
     );
-
 
     // ##################################################
     // ##################### KERNEL #####################
     // ##################################################
 
-    println!("Kernel Info:{b}\
+    println!(
+        "Kernel Info:{b}\
             FunctionName: {}{d}\
             NumArgs: {}{d}\
             ReferenceCount: {}{d}\
@@ -469,34 +658,64 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         to_string!(core::get_kernel_info(&kernel, KernelInfo::Context)),
         to_string!(core::get_kernel_info(&kernel, KernelInfo::Program)),
         to_string!(core::get_kernel_info(&kernel, KernelInfo::Attributes)),
-        b = begin, d = delim, e = end,
+        b = begin,
+        d = delim,
+        e = end,
     );
-
 
     // ##################################################
     // ################# KERNEL ARGUMENT ################
     // ##################################################
 
-    println!("Kernel Argument [0]:{b}\
+    println!(
+        "Kernel Argument [0]:{b}\
             AddressQualifier: {}{d}\
             AccessQualifier: {}{d}\
             TypeName: {}{d}\
             TypeQualifier: {}{d}\
             Name: {}{e}\
         ",
-        to_string!(core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AddressQualifier, Some(&[device_version]))),
-        to_string!(core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AccessQualifier, Some(&[device_version]))),
-        to_string!(core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeName, Some(&[device_version]))),
-        to_string!(core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeQualifier, Some(&[device_version]))),
-        to_string!(core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::Name, Some(&[device_version]))),
-        b = begin, d = delim, e = end,
+        to_string!(core::get_kernel_arg_info(
+            &kernel,
+            0,
+            KernelArgInfo::AddressQualifier,
+            Some(&[device_version])
+        )),
+        to_string!(core::get_kernel_arg_info(
+            &kernel,
+            0,
+            KernelArgInfo::AccessQualifier,
+            Some(&[device_version])
+        )),
+        to_string!(core::get_kernel_arg_info(
+            &kernel,
+            0,
+            KernelArgInfo::TypeName,
+            Some(&[device_version])
+        )),
+        to_string!(core::get_kernel_arg_info(
+            &kernel,
+            0,
+            KernelArgInfo::TypeQualifier,
+            Some(&[device_version])
+        )),
+        to_string!(core::get_kernel_arg_info(
+            &kernel,
+            0,
+            KernelArgInfo::Name,
+            Some(&[device_version])
+        )),
+        b = begin,
+        d = delim,
+        e = end,
     );
 
     // ##################################################
     // ################ KERNEL WORK GROUP ###############
     // ##################################################
 
-    println!("Kernel Work Group:{b}\
+    println!(
+        "Kernel Work Group:{b}\
             WorkGroupSize: {}{d}\
             CompileWorkGroupSize: {}{d}\
             LocalMemSize: {}{d}\
@@ -504,21 +723,47 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
             PrivateMemSize: {}{d}\
             GlobalWorkSize: {}{e}\
         ",
-        to_string!(core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::WorkGroupSize)),
-        to_string!(core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::CompileWorkGroupSize)),
-        to_string!(core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::LocalMemSize)),
-        to_string!(core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple)),
-        to_string!(core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::PrivateMemSize)),
-        to_string!(core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::GlobalWorkSize)),
-        b = begin, d = delim, e = end,
+        to_string!(core::get_kernel_work_group_info(
+            &kernel,
+            &device,
+            KernelWorkGroupInfo::WorkGroupSize
+        )),
+        to_string!(core::get_kernel_work_group_info(
+            &kernel,
+            &device,
+            KernelWorkGroupInfo::CompileWorkGroupSize
+        )),
+        to_string!(core::get_kernel_work_group_info(
+            &kernel,
+            &device,
+            KernelWorkGroupInfo::LocalMemSize
+        )),
+        to_string!(core::get_kernel_work_group_info(
+            &kernel,
+            &device,
+            KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple
+        )),
+        to_string!(core::get_kernel_work_group_info(
+            &kernel,
+            &device,
+            KernelWorkGroupInfo::PrivateMemSize
+        )),
+        to_string!(core::get_kernel_work_group_info(
+            &kernel,
+            &device,
+            KernelWorkGroupInfo::GlobalWorkSize
+        )),
+        b = begin,
+        d = delim,
+        e = end,
     );
-
 
     // ##################################################
     // ##################### EVENT ######################
     // ##################################################
 
-    println!("Event:{b}\
+    println!(
+        "Event:{b}\
             CommandQueue: {}{d}\
             CommandType: {}{d}\
             ReferenceCount: {}{d}\
@@ -528,29 +773,41 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         to_string!(core::get_event_info(&event, EventInfo::CommandQueue)),
         to_string!(core::get_event_info(&event, EventInfo::CommandType)),
         to_string!(core::get_event_info(&event, EventInfo::ReferenceCount)),
-        to_string!(core::get_event_info(&event, EventInfo::CommandExecutionStatus)),
+        to_string!(core::get_event_info(
+            &event,
+            EventInfo::CommandExecutionStatus
+        )),
         to_string!(core::get_event_info(&event, EventInfo::Context)),
-        b = begin, d = delim, e = end,
+        b = begin,
+        d = delim,
+        e = end,
     );
-
 
     // ##################################################
     // ################ EVENT PROFILING #################
     // ##################################################
 
-    println!("Event Profiling:{b}\
+    println!(
+        "Event Profiling:{b}\
             Queued: {}{d}\
             Submit: {}{d}\
             Start: {}{d}\
             End: {}{e}\
         ",
-        to_string!(core::get_event_profiling_info(&event, ProfilingInfo::Queued)),
-        to_string!(core::get_event_profiling_info(&event, ProfilingInfo::Submit)),
+        to_string!(core::get_event_profiling_info(
+            &event,
+            ProfilingInfo::Queued
+        )),
+        to_string!(core::get_event_profiling_info(
+            &event,
+            ProfilingInfo::Submit
+        )),
         to_string!(core::get_event_profiling_info(&event, ProfilingInfo::Start)),
         to_string!(core::get_event_profiling_info(&event, ProfilingInfo::End)),
-        b = begin, d = delim, e = end,
+        b = begin,
+        d = delim,
+        e = end,
     );
-
 
     // ##################################################
     // ###################### END #######################

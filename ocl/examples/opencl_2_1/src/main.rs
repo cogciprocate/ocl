@@ -2,25 +2,22 @@
 
 extern crate ocl;
 
-use ocl::{flags, Platform, Device, Context, Queue, Program, Buffer, Kernel};
+use ocl::{flags, Buffer, Context, Device, Kernel, Platform, Program, Queue};
 
 #[cfg(feature = "opencl_version_2_1")]
 static PLATFORM_NAME: &'static str = "Experimental OpenCL 2.1 CPU Only Platform";
 
-
 fn main() -> Result<(), ocl::Error> {
     #[cfg(feature = "opencl_version_2_1")]
     let il_src: Vec<u8> = vec![
-    // Magic number.           Version number: 1.0.
-    0x03, 0x02, 0x23, 0x07,    0x00, 0x00, 0x01, 0x00,
-    // Generator number: 0.    Bound: 0.
-    0x00, 0x00, 0x00, 0x00,    0x00, 0x00, 0x00, 0x00,
-    // Reserved word: 0.
-    0x00, 0x00, 0x00, 0x00,
-    // OpMemoryModel.          Logical.
-    0x0e, 0x00, 0x03, 0x00,    0x00, 0x00, 0x00, 0x00,
-    // OpenCL.
-    0x02, 0x00, 0x00, 0x00];
+        // Magic number.           Version number: 1.0.
+        0x03, 0x02, 0x23, 0x07, 0x00, 0x00, 0x01, 0x00,
+        // Generator number: 0.    Bound: 0.
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Reserved word: 0.
+        0x00, 0x00, 0x00, 0x00, // OpMemoryModel.          Logical.
+        0x0e, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, // OpenCL.
+        0x02, 0x00, 0x00, 0x00,
+    ];
 
     #[cfg(not(feature = "opencl_version_2_1"))]
     let src = r#"
@@ -32,7 +29,9 @@ fn main() -> Result<(), ocl::Error> {
     println!("Choosing platorm...");
 
     #[cfg(feature = "opencl_version_2_1")]
-    let platform = Platform::list().into_iter().find(|plat| plat.name().unwrap() == PLATFORM_NAME)
+    let platform = Platform::list()
+        .into_iter()
+        .find(|plat| plat.name().unwrap() == PLATFORM_NAME)
         .unwrap_or(Platform::default());
 
     #[cfg(not(feature = "opencl_version_2_1"))]
@@ -47,7 +46,8 @@ fn main() -> Result<(), ocl::Error> {
     let context = Context::builder()
         .platform(platform)
         .devices(device.clone())
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     println!("Building program...");
 
@@ -55,14 +55,15 @@ fn main() -> Result<(), ocl::Error> {
     let program = Program::builder()
         .devices(device)
         .il(&il_src)
-        .build(&context).unwrap();
+        .build(&context)
+        .unwrap();
 
     #[cfg(not(feature = "opencl_version_2_1"))]
     let program = Program::builder()
         .devices(device)
         .src(src)
-        .build(&context).unwrap();
-
+        .build(&context)
+        .unwrap();
 
     // let queue = Queue::new(&context, device, None).unwrap();
     // let dims = [1 << 20];
@@ -97,5 +98,3 @@ fn main() -> Result<(), ocl::Error> {
     // println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
     Ok(())
 }
-
-

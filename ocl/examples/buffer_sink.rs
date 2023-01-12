@@ -1,12 +1,11 @@
-
 extern crate futures;
 extern crate ocl;
 extern crate ocl_extras;
 
-use std::thread::{JoinHandle, Builder as ThreadBuilder};
 use futures::Future;
-use ocl::{ProQue, Buffer, MemFlags};
 use ocl::r#async::{BufferSink, WriteGuard};
+use ocl::{Buffer, MemFlags, ProQue};
+use std::thread::{Builder as ThreadBuilder, JoinHandle};
 
 // Our arbitrary data set size (about a million) and coefficent:
 const WORK_SIZE: usize = 1 << 20;
@@ -26,12 +25,12 @@ static KERNEL_SRC: &'static str = r#"
     }
 "#;
 
-
 fn buffer_sink() -> ocl::Result<()> {
     let ocl_pq = ProQue::builder()
         .src(KERNEL_SRC)
         .dims(WORK_SIZE)
-        .build().expect("Build ProQue");
+        .build()
+        .expect("Build ProQue");
 
     let source_buffer = Buffer::<i32>::builder()
         .queue(ocl_pq.queue().clone())
@@ -42,7 +41,8 @@ fn buffer_sink() -> ocl::Result<()> {
     let mut vec_result = vec![0i32; WORK_SIZE];
     let result_buffer: Buffer<i32> = ocl_pq.create_buffer()?;
 
-    let kern = ocl_pq.kernel_builder("multiply_by_scalar")
+    let kern = ocl_pq
+        .kernel_builder("multiply_by_scalar")
         .arg(COEFF)
         .arg(&source_buffer)
         .arg(&result_buffer)
@@ -50,35 +50,49 @@ fn buffer_sink() -> ocl::Result<()> {
     assert_eq!(kern.default_global_work_size().to_len(), WORK_SIZE);
 
     let buffer_sink = unsafe {
-        BufferSink::from_buffer(source_buffer.clone(), Some(ocl_pq.queue().clone()), 0,
-            WORK_SIZE)?
+        BufferSink::from_buffer(
+            source_buffer.clone(),
+            Some(ocl_pq.queue().clone()),
+            0,
+            WORK_SIZE,
+        )?
     };
     // let source_data = ocl_extras::scrambled_vec((0, 20), ocl_pq.dims().to_len());
-    let source_datas: Vec<_> = (0..THREAD_COUNT).map(|_| {
-        ocl_extras::scrambled_vec((0, 20), ocl_pq.dims().to_len())
-    }).collect();
+    let source_datas: Vec<_> = (0..THREAD_COUNT)
+        .map(|_| ocl_extras::scrambled_vec((0, 20), ocl_pq.dims().to_len()))
+        .collect();
     let mut threads = Vec::<JoinHandle<()>>::with_capacity(THREAD_COUNT * 2);
 
     for i in 0..THREAD_COUNT {
         let writer_0 = buffer_sink.clone().write();
-        threads.push(ThreadBuilder::new().name(format!("thread_{}", i)).spawn(move || {
-            let mut write_guard = writer_0.wait().unwrap();
-            write_guard.copy_from_slice(&[0i32; WORK_SIZE]);
-            let buffer_sink: BufferSink<_> = WriteGuard::release(write_guard).into();
-            buffer_sink.flush().enq().unwrap().wait().unwrap();
-        })?);
+        threads.push(
+            ThreadBuilder::new()
+                .name(format!("thread_{}", i))
+                .spawn(move || {
+                    let mut write_guard = writer_0.wait().unwrap();
+                    write_guard.copy_from_slice(&[0i32; WORK_SIZE]);
+                    let buffer_sink: BufferSink<_> = WriteGuard::release(write_guard).into();
+                    buffer_sink.flush().enq().unwrap().wait().unwrap();
+                })?,
+        );
 
         let source_data = source_datas[i].clone();
 
         let writer_1 = buffer_sink.clone().write();
-        threads.push(ThreadBuilder::new().name(format!("thread_{}", i)).spawn(move || {
-            let mut write_guard = writer_1.wait().unwrap();
-            write_guard.copy_from_slice(&source_data);
-            let buffer_sink: BufferSink<_> = WriteGuard::release(write_guard).into();
-            buffer_sink.flush().enq().unwrap().wait().unwrap();
-        })?);
+        threads.push(
+            ThreadBuilder::new()
+                .name(format!("thread_{}", i))
+                .spawn(move || {
+                    let mut write_guard = writer_1.wait().unwrap();
+                    write_guard.copy_from_slice(&source_data);
+                    let buffer_sink: BufferSink<_> = WriteGuard::release(write_guard).into();
+                    buffer_sink.flush().enq().unwrap().wait().unwrap();
+                })?,
+        );
 
-        unsafe { kern.enq()?; }
+        unsafe {
+            kern.enq()?;
+        }
 
         result_buffer.read(&mut vec_result).enq()?;
 

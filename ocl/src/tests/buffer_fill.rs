@@ -14,7 +14,8 @@ fn fill() {
     let pro_que = ProQue::builder()
         .src(src)
         .dims(DATASET_SIZE)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     let buffer = pro_que.create_buffer::<f32>().unwrap();
 
@@ -27,12 +28,16 @@ fn fill() {
         assert_eq!(ele, 5.0f32);
     }
 
-    let kernel = pro_que.kernel_builder("add")
+    let kernel = pro_que
+        .kernel_builder("add")
         .arg(&buffer)
         .arg(&10.0f32)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
-    unsafe { kernel.enq().expect("[FIXME]: HANDLE ME!"); }
+    unsafe {
+        kernel.enq().expect("[FIXME]: HANDLE ME!");
+    }
 
     let mut vec = vec![0.0f32; buffer.len()];
     buffer.read(&mut vec).enq().unwrap();
@@ -61,7 +66,8 @@ fn fill_with_float4() {
     let pro_que = ProQue::builder()
         .src(src)
         .dims(DATASET_SIZE)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     let buffer = pro_que.create_buffer::<Float4>().unwrap();
 
@@ -74,12 +80,16 @@ fn fill_with_float4() {
         assert_eq!(ele, start_val);
     }
 
-    let kernel = pro_que.kernel_builder("add_float4")
+    let kernel = pro_que
+        .kernel_builder("add_float4")
         .arg(&buffer)
         .arg(addend)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
-    unsafe { kernel.enq().unwrap(); }
+    unsafe {
+        kernel.enq().unwrap();
+    }
 
     buffer.read(&mut vec).enq().unwrap();
 

@@ -14,7 +14,6 @@ pub type cl_d3d10_device_set_khr = cl_uint;
 // #define CL_D3D10_RESOURCE_ALREADY_ACQUIRED_KHR       -1004
 // #define CL_D3D10_RESOURCE_NOT_ACQUIRED_KHR           -1005
 
-
 // /**********************************************************************************
 //  * Copyright (c) 2008-2015 The Khronos Group Inc.
 //  *
@@ -42,9 +41,7 @@ pub type cl_d3d10_device_set_khr = cl_uint;
 //  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 //  * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
 //  **********************************************************************************/
-
 // /* $Revision: 11708 $ on $Date: 2010-06-13 23:36:24 -0700 (Sun, 13 Jun 2010) $ */
-
 // #ifndef __OPENCL_CL_D3D10_H
 // #define __OPENCL_CL_D3D10_H
 
@@ -64,7 +61,6 @@ pub type cl_d3d10_device_set_khr = cl_uint;
 // typedef cl_uint cl_d3d10_device_set_khr;
 
 // /******************************************************************************/
-
 // /* Error Codes */
 // #define CL_INVALID_D3D10_DEVICE_KHR                  -1002
 // #define CL_INVALID_D3D10_RESOURCE_KHR                -1003
@@ -94,7 +90,6 @@ pub type cl_d3d10_device_set_khr = cl_uint;
 // #define CL_COMMAND_RELEASE_D3D10_OBJECTS_KHR         0x4018
 
 // /******************************************************************************/
-
 // typedef CL_API_ENTRY cl_int (CL_API_CALL *clGetDeviceIDsFromD3D10KHR_fn)(
 //     cl_platform_id             platform,
 //     cl_d3d10_device_source_khr d3d_device_source,

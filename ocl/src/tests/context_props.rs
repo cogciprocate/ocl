@@ -1,7 +1,7 @@
 //! Test adding multiple context properties.
 
-use crate::standard::{Platform, Device, Context};
-use crate::core::{ContextPropertyValue};
+use crate::core::ContextPropertyValue;
+use crate::standard::{Context, Device, Platform};
 
 // static SRC: &'static str = r#"
 //     __kernel void multiply(__global float* buffer, float coeff) {
@@ -14,7 +14,10 @@ fn test_context_props() {
     // let dims = [2048];
     let platforms = Platform::list();
 
-    println!("Looping through each avaliable platform ({}):", platforms.len());
+    println!(
+        "Looping through each avaliable platform ({}):",
+        platforms.len()
+    );
 
     // Loop through all avaliable platforms:
     for p_idx in 0..platforms.len() {
@@ -22,21 +25,27 @@ fn test_context_props() {
 
         let devices = Device::list_all(platform).unwrap();
 
-        if devices.is_empty() { continue; }
+        if devices.is_empty() {
+            continue;
+        }
 
         // [NOTE]: A new context can also be created for each device if desired.
         let context = Context::builder()
             .platform(platform.clone())
             .property(ContextPropertyValue::Platform(platform.clone().into()))
             .devices(&devices)
-            .build().unwrap();
-
+            .build()
+            .unwrap();
 
         println!("{}", platform);
         println!("{}", context);
 
         for device in devices.iter() {
-            println!("Device {{ Name: {}, Vendor: {} }}", device.name().unwrap(), device.vendor().unwrap());
+            println!(
+                "Device {{ Name: {}, Vendor: {} }}",
+                device.name().unwrap(),
+                device.vendor().unwrap()
+            );
         }
 
         // print!("\n\n");

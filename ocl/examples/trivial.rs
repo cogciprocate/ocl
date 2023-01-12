@@ -8,19 +8,19 @@ fn trivial() -> ocl::Result<()> {
         }
     "#;
 
-    let pro_que = ProQue::builder()
-        .src(src)
-        .dims(1 << 20)
-        .build()?;
+    let pro_que = ProQue::builder().src(src).dims(1 << 20).build()?;
 
     let buffer = pro_que.create_buffer::<f32>()?;
 
-    let kernel = pro_que.kernel_builder("add")
+    let kernel = pro_que
+        .kernel_builder("add")
         .arg(&buffer)
         .arg(10.0f32)
         .build()?;
 
-    unsafe { kernel.enq()?; }
+    unsafe {
+        kernel.enq()?;
+    }
 
     let mut vec = vec![0.0f32; buffer.len()];
     buffer.read(&mut vec).enq()?;
@@ -28,7 +28,6 @@ fn trivial() -> ocl::Result<()> {
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
     Ok(())
 }
-
 
 /// Expanded version with explanations.
 ///
@@ -47,22 +46,22 @@ fn trivial_explained() -> ocl::Result<()> {
 
     // (1) Create an all-in-one context, program, command queue, and work /
     // buffer dimensions:
-    let pro_que = ProQue::builder()
-        .src(src)
-        .dims(1 << 20)
-        .build()?;
+    let pro_que = ProQue::builder().src(src).dims(1 << 20).build()?;
 
     // (2) Create a `Buffer`:
     let buffer = pro_que.create_buffer::<f32>()?;
 
     // (3) Create a kernel with arguments matching those in the source above:
-    let kernel = pro_que.kernel_builder("add")
+    let kernel = pro_que
+        .kernel_builder("add")
         .arg(&buffer)
         .arg(&10.0f32)
         .build()?;
 
     // (4) Run the kernel:
-    unsafe { kernel.enq()?; }
+    unsafe {
+        kernel.enq()?;
+    }
 
     // (5) Read results from the device into a vector:
     let mut vec = vec![0.0f32; buffer.len()];
@@ -72,7 +71,6 @@ fn trivial_explained() -> ocl::Result<()> {
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
     Ok(())
 }
-
 
 /// Exploded version. Boom!
 ///
@@ -89,8 +87,7 @@ fn trivial_explained() -> ocl::Result<()> {
 ///
 #[allow(dead_code)]
 fn trivial_exploded() -> ocl::Result<()> {
-    use ocl::{flags, Platform, Device, Context, Queue, Program,
-        Buffer, Kernel};
+    use ocl::{flags, Buffer, Context, Device, Kernel, Platform, Program, Queue};
 
     let src = r#"
         __kernel void add(__global float* buffer, float scalar) {
@@ -137,7 +134,8 @@ fn trivial_exploded() -> ocl::Result<()> {
 
     // (4) Run the kernel (default parameters shown for demonstration purposes):
     unsafe {
-        kernel.cmd()
+        kernel
+            .cmd()
             .queue(&queue)
             .global_work_offset(kernel.default_global_work_offset())
             .global_work_size(dims)
@@ -147,17 +145,12 @@ fn trivial_exploded() -> ocl::Result<()> {
 
     // (5) Read results from the device into a vector (`::block` not shown):
     let mut vec = vec![0.0f32; dims];
-    buffer.cmd()
-        .queue(&queue)
-        .offset(0)
-        .read(&mut vec)
-        .enq()?;
+    buffer.cmd().queue(&queue).offset(0).read(&mut vec).enq()?;
 
     // Print an element:
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
     Ok(())
 }
-
 
 /// Falling down the hole...
 ///
@@ -170,10 +163,10 @@ fn trivial_exploded() -> ocl::Result<()> {
 ///
 #[allow(dead_code, unused_variables, unused_mut)]
 fn trivial_cored() -> ocl::core::Result<()> {
-    use std::ffi::CString;
-    use ocl::{core, flags};
-    use ocl::enums::ArgVal;
     use ocl::builders::ContextProperties;
+    use ocl::enums::ArgVal;
+    use ocl::{core, flags};
+    use std::ffi::CString;
 
     let src = r#"
         __kernel void add(__global float* buffer, float scalar) {
@@ -187,19 +180,23 @@ fn trivial_cored() -> ocl::core::Result<()> {
     let device_ids = core::get_device_ids(&platform_id, None, None)?;
     let device_id = device_ids[0];
     let context_properties = ContextProperties::new().platform(platform_id);
-    let context = core::create_context(Some(&context_properties),
-        &[device_id], None, None)?;
+    let context = core::create_context(Some(&context_properties), &[device_id], None, None)?;
     let src_cstring = CString::new(src)?;
     let program = core::create_program_with_source(&context, &[src_cstring])?;
-    core::build_program(&program, Some(&[device_id]), &CString::new("")?,
-        None, None)?;
+    core::build_program(&program, Some(&[device_id]), &CString::new("")?, None, None)?;
     let queue = core::create_command_queue(&context, &device_id, None)?;
     let dims = [1 << 20, 1, 1];
 
     // (2) Create a `Buffer`:
     let mut vec = vec![0.0f32; dims[0]];
-    let buffer = unsafe { core::create_buffer(&context, flags::MEM_READ_WRITE |
-        flags::MEM_COPY_HOST_PTR, dims[0], Some(&vec))? };
+    let buffer = unsafe {
+        core::create_buffer(
+            &context,
+            flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
+            dims[0],
+            Some(&vec),
+        )?
+    };
 
     // (3) Create a kernel with arguments matching those in the source above:
     let kernel = core::create_kernel(&program, "add")?;
@@ -207,18 +204,36 @@ fn trivial_cored() -> ocl::core::Result<()> {
     core::set_kernel_arg(&kernel, 1, ArgVal::scalar(&10.0f32))?;
 
     // (4) Run the kernel:
-    unsafe { core::enqueue_kernel(&queue, &kernel, 1, None, &dims,
-        None, None::<core::Event>, None::<&mut core::Event>)?; }
+    unsafe {
+        core::enqueue_kernel(
+            &queue,
+            &kernel,
+            1,
+            None,
+            &dims,
+            None,
+            None::<core::Event>,
+            None::<&mut core::Event>,
+        )?;
+    }
 
     // (5) Read results from the device into a vector:
-    unsafe { core::enqueue_read_buffer(&queue, &buffer, true, 0, &mut vec,
-        None::<core::Event>, None::<&mut core::Event>)?; }
+    unsafe {
+        core::enqueue_read_buffer(
+            &queue,
+            &buffer,
+            true,
+            0,
+            &mut vec,
+            None::<core::Event>,
+            None::<&mut core::Event>,
+        )?;
+    }
 
     // Print an element:
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
     Ok(())
 }
-
 
 fn main() {
     trivial().unwrap();

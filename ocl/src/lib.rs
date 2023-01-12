@@ -48,30 +48,33 @@
 
 // #![warn(missing_docs)]
 
-extern crate num_traits;
 extern crate futures;
+extern crate num_traits;
 pub extern crate ocl_core as core;
 
-
+pub mod r#async;
+pub mod error;
+mod standard;
 #[cfg(test)]
 mod tests;
-mod standard;
-pub mod error;
-pub mod r#async;
 
-pub use self::standard::{Platform, Extensions, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
-    EventList, EventArray, Sampler, SpatialDims, ProQue, BufferCmdError};
-pub use self::r#async::{MemMap, FutureMemMap, RwVec, ReadGuard, WriteGuard,
-    FutureReadGuard, FutureWriteGuard};
-pub use crate::error::{Error, Result};
-pub use crate::{core::Error as OclCoreError};
+pub use self::r#async::{
+    FutureMemMap, FutureReadGuard, FutureWriteGuard, MemMap, ReadGuard, RwVec, WriteGuard,
+};
+pub use self::standard::{
+    Buffer, BufferCmdError, Context, Device, Event, EventArray, EventList, Extensions, Image,
+    Kernel, Platform, ProQue, Program, Queue, Sampler, SpatialDims,
+};
 #[doc(no_inline)]
 pub use crate::core::ffi;
 #[doc(no_inline)]
 pub use crate::core::util;
+pub use crate::core::Error as OclCoreError;
 #[doc(no_inline)]
-pub use crate::core::{OclPrm, OclScl, OclVec, DeviceType, CommandQueueProperties, MemFlags, MapFlags};
-
+pub use crate::core::{
+    CommandQueueProperties, DeviceType, MapFlags, MemFlags, OclPrm, OclScl, OclVec,
+};
+pub use crate::error::{Error, Result};
 
 pub mod prm {
     //! OpenCL scalar and vector primitive types.
@@ -101,41 +104,41 @@ pub mod prm {
     //!
     //! [NOTE]: This module may be renamed.
 
-    pub use crate::ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
-        cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
+    pub use crate::ffi::{
+        cl_bitfield, cl_bool, cl_char, cl_double, cl_float, cl_half, cl_int, cl_long, cl_short,
+        cl_uchar, cl_uint, cl_ulong, cl_ushort,
+    };
 
-    pub use crate::ffi::{ cl_GLuint, cl_GLint, cl_GLenum };
+    pub use crate::ffi::{cl_GLenum, cl_GLint, cl_GLuint};
 
     // Wrapping types. Use these to mimic in-kernel behaviour:
     pub use crate::core::{
-        Char, Char2, Char3, Char4, Char8, Char16,
-        Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
-        Short, Short2, Short3, Short4, Short8, Short16,
-        Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
-        Int, Int2, Int3, Int4, Int8, Int16,
-        Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
-        Long, Long2, Long3, Long4, Long8, Long16,
-        Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
-        Float, Float2, Float3, Float4, Float8, Float16,
-        Double, Double2, Double3, Double4, Double8, Double16};
+        Char, Char16, Char2, Char3, Char4, Char8, Double, Double16, Double2, Double3, Double4,
+        Double8, Float, Float16, Float2, Float3, Float4, Float8, Int, Int16, Int2, Int3, Int4,
+        Int8, Long, Long16, Long2, Long3, Long4, Long8, Short, Short16, Short2, Short3, Short4,
+        Short8, Uchar, Uchar16, Uchar2, Uchar3, Uchar4, Uchar8, Uint, Uint16, Uint2, Uint3, Uint4,
+        Uint8, Ulong, Ulong16, Ulong2, Ulong3, Ulong4, Ulong8, Ushort, Ushort16, Ushort2, Ushort3,
+        Ushort4, Ushort8,
+    };
 }
 
 pub mod traits {
     //! Commonly used traits.
 
-    pub use crate::standard::{WorkDims, MemLen, IntoMarker, IntoRawEventArray};
     pub use crate::core::{OclPrm, OclScl, OclVec};
+    pub use crate::standard::{IntoMarker, IntoRawEventArray, MemLen, WorkDims};
 }
 
 pub mod builders {
     //! Builders and associated settings-related types.
 
-    pub use crate::standard::{ContextBuilder, BuildOpt, ProgramBuilder, ImageBuilder, ProQueBuilder,
-        DeviceSpecifier, BufferCmdKind, BufferCmdDataShape, BufferCmd, BufferReadCmd,
-        BufferWriteCmd, BufferMapCmd, ImageCmdKind, ImageCmd, KernelCmd, BufferBuilder,
-        KernelBuilder};
+    pub use crate::core::{ContextProperties, ImageDescriptor, ImageFormat};
+    pub use crate::standard::{
+        BufferBuilder, BufferCmd, BufferCmdDataShape, BufferCmdKind, BufferMapCmd, BufferReadCmd,
+        BufferWriteCmd, BuildOpt, ContextBuilder, DeviceSpecifier, ImageBuilder, ImageCmd,
+        ImageCmdKind, KernelBuilder, KernelCmd, ProQueBuilder, ProgramBuilder,
+    };
     pub use crate::standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
-    pub use crate::core::{ImageFormat, ImageDescriptor, ContextProperties};
     // #[cfg(not(release))] pub use standard::BufferTest;
 }
 
@@ -143,56 +146,98 @@ pub mod flags {
     //! Bitflags for various parameter types.
 
     pub use crate::core::{
-        // cl_device_type - bitfield
-        DeviceType, DEVICE_TYPE_DEFAULT, DEVICE_TYPE_CPU, DEVICE_TYPE_GPU, DEVICE_TYPE_ACCELERATOR,
-            DEVICE_TYPE_CUSTOM, DEVICE_TYPE_ALL,
-        // cl_device_fp_config - bitfield
-        DeviceFpConfig, FP_DENORM, FP_INF_NAN, FP_ROUND_TO_NEAREST, FP_ROUND_TO_ZERO,
-            FP_ROUND_TO_INF, FP_FMA, FP_SOFT_FLOAT, FP_CORRECTLY_ROUNDED_DIVIDE_SQRT,
-        // cl_device_exec_capabilities - bitfield
-        DeviceExecCapabilities, EXEC_KERNEL, EXEC_NATIVE_KERNEL,
         // cl_command_queue_properties - bitfield
-        CommandQueueProperties, QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, QUEUE_PROFILING_ENABLE,
+        CommandQueueProperties,
         // cl_device_affinity_domain
-        DeviceAffinityDomain, DEVICE_AFFINITY_DOMAIN_NUMA, DEVICE_AFFINITY_DOMAIN_L4_CACHE,
-            DEVICE_AFFINITY_DOMAIN_L3_CACHE, DEVICE_AFFINITY_DOMAIN_L2_CACHE,
-            DEVICE_AFFINITY_DOMAIN_L1_CACHE, DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE,
-        // cl_mem_flags - bitfield
-        MemFlags, MEM_READ_WRITE, MEM_WRITE_ONLY, MEM_READ_ONLY, MEM_USE_HOST_PTR,
-            MEM_ALLOC_HOST_PTR, MEM_COPY_HOST_PTR, MEM_HOST_WRITE_ONLY, MEM_HOST_READ_ONLY,
-            MEM_HOST_NO_ACCESS,
-        // cl_mem_migration_flags - bitfield
-        MemMigrationFlags, MIGRATE_MEM_OBJECT_HOST, MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED,
-        // cl_map_flags - bitfield
-        MapFlags, MAP_READ, MAP_WRITE, MAP_WRITE_INVALIDATE_REGION,
-        // cl_program_binary_type
-        ProgramBinaryType, PROGRAM_BINARY_TYPE_NONE, PROGRAM_BINARY_TYPE_COMPILED_OBJECT,
-            PROGRAM_BINARY_TYPE_LIBRARY, PROGRAM_BINARY_TYPE_EXECUTABLE,
+        DeviceAffinityDomain,
+        // cl_device_exec_capabilities - bitfield
+        DeviceExecCapabilities,
+        // cl_device_fp_config - bitfield
+        DeviceFpConfig,
+        // cl_device_type - bitfield
+        DeviceType,
         // cl_kernel_arg_type_qualifer
-        KernelArgTypeQualifier, KERNEL_ARG_TYPE_NONE, KERNEL_ARG_TYPE_CONST,
-            KERNEL_ARG_TYPE_RESTRICT, KERNEL_ARG_TYPE_VOLATILE,
+        KernelArgTypeQualifier,
+        // cl_map_flags - bitfield
+        MapFlags,
+        // cl_mem_flags - bitfield
+        MemFlags,
+        // cl_mem_migration_flags - bitfield
+        MemMigrationFlags,
+        // cl_program_binary_type
+        ProgramBinaryType,
+        DEVICE_AFFINITY_DOMAIN_L1_CACHE,
+        DEVICE_AFFINITY_DOMAIN_L2_CACHE,
+        DEVICE_AFFINITY_DOMAIN_L3_CACHE,
+        DEVICE_AFFINITY_DOMAIN_L4_CACHE,
+        DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE,
+        DEVICE_AFFINITY_DOMAIN_NUMA,
+        DEVICE_TYPE_ACCELERATOR,
+        DEVICE_TYPE_ALL,
+        DEVICE_TYPE_CPU,
+        DEVICE_TYPE_CUSTOM,
+        DEVICE_TYPE_DEFAULT,
+        DEVICE_TYPE_GPU,
+        EXEC_KERNEL,
+        EXEC_NATIVE_KERNEL,
+        FP_CORRECTLY_ROUNDED_DIVIDE_SQRT,
+        FP_DENORM,
+        FP_FMA,
+        FP_INF_NAN,
+        FP_ROUND_TO_INF,
+        FP_ROUND_TO_NEAREST,
+        FP_ROUND_TO_ZERO,
+        FP_SOFT_FLOAT,
+        KERNEL_ARG_TYPE_CONST,
+        KERNEL_ARG_TYPE_NONE,
+        KERNEL_ARG_TYPE_RESTRICT,
+        KERNEL_ARG_TYPE_VOLATILE,
+        MAP_READ,
+        MAP_WRITE,
+        MAP_WRITE_INVALIDATE_REGION,
+        MEM_ALLOC_HOST_PTR,
+        MEM_COPY_HOST_PTR,
+        MEM_HOST_NO_ACCESS,
+        MEM_HOST_READ_ONLY,
+        MEM_HOST_WRITE_ONLY,
+        MEM_READ_ONLY,
+        MEM_READ_WRITE,
+        MEM_USE_HOST_PTR,
+        MEM_WRITE_ONLY,
+        MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED,
+        MIGRATE_MEM_OBJECT_HOST,
+        PROGRAM_BINARY_TYPE_COMPILED_OBJECT,
+        PROGRAM_BINARY_TYPE_EXECUTABLE,
+        PROGRAM_BINARY_TYPE_LIBRARY,
+        PROGRAM_BINARY_TYPE_NONE,
+        QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
+        QUEUE_PROFILING_ENABLE,
     };
 }
 
 pub mod enums {
     //! Enumerators for settings and information requests.
 
-    pub use crate::standard::{DeviceSpecifier, BufferCmdKind, BufferCmdDataShape, WriteSrc};
+    pub use crate::standard::{BufferCmdDataShape, BufferCmdKind, DeviceSpecifier, WriteSrc};
 
     // API enums.
-    pub use crate::core::{ImageChannelOrder, ImageChannelDataType, Cbool, Polling, PlatformInfo,
-        DeviceInfo, DeviceMemCacheType, DeviceLocalMemType, ContextInfo, ContextProperty,
-        ContextInfoOrPropertiesPointerType, DevicePartitionProperty, CommandQueueInfo, ChannelType,
-        MemObjectType, MemInfo, ImageInfo, AddressingMode, FilterMode, SamplerInfo, ProgramInfo,
-        ProgramBuildInfo, ProgramBuildStatus, KernelInfo, KernelArgInfo, KernelArgAddressQualifier,
-        KernelArgAccessQualifier, KernelWorkGroupInfo, EventInfo, CommandType,
-        CommandExecutionStatus, BufferCreateType, ProfilingInfo};
+    pub use crate::core::{
+        AddressingMode, BufferCreateType, Cbool, ChannelType, CommandExecutionStatus,
+        CommandQueueInfo, CommandType, ContextInfo, ContextInfoOrPropertiesPointerType,
+        ContextProperty, DeviceInfo, DeviceLocalMemType, DeviceMemCacheType,
+        DevicePartitionProperty, EventInfo, FilterMode, ImageChannelDataType, ImageChannelOrder,
+        ImageInfo, KernelArgAccessQualifier, KernelArgAddressQualifier, KernelArgInfo, KernelInfo,
+        KernelWorkGroupInfo, MemInfo, MemObjectType, PlatformInfo, Polling, ProfilingInfo,
+        ProgramBuildInfo, ProgramBuildStatus, ProgramInfo, SamplerInfo,
+    };
 
     // Custom enums.
-    pub use crate::core::{ArgVal, ContextPropertyValue, PlatformInfoResult, DeviceInfoResult,
-        ContextInfoResult, CommandQueueInfoResult, MemInfoResult, ImageInfoResult,
-        SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult,
-        KernelArgInfoResult, KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};
+    pub use crate::core::{
+        ArgVal, CommandQueueInfoResult, ContextInfoResult, ContextPropertyValue, DeviceInfoResult,
+        EventInfoResult, ImageInfoResult, KernelArgInfoResult, KernelInfoResult,
+        KernelWorkGroupInfoResult, MemInfoResult, PlatformInfoResult, ProfilingInfoResult,
+        ProgramBuildInfoResult, ProgramInfoResult, SamplerInfoResult,
+    };
 
     // Error status.
     pub use crate::core::Status;

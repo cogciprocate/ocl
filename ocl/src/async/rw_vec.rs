@@ -6,16 +6,13 @@
 //
 //
 
-
-use std::ops::{Deref, DerefMut};
-use crate::r#async::{OrderLock, FutureGuard, ReadGuard, WriteGuard};
 use crate::r#async::qutex::QrwLock;
-
+use crate::r#async::{FutureGuard, OrderLock, ReadGuard, WriteGuard};
+use std::ops::{Deref, DerefMut};
 
 // pub type FutureRwVecGuard<T, G> = FutureGuard<Vec<T>, G>;
 // pub type FutureReadGuard<Vec<T>> = FutureRwGuard<T, ReadGuard<Vec<T>>>;
 // pub type FutureWriteGuard<Vec<T>> = FutureRwGuard<T, WriteGuard<Vec<T>>>;
-
 
 /// A locking `Vec` which interoperates with OpenCL events and Rust futures to
 /// provide exclusive access to data.
@@ -42,14 +39,13 @@ impl<T> RwVec<T> {
     #[inline]
     pub fn new() -> RwVec<T> {
         RwVec {
-            lock: OrderLock::new(Vec::new())
+            lock: OrderLock::new(Vec::new()),
         }
     }
 
     /// Returns a new `FutureRwGuard` which will resolve into a a `RwGuard`.
     pub fn read(self) -> FutureGuard<Vec<T>, ReadGuard<Vec<T>>> {
         self.lock.read()
-
     }
 
     /// Returns a new `FutureRwGuard` which will resolve into a a `RwGuard`.
@@ -96,13 +92,17 @@ impl<T> RwVec<T> {
 
 impl<T> From<QrwLock<Vec<T>>> for RwVec<T> {
     fn from(q: QrwLock<Vec<T>>) -> RwVec<T> {
-        RwVec { lock: OrderLock::from(q) }
+        RwVec {
+            lock: OrderLock::from(q),
+        }
     }
 }
 
 impl<T> From<Vec<T>> for RwVec<T> {
     fn from(vec: Vec<T>) -> RwVec<T> {
-        RwVec { lock: OrderLock::from(vec) }
+        RwVec {
+            lock: OrderLock::from(vec),
+        }
     }
 }
 

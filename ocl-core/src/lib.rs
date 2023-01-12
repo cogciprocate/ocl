@@ -106,90 +106,144 @@
 extern crate bitflags;
 #[macro_use]
 extern crate enum_primitive;
-extern crate num_traits;
+pub extern crate cl_sys as ffi;
 extern crate num_complex;
+extern crate num_traits;
 #[cfg(feature = "ocl-core-vector")]
 extern crate ocl_core_vector as vector;
-pub extern crate cl_sys as ffi;
 
-#[cfg(test)] mod tests;
-mod functions;
-pub mod types;
 pub mod error;
+mod functions;
+#[cfg(test)]
+mod tests;
+pub mod types;
 pub mod util;
 
 pub use self::error::{Error, Result};
 
-pub use self::types::abs::{ClWaitListPtr, ClNullEventPtr, ClEventPtrRef, ClPlatformIdPtr,
-    ClDeviceIdPtr, ClContextPtr, EventRefWrapper, PlatformId, DeviceId, Context, CommandQueue, Mem,
-    Program, Kernel, Event, Sampler, ClVersions, AsMem, MemCmdRw, MemCmdAll, MemMap};
+pub use self::types::abs::{
+    AsMem, ClContextPtr, ClDeviceIdPtr, ClEventPtrRef, ClNullEventPtr, ClPlatformIdPtr, ClVersions,
+    ClWaitListPtr, CommandQueue, Context, DeviceId, Event, EventRefWrapper, Kernel, Mem, MemCmdAll,
+    MemCmdRw, MemMap, PlatformId, Program, Sampler,
+};
 
-pub use self::types::structs::{self, OpenclVersion, ContextProperties, ImageFormatParseError,
-    ImageFormatParseResult, ImageFormat, ImageDescriptor, BufferRegion, ContextPropertyValue,
-    ArgVal};
+pub use self::types::structs::{
+    self, ArgVal, BufferRegion, ContextProperties, ContextPropertyValue, ImageDescriptor,
+    ImageFormat, ImageFormatParseError, ImageFormatParseResult, OpenclVersion,
+};
 
-pub use self::types::enums::{EmptyInfoResultError, PlatformInfoResult, DeviceInfoResult,
-    ContextInfoResult, GlContextInfoResult, CommandQueueInfoResult, MemInfoResult, ImageInfoResult,
-    SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult,
-    KernelArgInfoResult, KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};
+pub use self::types::enums::{
+    CommandQueueInfoResult, ContextInfoResult, DeviceInfoResult, EmptyInfoResultError,
+    EventInfoResult, GlContextInfoResult, ImageInfoResult, KernelArgInfoResult, KernelInfoResult,
+    KernelWorkGroupInfoResult, MemInfoResult, PlatformInfoResult, ProfilingInfoResult,
+    ProgramBuildInfoResult, ProgramInfoResult, SamplerInfoResult,
+};
 
-pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids, get_device_info,
-    create_sub_devices, retain_device, release_device, create_context, create_context_from_type,
-    retain_context, release_context, get_context_info,
-    create_command_queue, retain_command_queue, release_command_queue, get_command_queue_info,
-    create_buffer, create_sub_buffer, create_image, retain_mem_object, release_mem_object,
-    get_supported_image_formats, get_mem_object_info, get_image_info,
-    set_mem_object_destructor_callback, create_sampler, retain_sampler, release_sampler,
-    get_sampler_info, create_program_with_source, create_program_with_binary,
-    create_program_with_built_in_kernels, retain_program, release_program, build_program,
-    compile_program, link_program, create_build_program, get_program_info, get_program_build_info,
-    create_kernel, create_kernels_in_program, retain_kernel, release_kernel, set_kernel_arg,
-    get_kernel_info, get_kernel_arg_info, get_kernel_work_group_info, wait_for_events,
-    get_event_info, create_user_event, retain_event, release_event, set_user_event_status,
-    set_event_callback, get_event_profiling_info, flush, finish, enqueue_read_buffer,
-    enqueue_read_buffer_rect, enqueue_write_buffer, enqueue_write_buffer_rect, enqueue_copy_buffer,
-    enqueue_copy_buffer_rect,
-    enqueue_read_image, enqueue_write_image, enqueue_fill_image, enqueue_copy_image,
-    enqueue_copy_image_to_buffer, enqueue_copy_buffer_to_image, enqueue_map_buffer,
-    enqueue_map_image, enqueue_unmap_mem_object, enqueue_migrate_mem_objects, enqueue_kernel,
-    enqueue_task, enqueue_native_kernel, enqueue_marker_with_wait_list,
-    enqueue_barrier_with_wait_list, get_extension_function_address_for_platform, wait_for_event,
-    event_status, default_platform_idx, program_build_err, verify_context, default_platform,
-    default_device_type, device_versions, event_is_complete, _dummy_event_callback,
-    _complete_user_event, get_context_platform, get_device_info_raw};
-
-#[cfg(not(feature="opencl_vendor_mesa"))]
 pub use self::functions::{
-    get_gl_context_info_khr,
-    create_from_gl_buffer, create_from_gl_renderbuffer, create_from_gl_texture,
-    create_from_gl_texture_2d, create_from_gl_texture_3d, enqueue_fill_buffer,
-    enqueue_acquire_gl_objects, enqueue_release_gl_objects};
+    _complete_user_event, _dummy_event_callback, build_program, compile_program, create_buffer,
+    create_build_program, create_command_queue, create_context, create_context_from_type,
+    create_image, create_kernel, create_kernels_in_program, create_program_with_binary,
+    create_program_with_built_in_kernels, create_program_with_source, create_sampler,
+    create_sub_buffer, create_sub_devices, create_user_event, default_device_type,
+    default_platform, default_platform_idx, device_versions, enqueue_barrier_with_wait_list,
+    enqueue_copy_buffer, enqueue_copy_buffer_rect, enqueue_copy_buffer_to_image,
+    enqueue_copy_image, enqueue_copy_image_to_buffer, enqueue_fill_image, enqueue_kernel,
+    enqueue_map_buffer, enqueue_map_image, enqueue_marker_with_wait_list,
+    enqueue_migrate_mem_objects, enqueue_native_kernel, enqueue_read_buffer,
+    enqueue_read_buffer_rect, enqueue_read_image, enqueue_task, enqueue_unmap_mem_object,
+    enqueue_write_buffer, enqueue_write_buffer_rect, enqueue_write_image, event_is_complete,
+    event_status, finish, flush, get_command_queue_info, get_context_info, get_context_platform,
+    get_device_ids, get_device_info, get_device_info_raw, get_event_info, get_event_profiling_info,
+    get_extension_function_address_for_platform, get_image_info, get_kernel_arg_info,
+    get_kernel_info, get_kernel_work_group_info, get_mem_object_info, get_platform_ids,
+    get_platform_info, get_program_build_info, get_program_info, get_sampler_info,
+    get_supported_image_formats, link_program, program_build_err, release_command_queue,
+    release_context, release_device, release_event, release_kernel, release_mem_object,
+    release_program, release_sampler, retain_command_queue, retain_context, retain_device,
+    retain_event, retain_kernel, retain_mem_object, retain_program, retain_sampler,
+    set_event_callback, set_kernel_arg, set_mem_object_destructor_callback, set_user_event_status,
+    verify_context, wait_for_event, wait_for_events,
+};
 
-pub use crate::traits::{OclPrm, OclNum, OclScl};
+#[cfg(not(feature = "opencl_vendor_mesa"))]
+pub use self::functions::{
+    create_from_gl_buffer, create_from_gl_renderbuffer, create_from_gl_texture,
+    create_from_gl_texture_2d, create_from_gl_texture_3d, enqueue_acquire_gl_objects,
+    enqueue_fill_buffer, enqueue_release_gl_objects, get_gl_context_info_khr,
+};
+
+pub use crate::traits::{OclNum, OclPrm, OclScl};
 
 #[cfg(feature = "ocl-core-vector")]
 pub use self::vector::{
-// pub use self::types::vector::{
-    Char, Char2, Char3, Char4, Char8, Char16,
-    Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
-    Short, Short2, Short3, Short4, Short8, Short16,
-    Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
-    Int, Int2, Int3, Int4, Int8, Int16,
-    Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
-    Long, Long2, Long3, Long4, Long8, Long16,
-    Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
-    Float, Float2, Float3, Float4, Float8, Float16,
-    Double, Double2, Double3, Double4, Double8, Double16,
+    // pub use self::types::vector::{
+    Char,
+    Char16,
+    Char2,
+    Char3,
+    Char4,
+    Char8,
+    Double,
+    Double16,
+    Double2,
+    Double3,
+    Double4,
+    Double8,
+    Float,
+    Float16,
+    Float2,
+    Float3,
+    Float4,
+    Float8,
+    Int,
+    Int16,
+    Int2,
+    Int3,
+    Int4,
+    Int8,
+    Long,
+    Long16,
+    Long2,
+    Long3,
+    Long4,
+    Long8,
+    Short,
+    Short16,
+    Short2,
+    Short3,
+    Short4,
+    Short8,
+    Uchar,
+    Uchar16,
+    Uchar2,
+    Uchar3,
+    Uchar4,
+    Uchar8,
+    Uint,
+    Uint16,
+    Uint2,
+    Uint3,
+    Uint4,
+    Uint8,
+    Ulong,
+    Ulong16,
+    Ulong2,
+    Ulong3,
+    Ulong4,
+    Ulong8,
+    Ushort,
+    Ushort16,
+    Ushort2,
+    Ushort3,
+    Ushort4,
+    Ushort8,
 };
 
 #[cfg(feature = "ocl-core-vector")]
 pub use crate::traits::OclVec;
 
 #[cfg(feature = "opencl_version_2_1")]
-pub use self::functions::{create_program_with_il};
-
-
-
+pub use self::functions::create_program_with_il;
 
 //=============================================================================
 //================================ CONSTANTS ==================================
@@ -201,10 +255,10 @@ pub const DEVICES_MAX: u32 = 64;
 //================================= TYPEDEFS ==================================
 //=============================================================================
 
-pub type EventCallbackFn = extern "C" fn (ffi::cl_event, i32, *mut ffi::c_void);
-pub type CreateContextCallbackFn = extern "C" fn (*const ffi::c_char, *const ffi::c_void,
-    ffi::size_t, *mut ffi::c_void);
-pub type BuildProgramCallbackFn = extern "C" fn (*mut ffi::c_void, *mut ffi::c_void);
+pub type EventCallbackFn = extern "C" fn(ffi::cl_event, i32, *mut ffi::c_void);
+pub type CreateContextCallbackFn =
+    extern "C" fn(*const ffi::c_char, *const ffi::c_void, ffi::size_t, *mut ffi::c_void);
+pub type BuildProgramCallbackFn = extern "C" fn(*mut ffi::c_void, *mut ffi::c_void);
 pub type UserDataPtr = *mut ffi::c_void;
 
 //=============================================================================
@@ -212,11 +266,11 @@ pub type UserDataPtr = *mut ffi::c_void;
 //=============================================================================
 
 mod traits {
-    use std::fmt::{Display, Debug};
-    use std::ops::*;
-    use std::iter::{Sum, Product};
-    use num_traits::{NumCast, FromPrimitive, ToPrimitive, Zero, One};
     use num_complex::{Complex32, Complex64};
+    use num_traits::{FromPrimitive, NumCast, One, ToPrimitive, Zero};
+    use std::fmt::{Debug, Display};
+    use std::iter::{Product, Sum};
+    use std::ops::*;
 
     // Implements an unsafe trait for a list of types.
     macro_rules! impl_unsafe {
@@ -236,35 +290,103 @@ mod traits {
     ///
     /// Can also be implemented for custom types as long as layout and
     /// alignment are conserved between Rust and OpenCL (repr "C").
-    pub unsafe trait OclPrm: Debug + Clone + Copy + Default + PartialEq + Send + Sync + 'static {}
+    pub unsafe trait OclPrm:
+        Debug + Clone + Copy + Default + PartialEq + Send + Sync + 'static
+    {
+    }
 
-    impl_unsafe!(OclPrm: u8, i8, u16, i16, u32, i32, u64, i64, usize, isize, f32, f64,
-        Complex32, Complex64);
+    impl_unsafe!(
+        OclPrm: u8,
+        i8,
+        u16,
+        i16,
+        u32,
+        i32,
+        u64,
+        i64,
+        usize,
+        isize,
+        f32,
+        f64,
+        Complex32,
+        Complex64
+    );
 
     /// A set of traits common to numeric built-in OpenCL scalar and vector
     /// primitives.
     ///
     /// To describe the contents of buffers, etc., prefer using the more general
     /// `OclPrm` trait unless numeric operations are required.
-    pub unsafe trait OclNum: Debug + Display + Clone + Copy + Default + PartialOrd +
-        Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
-        Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self>
-        + AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
-        Sum<Self> + Product<Self> + Send + Sync + 'static {}
+    pub unsafe trait OclNum:
+        Debug
+        + Display
+        + Clone
+        + Copy
+        + Default
+        + PartialOrd
+        + Zero<Output = Self>
+        + One<Output = Self>
+        + Add<Self, Output = Self>
+        + Sub<Self, Output = Self>
+        + Mul<Self, Output = Self>
+        + Div<Self, Output = Self>
+        + Rem<Self, Output = Self>
+        + PartialEq<Self>
+        + AddAssign<Self>
+        + SubAssign<Self>
+        + MulAssign<Self>
+        + DivAssign<Self>
+        + RemAssign<Self>
+        + Sum<Self>
+        + Product<Self>
+        + Send
+        + Sync
+        + 'static
+    {
+    }
 
-    impl_unsafe!(OclNum: u8, i8, u16, i16, u32, i32, u64, i64, usize, isize, f32, f64);
+    impl_unsafe!(
+        OclNum: u8,
+        i8,
+        u16,
+        i16,
+        u32,
+        i32,
+        u64,
+        i64,
+        usize,
+        isize,
+        f32,
+        f64
+    );
 
     /// A scalar type usable within OpenCL kernels.
     ///
     /// To describe the contents of buffers, etc., prefer using the more general
     /// `OclPrm` trait unless numeric operations are required.
-    pub unsafe trait OclScl: OclPrm + OclNum + NumCast + FromPrimitive + ToPrimitive {}
+    pub unsafe trait OclScl:
+        OclPrm + OclNum + NumCast + FromPrimitive + ToPrimitive
+    {
+    }
 
-    impl_unsafe!(OclScl: u8, i8, u16, i16, u32, i32, u64, i64, usize, isize, f32, f64);
+    impl_unsafe!(
+        OclScl: u8,
+        i8,
+        u16,
+        i16,
+        u32,
+        i32,
+        u64,
+        i64,
+        usize,
+        isize,
+        f32,
+        f64
+    );
 
     #[cfg(feature = "ocl-core-vector")]
     mod ocl_vec {
-        use crate::traits::{OclPrm, OclNum};
+        use crate::traits::{OclNum, OclPrm};
 
         /// A vector type usable within `OpenCL` kernels.
         ///
@@ -273,55 +395,201 @@ mod traits {
         pub unsafe trait OclVec: OclPrm + OclNum {}
 
         use crate::vector::{
-            Char, Char2, Char3, Char4, Char8, Char16,
-            Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
-            Short, Short2, Short3, Short4, Short8, Short16,
-            Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
-            Int, Int2, Int3, Int4, Int8, Int16,
-            Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
-            Long, Long2, Long3, Long4, Long8, Long16,
-            Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
-            Float, Float2, Float3, Float4, Float8, Float16,
-            Double, Double2, Double3, Double4, Double8, Double16
+            Char, Char16, Char2, Char3, Char4, Char8, Double, Double16, Double2, Double3, Double4,
+            Double8, Float, Float16, Float2, Float3, Float4, Float8, Int, Int16, Int2, Int3, Int4,
+            Int8, Long, Long16, Long2, Long3, Long4, Long8, Short, Short16, Short2, Short3, Short4,
+            Short8, Uchar, Uchar16, Uchar2, Uchar3, Uchar4, Uchar8, Uint, Uint16, Uint2, Uint3,
+            Uint4, Uint8, Ulong, Ulong16, Ulong2, Ulong3, Ulong4, Ulong8, Ushort, Ushort16,
+            Ushort2, Ushort3, Ushort4, Ushort8,
         };
 
-        impl_unsafe!(OclNum:
-            Char, Char2, Char3, Char4, Char8, Char16,
-            Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
-            Short, Short2, Short3, Short4, Short8, Short16,
-            Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
-            Int, Int2, Int3, Int4, Int8, Int16,
-            Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
-            Long, Long2, Long3, Long4, Long8, Long16,
-            Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
-            Float, Float2, Float3, Float4, Float8, Float16,
-            Double, Double2, Double3, Double4, Double8, Double16
+        impl_unsafe!(
+            OclNum: Char,
+            Char2,
+            Char3,
+            Char4,
+            Char8,
+            Char16,
+            Uchar,
+            Uchar2,
+            Uchar3,
+            Uchar4,
+            Uchar8,
+            Uchar16,
+            Short,
+            Short2,
+            Short3,
+            Short4,
+            Short8,
+            Short16,
+            Ushort,
+            Ushort2,
+            Ushort3,
+            Ushort4,
+            Ushort8,
+            Ushort16,
+            Int,
+            Int2,
+            Int3,
+            Int4,
+            Int8,
+            Int16,
+            Uint,
+            Uint2,
+            Uint3,
+            Uint4,
+            Uint8,
+            Uint16,
+            Long,
+            Long2,
+            Long3,
+            Long4,
+            Long8,
+            Long16,
+            Ulong,
+            Ulong2,
+            Ulong3,
+            Ulong4,
+            Ulong8,
+            Ulong16,
+            Float,
+            Float2,
+            Float3,
+            Float4,
+            Float8,
+            Float16,
+            Double,
+            Double2,
+            Double3,
+            Double4,
+            Double8,
+            Double16
         );
 
-        impl_unsafe!(OclPrm:
-            Char, Char2, Char3, Char4, Char8, Char16,
-            Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
-            Short, Short2, Short3, Short4, Short8, Short16,
-            Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
-            Int, Int2, Int3, Int4, Int8, Int16,
-            Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
-            Long, Long2, Long3, Long4, Long8, Long16,
-            Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
-            Float, Float2, Float3, Float4, Float8, Float16,
-            Double, Double2, Double3, Double4, Double8, Double16
+        impl_unsafe!(
+            OclPrm: Char,
+            Char2,
+            Char3,
+            Char4,
+            Char8,
+            Char16,
+            Uchar,
+            Uchar2,
+            Uchar3,
+            Uchar4,
+            Uchar8,
+            Uchar16,
+            Short,
+            Short2,
+            Short3,
+            Short4,
+            Short8,
+            Short16,
+            Ushort,
+            Ushort2,
+            Ushort3,
+            Ushort4,
+            Ushort8,
+            Ushort16,
+            Int,
+            Int2,
+            Int3,
+            Int4,
+            Int8,
+            Int16,
+            Uint,
+            Uint2,
+            Uint3,
+            Uint4,
+            Uint8,
+            Uint16,
+            Long,
+            Long2,
+            Long3,
+            Long4,
+            Long8,
+            Long16,
+            Ulong,
+            Ulong2,
+            Ulong3,
+            Ulong4,
+            Ulong8,
+            Ulong16,
+            Float,
+            Float2,
+            Float3,
+            Float4,
+            Float8,
+            Float16,
+            Double,
+            Double2,
+            Double3,
+            Double4,
+            Double8,
+            Double16
         );
 
-        impl_unsafe!(OclVec:
-            Char, Char2, Char3, Char4, Char8, Char16,
-            Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
-            Short, Short2, Short3, Short4, Short8, Short16,
-            Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
-            Int, Int2, Int3, Int4, Int8, Int16,
-            Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
-            Long, Long2, Long3, Long4, Long8, Long16,
-            Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
-            Float, Float2, Float3, Float4, Float8, Float16,
-            Double, Double2, Double3, Double4, Double8, Double16
+        impl_unsafe!(
+            OclVec: Char,
+            Char2,
+            Char3,
+            Char4,
+            Char8,
+            Char16,
+            Uchar,
+            Uchar2,
+            Uchar3,
+            Uchar4,
+            Uchar8,
+            Uchar16,
+            Short,
+            Short2,
+            Short3,
+            Short4,
+            Short8,
+            Short16,
+            Ushort,
+            Ushort2,
+            Ushort3,
+            Ushort4,
+            Ushort8,
+            Ushort16,
+            Int,
+            Int2,
+            Int3,
+            Int4,
+            Int8,
+            Int16,
+            Uint,
+            Uint2,
+            Uint3,
+            Uint4,
+            Uint8,
+            Uint16,
+            Long,
+            Long2,
+            Long3,
+            Long4,
+            Long8,
+            Long16,
+            Ulong,
+            Ulong2,
+            Ulong3,
+            Ulong4,
+            Ulong8,
+            Ulong16,
+            Float,
+            Float2,
+            Float3,
+            Float4,
+            Float8,
+            Float16,
+            Double,
+            Double2,
+            Double3,
+            Double4,
+            Double8,
+            Double16
         );
     }
 }
@@ -356,17 +624,38 @@ bitflags! {
 }
 
 impl DeviceType {
-    #[inline] pub fn new() -> DeviceType { DeviceType::empty() }
-    #[inline] pub fn system_default(self) -> DeviceType { self | DeviceType::DEFAULT }
-    #[inline] pub fn cpu(self) -> DeviceType { self | DeviceType::CPU }
-    #[inline] pub fn gpu(self) -> DeviceType { self | DeviceType::GPU }
-    #[inline] pub fn accelerator(self) -> DeviceType { self | DeviceType::ACCELERATOR }
-    #[inline] pub fn custom(self) -> DeviceType { self | DeviceType::CUSTOM }
+    #[inline]
+    pub fn new() -> DeviceType {
+        DeviceType::empty()
+    }
+    #[inline]
+    pub fn system_default(self) -> DeviceType {
+        self | DeviceType::DEFAULT
+    }
+    #[inline]
+    pub fn cpu(self) -> DeviceType {
+        self | DeviceType::CPU
+    }
+    #[inline]
+    pub fn gpu(self) -> DeviceType {
+        self | DeviceType::GPU
+    }
+    #[inline]
+    pub fn accelerator(self) -> DeviceType {
+        self | DeviceType::ACCELERATOR
+    }
+    #[inline]
+    pub fn custom(self) -> DeviceType {
+        self | DeviceType::CUSTOM
+    }
     // #[inline] pub fn all() -> DeviceType { DeviceType::ALL }
 }
 
 impl Default for DeviceType {
-    #[inline] fn default() -> DeviceType { DeviceType::ALL }
+    #[inline]
+    fn default() -> DeviceType {
+        DeviceType::ALL
+    }
 }
 
 pub const DEVICE_TYPE_DEFAULT: DeviceType = DeviceType::DEFAULT;
@@ -375,7 +664,6 @@ pub const DEVICE_TYPE_GPU: DeviceType = DeviceType::GPU;
 pub const DEVICE_TYPE_ACCELERATOR: DeviceType = DeviceType::ACCELERATOR;
 pub const DEVICE_TYPE_CUSTOM: DeviceType = DeviceType::CUSTOM;
 pub const DEVICE_TYPE_ALL: DeviceType = DeviceType::ALL;
-
 
 bitflags! {
     /// cl_device_fp_config - bitfield
@@ -398,8 +686,8 @@ pub const FP_ROUND_TO_ZERO: DeviceFpConfig = DeviceFpConfig::ROUND_TO_ZERO;
 pub const FP_ROUND_TO_INF: DeviceFpConfig = DeviceFpConfig::ROUND_TO_INF;
 pub const FP_FMA: DeviceFpConfig = DeviceFpConfig::FMA;
 pub const FP_SOFT_FLOAT: DeviceFpConfig = DeviceFpConfig::SOFT_FLOAT;
-pub const FP_CORRECTLY_ROUNDED_DIVIDE_SQRT: DeviceFpConfig = DeviceFpConfig::CORRECTLY_ROUNDED_DIVIDE_SQRT;
-
+pub const FP_CORRECTLY_ROUNDED_DIVIDE_SQRT: DeviceFpConfig =
+    DeviceFpConfig::CORRECTLY_ROUNDED_DIVIDE_SQRT;
 
 bitflags! {
     /// cl_device_exec_capabilities - bitfield
@@ -412,7 +700,6 @@ bitflags! {
 pub const EXEC_KERNEL: DeviceExecCapabilities = DeviceExecCapabilities::KERNEL;
 pub const EXEC_NATIVE_KERNEL: DeviceExecCapabilities = DeviceExecCapabilities::NATIVE_KERNEL;
 
-
 bitflags! {
     /// cl_command_queue_properties - bitfield
     pub struct CommandQueueProperties: u64 {
@@ -424,23 +711,31 @@ bitflags! {
 }
 
 impl CommandQueueProperties {
-    #[inline] pub fn new() -> CommandQueueProperties { CommandQueueProperties::empty() }
-    #[inline] pub fn out_of_order(self) -> CommandQueueProperties { self |
-        CommandQueueProperties::OUT_OF_ORDER_EXEC_MODE_ENABLE }
-    #[inline] pub fn profiling(self) -> CommandQueueProperties { self |
-        CommandQueueProperties::PROFILING_ENABLE }
+    #[inline]
+    pub fn new() -> CommandQueueProperties {
+        CommandQueueProperties::empty()
+    }
+    #[inline]
+    pub fn out_of_order(self) -> CommandQueueProperties {
+        self | CommandQueueProperties::OUT_OF_ORDER_EXEC_MODE_ENABLE
+    }
+    #[inline]
+    pub fn profiling(self) -> CommandQueueProperties {
+        self | CommandQueueProperties::PROFILING_ENABLE
+    }
 }
 
 impl Default for CommandQueueProperties {
-    #[inline] fn default() -> CommandQueueProperties { CommandQueueProperties::empty() }
+    #[inline]
+    fn default() -> CommandQueueProperties {
+        CommandQueueProperties::empty()
+    }
 }
 
 pub const QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE: CommandQueueProperties =
     CommandQueueProperties::OUT_OF_ORDER_EXEC_MODE_ENABLE;
-pub const QUEUE_PROFILING_ENABLE: CommandQueueProperties =
-    CommandQueueProperties::PROFILING_ENABLE;
-pub const QUEUE_ON_DEVICE: CommandQueueProperties =
-    CommandQueueProperties::ON_DEVICE;
+pub const QUEUE_PROFILING_ENABLE: CommandQueueProperties = CommandQueueProperties::PROFILING_ENABLE;
+pub const QUEUE_ON_DEVICE: CommandQueueProperties = CommandQueueProperties::ON_DEVICE;
 pub const QUEUE_ON_DEVICE_DEFAULT: CommandQueueProperties =
     CommandQueueProperties::ON_DEVICE_DEFAULT;
 
@@ -461,8 +756,8 @@ pub const DEVICE_AFFINITY_DOMAIN_L4_CACHE: DeviceAffinityDomain = DeviceAffinity
 pub const DEVICE_AFFINITY_DOMAIN_L3_CACHE: DeviceAffinityDomain = DeviceAffinityDomain::L3_CACHE;
 pub const DEVICE_AFFINITY_DOMAIN_L2_CACHE: DeviceAffinityDomain = DeviceAffinityDomain::L2_CACHE;
 pub const DEVICE_AFFINITY_DOMAIN_L1_CACHE: DeviceAffinityDomain = DeviceAffinityDomain::L1_CACHE;
-pub const DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE: DeviceAffinityDomain = DeviceAffinityDomain::NEXT_PARTITIONABLE;
-
+pub const DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE: DeviceAffinityDomain =
+    DeviceAffinityDomain::NEXT_PARTITIONABLE;
 
 bitflags! {
     /// cl_mem_flags - bitfield
@@ -481,20 +776,53 @@ bitflags! {
 }
 
 impl MemFlags {
-    #[inline] pub fn new() -> MemFlags { MemFlags::empty() }
-    #[inline] pub fn read_write(self) -> MemFlags { self | MemFlags::READ_WRITE }
-    #[inline] pub fn write_only(self) -> MemFlags { self | MemFlags::WRITE_ONLY }
-    #[inline] pub fn read_only(self) -> MemFlags { self | MemFlags::READ_ONLY }
-    #[inline] pub fn use_host_ptr(self) -> MemFlags { self | MemFlags::USE_HOST_PTR }
-    #[inline] pub fn alloc_host_ptr(self) -> MemFlags { self | MemFlags::ALLOC_HOST_PTR }
-    #[inline] pub fn copy_host_ptr(self) -> MemFlags { self | MemFlags::COPY_HOST_PTR }
-    #[inline] pub fn host_write_only(self) -> MemFlags { self | MemFlags::HOST_WRITE_ONLY }
-    #[inline] pub fn host_read_only(self) -> MemFlags { self | MemFlags::HOST_READ_ONLY }
-    #[inline] pub fn host_no_access(self) -> MemFlags { self | MemFlags::HOST_NO_ACCESS }
+    #[inline]
+    pub fn new() -> MemFlags {
+        MemFlags::empty()
+    }
+    #[inline]
+    pub fn read_write(self) -> MemFlags {
+        self | MemFlags::READ_WRITE
+    }
+    #[inline]
+    pub fn write_only(self) -> MemFlags {
+        self | MemFlags::WRITE_ONLY
+    }
+    #[inline]
+    pub fn read_only(self) -> MemFlags {
+        self | MemFlags::READ_ONLY
+    }
+    #[inline]
+    pub fn use_host_ptr(self) -> MemFlags {
+        self | MemFlags::USE_HOST_PTR
+    }
+    #[inline]
+    pub fn alloc_host_ptr(self) -> MemFlags {
+        self | MemFlags::ALLOC_HOST_PTR
+    }
+    #[inline]
+    pub fn copy_host_ptr(self) -> MemFlags {
+        self | MemFlags::COPY_HOST_PTR
+    }
+    #[inline]
+    pub fn host_write_only(self) -> MemFlags {
+        self | MemFlags::HOST_WRITE_ONLY
+    }
+    #[inline]
+    pub fn host_read_only(self) -> MemFlags {
+        self | MemFlags::HOST_READ_ONLY
+    }
+    #[inline]
+    pub fn host_no_access(self) -> MemFlags {
+        self | MemFlags::HOST_NO_ACCESS
+    }
 }
 
 impl Default for MemFlags {
-    #[inline] fn default() -> MemFlags { MemFlags::READ_WRITE }
+    #[inline]
+    fn default() -> MemFlags {
+        MemFlags::READ_WRITE
+    }
 }
 
 pub const MEM_READ_WRITE: MemFlags = MemFlags::READ_WRITE;
@@ -508,7 +836,6 @@ pub const MEM_HOST_WRITE_ONLY: MemFlags = MemFlags::HOST_WRITE_ONLY;
 pub const MEM_HOST_READ_ONLY: MemFlags = MemFlags::HOST_READ_ONLY;
 pub const MEM_HOST_NO_ACCESS: MemFlags = MemFlags::HOST_NO_ACCESS;
 
-
 bitflags! {
     /// cl_mem_migration_flags - bitfield
     pub struct MemMigrationFlags: u64 {
@@ -518,8 +845,8 @@ bitflags! {
 }
 
 pub const MIGRATE_MEM_OBJECT_HOST: MemMigrationFlags = MemMigrationFlags::OBJECT_HOST;
-pub const MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED: MemMigrationFlags = MemMigrationFlags::OBJECT_CONTENT_UNDEFINED;
-
+pub const MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED: MemMigrationFlags =
+    MemMigrationFlags::OBJECT_CONTENT_UNDEFINED;
 
 bitflags! {
     /// cl_map_flags - bitfield
@@ -531,21 +858,34 @@ bitflags! {
 }
 
 impl MapFlags {
-    #[inline] pub fn new() -> MapFlags { MapFlags::empty() }
-    #[inline] pub fn read(self) -> MapFlags { self | MapFlags::READ }
-    #[inline] pub fn write(self) -> MapFlags { self | MapFlags::WRITE }
-    #[inline] pub fn write_invalidate_region(self) -> MapFlags { self |
-        MapFlags::WRITE_INVALIDATE_REGION }
+    #[inline]
+    pub fn new() -> MapFlags {
+        MapFlags::empty()
+    }
+    #[inline]
+    pub fn read(self) -> MapFlags {
+        self | MapFlags::READ
+    }
+    #[inline]
+    pub fn write(self) -> MapFlags {
+        self | MapFlags::WRITE
+    }
+    #[inline]
+    pub fn write_invalidate_region(self) -> MapFlags {
+        self | MapFlags::WRITE_INVALIDATE_REGION
+    }
 }
 
 impl Default for MapFlags {
-    #[inline] fn default() -> MapFlags { MapFlags::empty() }
+    #[inline]
+    fn default() -> MapFlags {
+        MapFlags::empty()
+    }
 }
 
 pub const MAP_READ: MapFlags = MapFlags::READ;
 pub const MAP_WRITE: MapFlags = MapFlags::WRITE;
 pub const MAP_WRITE_INVALIDATE_REGION: MapFlags = MapFlags::WRITE_INVALIDATE_REGION;
-
 
 bitflags! {
     /// cl_program_binary_type
@@ -558,10 +898,10 @@ bitflags! {
 }
 
 pub const PROGRAM_BINARY_TYPE_NONE: ProgramBinaryType = ProgramBinaryType::NONE;
-pub const PROGRAM_BINARY_TYPE_COMPILED_OBJECT: ProgramBinaryType = ProgramBinaryType::COMPILED_OBJECT;
+pub const PROGRAM_BINARY_TYPE_COMPILED_OBJECT: ProgramBinaryType =
+    ProgramBinaryType::COMPILED_OBJECT;
 pub const PROGRAM_BINARY_TYPE_LIBRARY: ProgramBinaryType = ProgramBinaryType::LIBRARY;
 pub const PROGRAM_BINARY_TYPE_EXECUTABLE: ProgramBinaryType = ProgramBinaryType::EXECUTABLE;
-
 
 bitflags! {
     /// cl_kernel_arg_type_qualifer
@@ -581,7 +921,6 @@ pub const KERNEL_ARG_TYPE_VOLATILE: KernelArgTypeQualifier = KernelArgTypeQualif
 //=============================================================================
 //=============================== ENUMERATORS =================================
 //=============================================================================
-
 
 // #[derive(PartialEq, Debug, FromPrimitive)]
 enum_from_primitive! {
@@ -662,7 +1001,6 @@ impl std::fmt::Display for Status {
         write!(fmtr, "{:?}", self)
     }
 }
-
 
 enum_from_primitive! {
     /// specify the texture target type
@@ -770,7 +1108,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_bool
     #[repr(C)]
@@ -781,7 +1118,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_bool: Polling
     #[repr(C)]
@@ -791,7 +1127,6 @@ enum_from_primitive! {
         NonBlocking = ffi::CL_NON_BLOCKING as isize,
     }
 }
-
 
 enum_from_primitive! {
     /// cl_platform_info
@@ -805,7 +1140,6 @@ enum_from_primitive! {
         Extensions = ffi::CL_PLATFORM_EXTENSIONS as isize,
     }
 }
-
 
 enum_from_primitive! {
     /// cl_device_info
@@ -891,7 +1225,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_mem_cache_type
     #[repr(C)]
@@ -903,7 +1236,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_device_local_mem_type
     #[repr(C)]
@@ -914,7 +1246,6 @@ enum_from_primitive! {
         Global = ffi::CL_GLOBAL as isize,
     }
 }
-
 
 enum_from_primitive! {
     /// cl_context_info
@@ -928,7 +1259,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_gl_context_info
     #[repr(C)]
@@ -941,10 +1271,10 @@ enum_from_primitive! {
     }
 }
 
-
 // [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os = "macos")]
-pub const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: isize = ffi::CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE;
+pub const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: isize =
+    ffi::CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE;
 #[cfg(not(target_os = "macos"))]
 pub const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: isize = ffi::CL_CGL_SHAREGROUP_KHR;
 
@@ -968,7 +1298,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_context_info + cl_context_properties
     #[repr(C)]
@@ -978,7 +1307,6 @@ enum_from_primitive! {
         InteropUserSync = ffi::CL_CONTEXT_INTEROP_USER_SYNC as isize,
     }
 }
-
 
 enum_from_primitive! {
     /// [INCOMPLETE] cl_device_partition_property
@@ -997,7 +1325,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_command_queue_info
     #[repr(C)]
@@ -1009,7 +1336,6 @@ enum_from_primitive! {
         Properties = ffi::CL_QUEUE_PROPERTIES as isize,
     }
 }
-
 
 enum_from_primitive! {
     /// cl_channel_type
@@ -1035,7 +1361,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_mem_object_type
     #[repr(C)]
@@ -1050,7 +1375,6 @@ enum_from_primitive! {
         Image1dBuffer = ffi::CL_MEM_OBJECT_IMAGE1D_BUFFER as isize,
     }
 }
-
 
 enum_from_primitive! {
     /// cl_mem_info
@@ -1068,7 +1392,6 @@ enum_from_primitive! {
         Offset = ffi::CL_MEM_OFFSET as isize,
     }
 }
-
 
 enum_from_primitive! {
     /// cl_image_info
@@ -1089,7 +1412,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_addressing_mode
     #[repr(C)]
@@ -1103,7 +1425,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_filter_mode
     #[repr(C)]
@@ -1113,7 +1434,6 @@ enum_from_primitive! {
         Linear = ffi::CL_FILTER_LINEAR as isize,
     }
 }
-
 
 enum_from_primitive! {
     /// cl_sampler_info
@@ -1127,7 +1447,6 @@ enum_from_primitive! {
         FilterMode = ffi::CL_SAMPLER_FILTER_MODE as isize,
     }
 }
-
 
 enum_from_primitive! {
     /// cl_program_info
@@ -1146,7 +1465,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_program_build_info
     #[repr(C)]
@@ -1159,8 +1477,6 @@ enum_from_primitive! {
     }
 }
 
-
-
 enum_from_primitive! {
     /// cl_build_status
     #[repr(C)]
@@ -1172,7 +1488,6 @@ enum_from_primitive! {
         InProgress = ffi::CL_BUILD_IN_PROGRESS as isize,
     }
 }
-
 
 enum_from_primitive! {
     /// cl_kernel_info
@@ -1188,7 +1503,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_kernel_arg_info
     #[repr(C)]
@@ -1202,7 +1516,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_kernel_arg_address_qualifier
     #[repr(C)]
@@ -1215,7 +1528,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_kernel_arg_access_qualifier
     #[repr(C)]
@@ -1227,7 +1539,6 @@ enum_from_primitive! {
         None = ffi::CL_KERNEL_ARG_ACCESS_NONE as isize,
      }
 }
-
 
 enum_from_primitive! {
     /// cl_kernel_work_group_info
@@ -1246,7 +1557,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_event_info
     #[repr(C)]
@@ -1259,7 +1569,6 @@ enum_from_primitive! {
         Context = ffi::CL_EVENT_CONTEXT as isize,
     }
 }
-
 
 enum_from_primitive! {
     /// cl_command_type
@@ -1294,7 +1603,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// command execution status
     #[repr(C)]
@@ -1307,7 +1615,6 @@ enum_from_primitive! {
     }
 }
 
-
 enum_from_primitive! {
     /// cl_buffer_create_type
     #[repr(C)]
@@ -1317,7 +1624,6 @@ enum_from_primitive! {
         __DUMMY,
     }
 }
-
 
 enum_from_primitive! {
     /// cl_profiling_info

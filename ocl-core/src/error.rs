@@ -1,14 +1,12 @@
 //! Standard error type for ocl.
 //!
 
+use crate::functions::{ApiError, ApiWrapperError, ProgramBuildError, VersionLowError};
 use crate::util::UtilError;
-use crate::functions::{ApiError, VersionLowError, ProgramBuildError, ApiWrapperError};
-use crate::{Status, EmptyInfoResultError};
-
+use crate::{EmptyInfoResultError, Status};
 
 /// Ocl error result type.
 pub type Result<T> = ::std::result::Result<T, Error>;
-
 
 /// An enum one of several error types.
 #[derive(Debug, thiserror::Error)]

@@ -1,11 +1,13 @@
 //! An image sampler.
 
-use std;
-use std::ops::{Deref, DerefMut};
-use crate::core::{self, Result as OclCoreResult, Sampler as SamplerCore, AddressingMode, FilterMode,
-    SamplerInfo, SamplerInfoResult};
+use crate::core::{
+    self, AddressingMode, FilterMode, Result as OclCoreResult, Sampler as SamplerCore, SamplerInfo,
+    SamplerInfoResult,
+};
 use crate::error::{Error as OclError, Result as OclResult};
 use crate::standard::Context;
+use std;
+use std::ops::{Deref, DerefMut};
 
 /// An image sampler used to process images.
 #[derive(Clone, Debug)]
@@ -33,10 +35,15 @@ impl Sampler {
     /// See [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSampler.html)
     /// for more information.
     ///
-    pub fn new(context: &Context, normalize_coords: bool, addressing_mode: AddressingMode,
-            filter_mode: FilterMode) -> OclResult<Sampler> {
-        let sampler_core = core::create_sampler(context, normalize_coords,
-            addressing_mode, filter_mode).map_err(OclError::from)?;
+    pub fn new(
+        context: &Context,
+        normalize_coords: bool,
+        addressing_mode: AddressingMode,
+        filter_mode: FilterMode,
+    ) -> OclResult<Sampler> {
+        let sampler_core =
+            core::create_sampler(context, normalize_coords, addressing_mode, filter_mode)
+                .map_err(OclError::from)?;
 
         Ok(Sampler(sampler_core))
     }
@@ -50,8 +57,9 @@ impl Sampler {
     /// - `filter_mode`: `FilterMode::Nearest`
     ///
     pub fn with_defaults(context: &Context) -> OclResult<Sampler> {
-        let sampler_core = core::create_sampler(context, false,
-            AddressingMode::None, FilterMode::Nearest).map_err(OclError::from)?;
+        let sampler_core =
+            core::create_sampler(context, false, AddressingMode::None, FilterMode::Nearest)
+                .map_err(OclError::from)?;
 
         Ok(Sampler(sampler_core))
     }
@@ -69,7 +77,10 @@ impl Sampler {
         f.debug_struct("Sampler")
             .field("ReferenceCount", &self.info(SamplerInfo::ReferenceCount))
             .field("Context", &self.info(SamplerInfo::Context))
-            .field("NormalizedCoords", &self.info(SamplerInfo::NormalizedCoords))
+            .field(
+                "NormalizedCoords",
+                &self.info(SamplerInfo::NormalizedCoords),
+            )
             .field("AddressingMode", &self.info(SamplerInfo::AddressingMode))
             .field("FilterMode", &self.info(SamplerInfo::FilterMode))
             .finish()

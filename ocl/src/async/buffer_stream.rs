@@ -1,13 +1,11 @@
 //! High performance buffer reads.
 
-use std::ops::Deref;
-use futures::{Future, Poll};
-use crate::core::{self, OclPrm, MemMap as MemMapCore,
-    MemFlags, MapFlags, ClNullEventPtr};
-use crate::standard::{Event, EventList, Queue, Buffer, ClWaitListPtrEnum, ClNullEventPtrEnum};
-use crate::r#async::{OrderLock, FutureGuard, ReadGuard, WriteGuard};
+use crate::core::{self, ClNullEventPtr, MapFlags, MemFlags, MemMap as MemMapCore, OclPrm};
 use crate::error::{Error as OclError, Result as OclResult};
-
+use crate::r#async::{FutureGuard, OrderLock, ReadGuard, WriteGuard};
+use crate::standard::{Buffer, ClNullEventPtrEnum, ClWaitListPtrEnum, Event, EventList, Queue};
+use futures::{Future, Poll};
+use std::ops::Deref;
 
 #[must_use = "futures do nothing unless polled"]
 #[derive(Debug)]
@@ -32,16 +30,20 @@ impl<T: OclPrm> Future for FutureFlood<T> {
 
     #[inline]
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        self.future_guard.poll().map(|res| res.map(|_write_guard| ()))
+        self.future_guard
+            .poll()
+            .map(|res| res.map(|_write_guard| ()))
     }
 }
-
 
 /// A flood command builder.
 ///
 #[must_use = "commands do nothing unless enqueued"]
 #[derive(Debug)]
-pub struct FloodCmd<'c, T> where T: 'c + OclPrm {
+pub struct FloodCmd<'c, T>
+where
+    T: 'c + OclPrm,
+{
     queue: Option<&'c Queue>,
     // stream: &'c BufferStream<T>,
     stream: BufferStream<T>,
@@ -51,7 +53,10 @@ pub struct FloodCmd<'c, T> where T: 'c + OclPrm {
     enew: Option<ClNullEventPtrEnum<'c>>,
 }
 
-impl<'c, T> FloodCmd<'c, T> where T: OclPrm {
+impl<'c, T> FloodCmd<'c, T>
+where
+    T: OclPrm,
+{
     /// Returns a new flood command builder.
     fn new(stream: BufferStream<T>) -> FloodCmd<'c, T> {
         let offset = stream.default_offset();
@@ -68,7 +73,10 @@ impl<'c, T> FloodCmd<'c, T> where T: OclPrm {
 
     /// Specifies a queue to use for this call only.
     pub fn queue<'q, Q>(mut self, queue: &'q Q) -> FloodCmd<'c, T>
-            where 'q: 'c, Q: 'q + AsRef<Queue> {
+    where
+        'q: 'c,
+        Q: 'q + AsRef<Queue>,
+    {
         self.queue = Some(queue.as_ref());
         self
     }
@@ -116,7 +124,9 @@ impl<'c, T> FloodCmd<'c, T> where T: OclPrm {
     ///
     /// [`EventList`]: struct.EventList.html
     pub fn ewait<Ewl>(mut self, ewait: Ewl) -> FloodCmd<'c, T>
-            where Ewl: Into<ClWaitListPtrEnum<'c>> {
+    where
+        Ewl: Into<ClWaitListPtrEnum<'c>>,
+    {
         self.ewait = Some(ewait.into());
         self
     }
@@ -153,7 +163,9 @@ impl<'c, T> FloodCmd<'c, T> where T: OclPrm {
     ///
     /// [`Event::empty`]: struct.Event.html#method.empty
     pub fn enew<En>(mut self, enew: En) -> FloodCmd<'c, T>
-            where En: Into<ClNullEventPtrEnum<'c>> {
+    where
+        En: Into<ClNullEventPtrEnum<'c>>,
+    {
         self.enew = Some(enew.into());
         self
     }
@@ -181,14 +193,26 @@ impl<'c, T> FloodCmd<'c, T> where T: OclPrm {
         let mut unmap_event = Event::empty();
 
         unsafe {
-            let memory = core::enqueue_map_buffer::<T, _, _, _>(queue, buffer, false,
-                MapFlags::new().read(), self.offset, self.len,
-                future_write.lock_event(), Some(&mut map_event))?;
+            let memory = core::enqueue_map_buffer::<T, _, _, _>(
+                queue,
+                buffer,
+                false,
+                MapFlags::new().read(),
+                self.offset,
+                self.len,
+                future_write.lock_event(),
+                Some(&mut map_event),
+            )?;
 
             debug_assert!(memory.as_ptr() == inner.memory.as_ptr());
 
-            core::enqueue_unmap_mem_object::<T, _, _, _>(queue, buffer, &memory,
-                Some(&map_event), Some(&mut unmap_event))?;
+            core::enqueue_unmap_mem_object::<T, _, _, _>(
+                queue,
+                buffer,
+                &memory,
+                Some(&map_event),
+                Some(&mut unmap_event),
+            )?;
 
             // Copy the tail/conclusion event.
             if let Some(ref mut enew) = self.enew {
@@ -202,7 +226,6 @@ impl<'c, T> FloodCmd<'c, T> where T: OclPrm {
         Ok(FutureFlood::new(future_write))
     }
 }
-
 
 #[derive(Debug)]
 pub struct Inner<T: OclPrm> {
@@ -237,7 +260,6 @@ impl<T: OclPrm> Deref for Inner<T> {
         unsafe { self.memory.as_slice(self.default_len) }
     }
 }
-
 
 /// Represents mapped memory and allows frames of data to be 'flooded' (read)
 /// from a device-visible `Buffer` into its associated host-accessible mapped
@@ -279,23 +301,35 @@ impl<T: OclPrm> BufferStream<T> {
     /// current thread until those operations complete upon calling this
     /// function.
     ///
-    pub unsafe fn from_buffer(mut buffer: Buffer<T>, queue: Option<Queue>, default_offset: usize,
-            default_len: usize) -> OclResult<BufferStream<T>> {
+    pub unsafe fn from_buffer(
+        mut buffer: Buffer<T>,
+        queue: Option<Queue>,
+        default_offset: usize,
+        default_len: usize,
+    ) -> OclResult<BufferStream<T>> {
         let buf_flags = buffer.flags()?;
-        assert!(buf_flags.contains(MemFlags::new().alloc_host_ptr()) ||
-            buf_flags.contains(MemFlags::new().use_host_ptr()),
+        assert!(
+            buf_flags.contains(MemFlags::new().alloc_host_ptr())
+                || buf_flags.contains(MemFlags::new().use_host_ptr()),
             "A buffer stream must be created with a buffer that has either \
-            the MEM_ALLOC_HOST_PTR` or `MEM_USE_HOST_PTR flag.");
-        assert!(!buf_flags.contains(MemFlags::new().host_no_access()) &&
-            !buf_flags.contains(MemFlags::new().host_write_only()),
+            the MEM_ALLOC_HOST_PTR` or `MEM_USE_HOST_PTR flag."
+        );
+        assert!(
+            !buf_flags.contains(MemFlags::new().host_no_access())
+                && !buf_flags.contains(MemFlags::new().host_write_only()),
             "A buffer stream may not be created with a buffer that has either the \
-            `MEM_HOST_NO_ACCESS` or `MEM_HOST_WRITE_ONLY` flags.");
+            `MEM_HOST_NO_ACCESS` or `MEM_HOST_WRITE_ONLY` flags."
+        );
         assert!(default_offset + default_len <= buffer.len());
 
         match queue {
-            Some(q) => { buffer.set_default_queue(q); },
-            None => assert!(buffer.default_queue().is_some(),
-                "A buffer stream must be created with a queue."),
+            Some(q) => {
+                buffer.set_default_queue(q);
+            }
+            None => assert!(
+                buffer.default_queue().is_some(),
+                "A buffer stream must be created with a queue."
+            ),
         }
 
         let map_flags = MapFlags::new().read();
@@ -303,12 +337,25 @@ impl<T: OclPrm> BufferStream<T> {
         let mut map_event = Event::empty();
         let mut unmap_event = Event::empty();
 
-        let memory = core::enqueue_map_buffer::<T, _, _, _>(buffer.default_queue().unwrap(),
-            buffer.as_core(), false, map_flags, default_offset, default_len, None::<&EventList>,
-                Some(&mut map_event))?;
+        let memory = core::enqueue_map_buffer::<T, _, _, _>(
+            buffer.default_queue().unwrap(),
+            buffer.as_core(),
+            false,
+            map_flags,
+            default_offset,
+            default_len,
+            None::<&EventList>,
+            Some(&mut map_event),
+        )?;
 
-        core::enqueue_unmap_mem_object::<T, _, _, _>(buffer.default_queue().unwrap(),
-            &buffer, &memory, Some(&map_event), Some(&mut unmap_event)).unwrap();
+        core::enqueue_unmap_mem_object::<T, _, _, _>(
+            buffer.default_queue().unwrap(),
+            &buffer,
+            &memory,
+            Some(&map_event),
+            Some(&mut unmap_event),
+        )
+        .unwrap();
 
         unmap_event.wait_for().unwrap();
 
@@ -316,7 +363,7 @@ impl<T: OclPrm> BufferStream<T> {
             buffer,
             memory,
             default_offset,
-            default_len
+            default_len,
         };
 
         Ok(BufferStream {
@@ -327,7 +374,6 @@ impl<T: OclPrm> BufferStream<T> {
     /// Returns a new `FutureGuard` which will resolve into a a `ReadGuard`.
     pub fn read(self) -> FutureGuard<Inner<T>, ReadGuard<Inner<T>>> {
         self.lock.read()
-
     }
 
     /// Returns a command builder which, when enqueued, floods the mapped

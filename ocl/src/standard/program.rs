@@ -1,21 +1,21 @@
 //! An `OpenCL` program.
 use std;
-use std::ops::{Deref, DerefMut};
-use std::ffi::CString;
-use std::io::Read;
-use std::fs::File;
-use std::path::PathBuf;
 use std::collections::HashSet;
 use std::convert::Into;
+use std::ffi::CString;
+use std::fs::File;
+use std::io::Read;
+use std::ops::{Deref, DerefMut};
+use std::path::PathBuf;
 
-
-use crate::core::{self, Result as OclCoreResult, Program as ProgramCore, Context as ContextCore,
-    ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult};
+use crate::core::{
+    self, Context as ContextCore, Program as ProgramCore, ProgramBuildInfo, ProgramBuildInfoResult,
+    ProgramInfo, ProgramInfoResult, Result as OclCoreResult,
+};
+use crate::error::{Error as OclError, Result as OclResult};
+use crate::standard::{Context, Device, DeviceSpecifier};
 #[cfg(feature = "opencl_version_2_1")]
 use core::ClVersions;
-use crate::error::{Result as OclResult, Error as OclError};
-use crate::standard::{Context, Device, DeviceSpecifier};
-
 
 /// A program from which kernels can be created from.
 ///
@@ -40,8 +40,12 @@ impl Program {
     ///
     /// Prefer `::builder` to create a new `Program`.
     ///
-    pub fn with_source(context: &ContextCore, src_strings: &[CString],
-            devices: Option<&[Device]>, cmplr_opts: &CString) -> OclResult<Program> {
+    pub fn with_source(
+        context: &ContextCore,
+        src_strings: &[CString],
+        devices: Option<&[Device]>,
+        cmplr_opts: &CString,
+    ) -> OclResult<Program> {
         let program = core::create_program_with_source(context, src_strings)?;
         core::build_program(&program, devices, cmplr_opts, None, None)?;
         Ok(Program(program))
@@ -52,8 +56,12 @@ impl Program {
     ///
     /// Prefer `::builder` to create a new `Program`.
     ///
-    pub fn with_binary(context: &ContextCore, devices: &[Device],
-            binaries: &[&[u8]], cmplr_opts: &CString) -> OclResult<Program> {
+    pub fn with_binary(
+        context: &ContextCore,
+        devices: &[Device],
+        binaries: &[&[u8]],
+        cmplr_opts: &CString,
+    ) -> OclResult<Program> {
         let program = core::create_program_with_binary(context, devices, binaries)?;
         core::build_program(&program, Some(devices), cmplr_opts, None, None)?;
         Ok(Program(program))
@@ -62,8 +70,12 @@ impl Program {
     /// Returns a new program built from pre-created build components and device
     /// list for programs with intermediate language byte source.
     #[cfg(feature = "opencl_version_2_1")]
-    pub fn with_il(il: &[u8], devices: Option<&[Device]>, cmplr_opts: &CString,
-            context: &ContextCore) -> OclResult<Program> {
+    pub fn with_il(
+        il: &[u8],
+        devices: Option<&[Device]>,
+        cmplr_opts: &CString,
+        context: &ContextCore,
+    ) -> OclResult<Program> {
         let device_versions = context.device_versions()?;
         let program = core::create_program_with_il(context, il, Some(&device_versions))?;
         core::build_program(&program, devices, cmplr_opts, None, None)?;
@@ -86,8 +98,11 @@ impl Program {
     /// Returns info about this program's build.
     ///
     /// * TODO: Check that device is valid.
-    pub fn build_info(&self, device: Device, info_kind: ProgramBuildInfo)
-            -> OclCoreResult<ProgramBuildInfoResult> {
+    pub fn build_info(
+        &self,
+        device: Device,
+        info_kind: ProgramBuildInfo,
+    ) -> OclCoreResult<ProgramBuildInfoResult> {
         core::get_program_build_info(&self.0, &device, info_kind)
     }
 
@@ -132,7 +147,6 @@ impl DerefMut for Program {
     }
 }
 
-
 /// A build option used by ProgramBuilder.
 ///
 /// Strings intended for use either by the compiler as a command line switch
@@ -171,17 +185,15 @@ impl BuildOpt {
     }
 }
 
-
 /// Options for program creation.
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
 enum CreateWith<'b> {
     None,
     Source(Vec<PathBuf>),
-    Binaries(&'b[&'b [u8]]),
+    Binaries(&'b [&'b [u8]]),
     Il(&'b [u8]),
 }
-
 
 /// A builder for `Program`.
 ///
@@ -213,7 +225,11 @@ impl<'b> ProgramBuilder<'b> {
     ///
     /// `...cmplr_def("MAX_ITERS", 500)...`
     ///
-    pub fn cmplr_def<'a, S: Into<String>>(&'a mut self, name: S, val: i32) -> &'a mut ProgramBuilder<'b> {
+    pub fn cmplr_def<'a, S: Into<String>>(
+        &'a mut self,
+        name: S,
+        val: i32,
+    ) -> &'a mut ProgramBuilder<'b> {
         self.options.push(BuildOpt::cmplr_def(name, val));
         self
     }
@@ -243,15 +259,25 @@ impl<'b> ProgramBuilder<'b> {
     //
     // TODO: Deprecate
     // #[deprecated(since = "0.19.2", note = "Use `::source_file` instead.")]
-    pub fn src_file<'a, P: Into<PathBuf>>(&'a mut self, file_path: P) -> &'a mut ProgramBuilder<'b> {
+    pub fn src_file<'a, P: Into<PathBuf>>(
+        &'a mut self,
+        file_path: P,
+    ) -> &'a mut ProgramBuilder<'b> {
         self.source_file(file_path)
     }
 
     /// Opens a file and adds its contents to the program source.
-    pub fn source_file<'a, P: Into<PathBuf>>(&'a mut self, file_path: P) -> &'a mut ProgramBuilder<'b> {
+    pub fn source_file<'a, P: Into<PathBuf>>(
+        &'a mut self,
+        file_path: P,
+    ) -> &'a mut ProgramBuilder<'b> {
         let file_path = file_path.into();
-        assert!(file_path.is_file(), "ProgramBuilder::src_file(): Source file error: \
-            '{}' does not exist.", file_path.display());
+        assert!(
+            file_path.is_file(),
+            "ProgramBuilder::src_file(): Source file error: \
+            '{}' does not exist.",
+            file_path.display()
+        );
         match self.with {
             CreateWith::None => {
                 let mut paths = Vec::with_capacity(8);
@@ -293,7 +319,7 @@ impl<'b> ProgramBuilder<'b> {
     /// Adds a binary to be loaded.
     ///
     /// There must be one binary for each device listed in `::devices`.
-    pub fn binaries<'a>(&'a mut self, bins: &'b[&'b [u8]]) -> &'a mut ProgramBuilder<'b> {
+    pub fn binaries<'a>(&'a mut self, bins: &'b [&'b [u8]]) -> &'a mut ProgramBuilder<'b> {
         match self.with {
             CreateWith::None => self.with = CreateWith::Binaries(bins),
             CreateWith::Binaries(_) => panic!("Binaries have already been specified."),
@@ -340,9 +366,14 @@ impl<'b> ProgramBuilder<'b> {
     /// [device_specifier_from]: enum.DeviceSpecifier.html#method.from
     /// [device_specifier]: enum.DeviceSpecifier.html
     ///
-    pub fn devices<'a, D: Into<DeviceSpecifier>>(&'a mut self, device_spec: D)
-            -> &'a mut ProgramBuilder<'b> {
-        assert!(self.device_spec.is_none(), "ocl::ProgramBuilder::devices(): Devices already specified");
+    pub fn devices<'a, D: Into<DeviceSpecifier>>(
+        &'a mut self,
+        device_spec: D,
+    ) -> &'a mut ProgramBuilder<'b> {
+        assert!(
+            self.device_spec.is_none(),
+            "ocl::ProgramBuilder::devices(): Devices already specified"
+        );
         self.device_spec = Some(device_spec.into());
         self
     }
@@ -361,15 +392,11 @@ impl<'b> ProgramBuilder<'b> {
             match *option {
                 BuildOpt::CmplrDefine { ref ident, ref val } => {
                     opts.push(format!("-D {}={}", ident, val))
-                },
+                }
 
-                BuildOpt::CmplrInclDir { ref path } => {
-                    opts.push(format!("-I {}", path))
-                },
+                BuildOpt::CmplrInclDir { ref path } => opts.push(format!("-I {}", path)),
 
-                BuildOpt::CmplrOther(ref s) => {
-                    opts.push(s.clone())
-                },
+                BuildOpt::CmplrOther(ref s) => opts.push(s.clone()),
 
                 _ => (),
             }
@@ -390,15 +417,15 @@ impl<'b> ProgramBuilder<'b> {
         for option in &self.options {
             match *option {
                 BuildOpt::IncludeDefine { ref ident, ref val } => {
-                    strings.push(CString::new(format!("#define {}  {}\n", ident, val)
-                        .into_bytes())?);
-                },
+                    strings.push(CString::new(
+                        format!("#define {}  {}\n", ident, val).into_bytes(),
+                    )?);
+                }
                 BuildOpt::IncludeRaw(ref text) => {
                     strings.push(CString::new(text.clone().into_bytes())?);
-                },
+                }
                 _ => (),
             };
-
         }
 
         strings.shrink_to_fit();
@@ -445,7 +472,9 @@ impl<'b> ProgramBuilder<'b> {
         for src_path in src_paths {
             let mut src_bytes: Vec<u8> = Vec::with_capacity(100_000);
 
-            if src_file_history.contains(src_path) { continue; }
+            if src_file_history.contains(src_path) {
+                continue;
+            }
             src_file_history.insert(src_path.clone());
 
             let mut src_file_handle = File::open(src_path)?;
@@ -477,25 +506,25 @@ impl<'b> ProgramBuilder<'b> {
         match self.with {
             CreateWith::Il(_) => {
                 return Err("ocl::ProgramBuilder::build: Unreachable section (IL).".into());
-            },
-            CreateWith::Source(_) => {
-                Program::with_source(
-                    context,
-                    &self.get_src_strings()?,
-                    Some(&device_list[..]),
-                    &self.get_compiler_options()?,
-                ).map_err(OclError::from)
-            },
-            CreateWith::Binaries(bins) => {
-                Program::with_binary(
-                    context,
-                    &device_list[..],
-                    bins,
-                    &self.get_compiler_options()?,
-                )
-            },
-            CreateWith::None => return Err("Unable to build program: no source, binary, \
-                or IL has been specified".into()),
+            }
+            CreateWith::Source(_) => Program::with_source(
+                context,
+                &self.get_src_strings()?,
+                Some(&device_list[..]),
+                &self.get_compiler_options()?,
+            )
+            .map_err(OclError::from),
+            CreateWith::Binaries(bins) => Program::with_binary(
+                context,
+                &device_list[..],
+                bins,
+                &self.get_compiler_options()?,
+            ),
+            CreateWith::None => {
+                return Err("Unable to build program: no source, binary, \
+                or IL has been specified"
+                    .into())
+            }
         }
     }
 
@@ -514,33 +543,27 @@ impl<'b> ProgramBuilder<'b> {
         };
 
         match self.with {
-            CreateWith::Il(il) => {
-                Program::with_il(
-                    il,
-                    Some(&device_list[..]),
-                    &self.get_compiler_options()?,
-                    context
-                )
-            },
-            CreateWith::Source(_) => {
-                Program::with_source(
-                    context,
-                    &self.get_src_strings()?,
-                    Some(&device_list[..]),
-                    &self.get_compiler_options()?,
-                )
-            },
-            CreateWith::Binaries(bins) => {
-                Program::with_binary(
-                    context,
-                    &device_list[..],
-                    bins,
-                    &self.get_compiler_options()?,
-                )
-            },
+            CreateWith::Il(il) => Program::with_il(
+                il,
+                Some(&device_list[..]),
+                &self.get_compiler_options()?,
+                context,
+            ),
+            CreateWith::Source(_) => Program::with_source(
+                context,
+                &self.get_src_strings()?,
+                Some(&device_list[..]),
+                &self.get_compiler_options()?,
+            ),
+            CreateWith::Binaries(bins) => Program::with_binary(
+                context,
+                &device_list[..],
+                bins,
+                &self.get_compiler_options()?,
+            ),
             CreateWith::None => Err("Unable to build program: no source, binary, \
-                or IL has been specified".into()),
+                or IL has been specified"
+                .into()),
         }
     }
 }
-

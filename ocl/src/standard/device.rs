@@ -1,13 +1,14 @@
 //! An OpenCL device identifier and related types.
 
-use std;
-use std::ops::{Deref, DerefMut};
-use std::borrow::Borrow;
-use crate::ffi::cl_device_id;
-use crate::core::{self, util, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
+use crate::core::{
+    self, util, ClDeviceIdPtr, DeviceId as DeviceIdCore, DeviceInfo, DeviceInfoResult, DeviceType,
+};
 use crate::error::{Error as OclError, Result as OclResult};
+use crate::ffi::cl_device_id;
 use crate::standard::Platform;
-
+use std;
+use std::borrow::Borrow;
+use std::ops::{Deref, DerefMut};
 
 /// A device related error.
 #[derive(Debug, thiserror::Error)]
@@ -148,31 +149,26 @@ impl DeviceSpecifier {
     /// `Platform`. If no `platform` has been specified, this behaviour is
     /// undefined and could end up using any platform at all.
     ///
-    pub fn to_device_list<P: Borrow<Platform>>(&self, platform: Option<P>) -> OclResult<Vec<Device>> {
+    pub fn to_device_list<P: Borrow<Platform>>(
+        &self,
+        platform: Option<P>,
+    ) -> OclResult<Vec<Device>> {
         let platform = platform.map(|p| *p.borrow()).unwrap_or_default();
 
         match *self {
-            DeviceSpecifier::All => {
-                Device::list_all(&platform).map_err(OclError::from)
-            },
-            DeviceSpecifier::First => {
-                Device::list_select(&platform, None, &[0])
-            },
-            DeviceSpecifier::Single(ref device) => {
-                Ok(vec![*device])
-            },
-            DeviceSpecifier::List(ref devices) => {
-                Ok(devices.clone())
-            },
+            DeviceSpecifier::All => Device::list_all(&platform).map_err(OclError::from),
+            DeviceSpecifier::First => Device::list_select(&platform, None, &[0]),
+            DeviceSpecifier::Single(ref device) => Ok(vec![*device]),
+            DeviceSpecifier::List(ref devices) => Ok(devices.clone()),
             DeviceSpecifier::Indices(ref idx_list) => {
                 Device::list_select(&platform, None, idx_list)
-            },
+            }
             DeviceSpecifier::WrappingIndices(ref idx_list) => {
                 Device::list_select_wrap(&platform, None, idx_list).map_err(OclError::from)
-            },
+            }
             DeviceSpecifier::TypeFlags(flags) => {
                 Device::list(&platform, Some(flags)).map_err(OclError::from)
-            },
+            }
         }
     }
 }
@@ -243,7 +239,6 @@ impl From<DeviceType> for DeviceSpecifier {
     }
 }
 
-
 /// An individual device identifier (an OpenCL device_id).
 ///
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -254,15 +249,21 @@ impl Device {
     /// Returns the first available device on a platform.
     pub fn first<P: Borrow<Platform>>(platform: P) -> OclResult<Device> {
         let device_ids = core::get_device_ids(platform.borrow(), None, None)?;
-        if device_ids.is_empty() { return Err(DeviceError::NoDevices.into()) }
+        if device_ids.is_empty() {
+            return Err(DeviceError::NoDevices.into());
+        }
         Ok(Device(device_ids[0]))
     }
 
     /// Returns a single device specified by a wrapped index.
-    pub fn by_idx_wrap<P: Borrow<Platform>>(platform: P, device_idx_wrap: usize)
-            -> OclResult<Device> {
+    pub fn by_idx_wrap<P: Borrow<Platform>>(
+        platform: P,
+        device_idx_wrap: usize,
+    ) -> OclResult<Device> {
         let device_ids = core::get_device_ids(platform.borrow(), None, None)?;
-        if device_ids.is_empty() { return Err(DeviceError::NoDevices.into()) }
+        if device_ids.is_empty() {
+            return Err(DeviceError::NoDevices.into());
+        }
         let wrapped_idx = device_idx_wrap % device_ids.len();
         Ok(Device(device_ids[wrapped_idx]))
     }
@@ -284,15 +285,22 @@ impl Device {
     /// lists which may contain out of bounds indices.
     ///
     pub fn resolve_idxs(idxs: &[usize], devices: &[Device]) -> OclResult<Vec<Device>> {
-        if devices.is_empty() { return Err(DeviceError::ResolveIdxsEmptyDeviceList.into()) }
+        if devices.is_empty() {
+            return Err(DeviceError::ResolveIdxsEmptyDeviceList.into());
+        }
         let mut result = Vec::with_capacity(idxs.len());
         for &idx in idxs.iter() {
             match devices.get(idx) {
                 Some(&device) => result.push(device),
                 // None => return Err(format!("Error resolving device index: '{}'. Index out of \
                 //     range. Devices avaliable: '{}'.", idx, devices.len()).into()),
-                None => return Err(DeviceError::ResolveIdxsInvalidIndex { idx, max: devices.len() }.into()),
-
+                None => {
+                    return Err(DeviceError::ResolveIdxsInvalidIndex {
+                        idx,
+                        max: devices.len(),
+                    }
+                    .into())
+                }
             }
         }
         Ok(result)
@@ -326,9 +334,12 @@ impl Device {
     /// [`.status()`]: enum.Error.html#method.status
     /// [`ocl::core::Status`]: enum.Status.html
     ///
-    pub fn list<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>) -> OclResult<Vec<Device>> {
-        let list_core = core::get_device_ids(platform.borrow(), device_types, None)
-            .unwrap_or(vec![]);
+    pub fn list<P: Borrow<Platform>>(
+        platform: P,
+        device_types: Option<DeviceType>,
+    ) -> OclResult<Vec<Device>> {
+        let list_core =
+            core::get_device_ids(platform.borrow(), device_types, None).unwrap_or(vec![]);
         Ok(list_core.into_iter().map(Device).collect())
     }
 
@@ -354,8 +365,11 @@ impl Device {
     /// See [`::list`](struct.Device.html#method.list) for other
     /// error information.
     ///
-    pub fn list_select<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>,
-            idxs: &[usize]) -> OclResult<Vec<Device>> {
+    pub fn list_select<P: Borrow<Platform>>(
+        platform: P,
+        device_types: Option<DeviceType>,
+        idxs: &[usize],
+    ) -> OclResult<Vec<Device>> {
         Self::resolve_idxs(idxs, &Self::list(platform, device_types)?)
     }
 
@@ -369,9 +383,15 @@ impl Device {
     ///
     /// See [`::list`](struct.Device.html#method.list)
     ///
-    pub fn list_select_wrap<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>,
-            idxs: &[usize]) -> OclResult<Vec<Device>> {
-        Ok(Self::resolve_idxs_wrap(idxs, &Self::list(platform, device_types)?))
+    pub fn list_select_wrap<P: Borrow<Platform>>(
+        platform: P,
+        device_types: Option<DeviceType>,
+        idxs: &[usize],
+    ) -> OclResult<Vec<Device>> {
+        Ok(Self::resolve_idxs_wrap(
+            idxs,
+            &Self::list(platform, device_types)?,
+        ))
     }
 
     /// Returns a list of `Device`s from a list of `DeviceIdCore`s
@@ -388,13 +408,15 @@ impl Device {
     /// Returns the device name.
     pub fn name(&self) -> OclResult<String> {
         core::get_device_info(&self.0, DeviceInfo::Name)
-            .map(|r| r.to_string()).map_err(OclError::from)
+            .map(|r| r.to_string())
+            .map_err(OclError::from)
     }
 
     /// Returns the device vendor as a string.
     pub fn vendor(&self) -> OclResult<String> {
         core::get_device_info(&self.0, DeviceInfo::Vendor)
-            .map(|r| r.to_string()).map_err(OclError::from)
+            .map(|r| r.to_string())
+            .map_err(OclError::from)
     }
 
     /// Returns the maximum workgroup size or an error.
@@ -450,19 +472,46 @@ impl Device {
             .field("Type", &self.info(DeviceInfo::Type))
             .field("VendorId", &self.info(DeviceInfo::VendorId))
             .field("MaxComputeUnits", &self.info(DeviceInfo::MaxComputeUnits))
-            .field("MaxWorkItemDimensions", &self.info(DeviceInfo::MaxWorkItemDimensions))
+            .field(
+                "MaxWorkItemDimensions",
+                &self.info(DeviceInfo::MaxWorkItemDimensions),
+            )
             .field("MaxWorkGroupSize", &self.info(DeviceInfo::MaxWorkGroupSize))
             .field("MaxWorkItemSizes", &self.info(DeviceInfo::MaxWorkItemSizes))
-            .field("PreferredVectorWidthChar", &self.info(DeviceInfo::PreferredVectorWidthChar))
-            .field("PreferredVectorWidthShort", &self.info(DeviceInfo::PreferredVectorWidthShort))
-            .field("PreferredVectorWidthInt", &self.info(DeviceInfo::PreferredVectorWidthInt))
-            .field("PreferredVectorWidthLong", &self.info(DeviceInfo::PreferredVectorWidthLong))
-            .field("PreferredVectorWidthFloat", &self.info(DeviceInfo::PreferredVectorWidthFloat))
-            .field("PreferredVectorWidthDouble", &self.info(DeviceInfo::PreferredVectorWidthDouble))
-            .field("MaxClockFrequency", &self.info(DeviceInfo::MaxClockFrequency))
+            .field(
+                "PreferredVectorWidthChar",
+                &self.info(DeviceInfo::PreferredVectorWidthChar),
+            )
+            .field(
+                "PreferredVectorWidthShort",
+                &self.info(DeviceInfo::PreferredVectorWidthShort),
+            )
+            .field(
+                "PreferredVectorWidthInt",
+                &self.info(DeviceInfo::PreferredVectorWidthInt),
+            )
+            .field(
+                "PreferredVectorWidthLong",
+                &self.info(DeviceInfo::PreferredVectorWidthLong),
+            )
+            .field(
+                "PreferredVectorWidthFloat",
+                &self.info(DeviceInfo::PreferredVectorWidthFloat),
+            )
+            .field(
+                "PreferredVectorWidthDouble",
+                &self.info(DeviceInfo::PreferredVectorWidthDouble),
+            )
+            .field(
+                "MaxClockFrequency",
+                &self.info(DeviceInfo::MaxClockFrequency),
+            )
             .field("AddressBits", &self.info(DeviceInfo::AddressBits))
             .field("MaxReadImageArgs", &self.info(DeviceInfo::MaxReadImageArgs))
-            .field("MaxWriteImageArgs", &self.info(DeviceInfo::MaxWriteImageArgs))
+            .field(
+                "MaxWriteImageArgs",
+                &self.info(DeviceInfo::MaxWriteImageArgs),
+            )
             .field("MaxMemAllocSize", &self.info(DeviceInfo::MaxMemAllocSize))
             .field("Image2dMaxWidth", &self.info(DeviceInfo::Image2dMaxWidth))
             .field("Image2dMaxHeight", &self.info(DeviceInfo::Image2dMaxHeight))
@@ -473,22 +522,49 @@ impl Device {
             .field("MaxParameterSize", &self.info(DeviceInfo::MaxParameterSize))
             .field("MaxSamplers", &self.info(DeviceInfo::MaxSamplers))
             .field("MemBaseAddrAlign", &self.info(DeviceInfo::MemBaseAddrAlign))
-            .field("MinDataTypeAlignSize", &self.info(DeviceInfo::MinDataTypeAlignSize))
+            .field(
+                "MinDataTypeAlignSize",
+                &self.info(DeviceInfo::MinDataTypeAlignSize),
+            )
             .field("SingleFpConfig", &self.info(DeviceInfo::SingleFpConfig))
-            .field("GlobalMemCacheType", &self.info(DeviceInfo::GlobalMemCacheType))
-            .field("GlobalMemCachelineSize", &self.info(DeviceInfo::GlobalMemCachelineSize))
-            .field("GlobalMemCacheSize", &self.info(DeviceInfo::GlobalMemCacheSize))
+            .field(
+                "GlobalMemCacheType",
+                &self.info(DeviceInfo::GlobalMemCacheType),
+            )
+            .field(
+                "GlobalMemCachelineSize",
+                &self.info(DeviceInfo::GlobalMemCachelineSize),
+            )
+            .field(
+                "GlobalMemCacheSize",
+                &self.info(DeviceInfo::GlobalMemCacheSize),
+            )
             .field("GlobalMemSize", &self.info(DeviceInfo::GlobalMemSize))
-            .field("MaxConstantBufferSize", &self.info(DeviceInfo::MaxConstantBufferSize))
+            .field(
+                "MaxConstantBufferSize",
+                &self.info(DeviceInfo::MaxConstantBufferSize),
+            )
             .field("MaxConstantArgs", &self.info(DeviceInfo::MaxConstantArgs))
             .field("LocalMemType", &self.info(DeviceInfo::LocalMemType))
             .field("LocalMemSize", &self.info(DeviceInfo::LocalMemSize))
-            .field("ErrorCorrectionSupport", &self.info(DeviceInfo::ErrorCorrectionSupport))
-            .field("ProfilingTimerResolution", &self.info(DeviceInfo::ProfilingTimerResolution))
+            .field(
+                "ErrorCorrectionSupport",
+                &self.info(DeviceInfo::ErrorCorrectionSupport),
+            )
+            .field(
+                "ProfilingTimerResolution",
+                &self.info(DeviceInfo::ProfilingTimerResolution),
+            )
             .field("EndianLittle", &self.info(DeviceInfo::EndianLittle))
             .field("Available", &self.info(DeviceInfo::Available))
-            .field("CompilerAvailable", &self.info(DeviceInfo::CompilerAvailable))
-            .field("ExecutionCapabilities", &self.info(DeviceInfo::ExecutionCapabilities))
+            .field(
+                "CompilerAvailable",
+                &self.info(DeviceInfo::CompilerAvailable),
+            )
+            .field(
+                "ExecutionCapabilities",
+                &self.info(DeviceInfo::ExecutionCapabilities),
+            )
             .field("QueueProperties", &self.info(DeviceInfo::QueueProperties))
             .field("Name", &self.info(DeviceInfo::Name))
             .field("Vendor", &self.info(DeviceInfo::Vendor))
@@ -499,30 +575,81 @@ impl Device {
             .field("Platform", &self.info(DeviceInfo::Platform))
             .field("DoubleFpConfig", &self.info(DeviceInfo::DoubleFpConfig))
             .field("HalfFpConfig", &self.info(DeviceInfo::HalfFpConfig))
-            .field("PreferredVectorWidthHalf", &self.info(DeviceInfo::PreferredVectorWidthHalf))
-            .field("HostUnifiedMemory", &self.info(DeviceInfo::HostUnifiedMemory))
-            .field("NativeVectorWidthChar", &self.info(DeviceInfo::NativeVectorWidthChar))
-            .field("NativeVectorWidthShort", &self.info(DeviceInfo::NativeVectorWidthShort))
-            .field("NativeVectorWidthInt", &self.info(DeviceInfo::NativeVectorWidthInt))
-            .field("NativeVectorWidthLong", &self.info(DeviceInfo::NativeVectorWidthLong))
-            .field("NativeVectorWidthFloat", &self.info(DeviceInfo::NativeVectorWidthFloat))
-            .field("NativeVectorWidthDouble", &self.info(DeviceInfo::NativeVectorWidthDouble))
-            .field("NativeVectorWidthHalf", &self.info(DeviceInfo::NativeVectorWidthHalf))
+            .field(
+                "PreferredVectorWidthHalf",
+                &self.info(DeviceInfo::PreferredVectorWidthHalf),
+            )
+            .field(
+                "HostUnifiedMemory",
+                &self.info(DeviceInfo::HostUnifiedMemory),
+            )
+            .field(
+                "NativeVectorWidthChar",
+                &self.info(DeviceInfo::NativeVectorWidthChar),
+            )
+            .field(
+                "NativeVectorWidthShort",
+                &self.info(DeviceInfo::NativeVectorWidthShort),
+            )
+            .field(
+                "NativeVectorWidthInt",
+                &self.info(DeviceInfo::NativeVectorWidthInt),
+            )
+            .field(
+                "NativeVectorWidthLong",
+                &self.info(DeviceInfo::NativeVectorWidthLong),
+            )
+            .field(
+                "NativeVectorWidthFloat",
+                &self.info(DeviceInfo::NativeVectorWidthFloat),
+            )
+            .field(
+                "NativeVectorWidthDouble",
+                &self.info(DeviceInfo::NativeVectorWidthDouble),
+            )
+            .field(
+                "NativeVectorWidthHalf",
+                &self.info(DeviceInfo::NativeVectorWidthHalf),
+            )
             .field("OpenclCVersion", &self.info(DeviceInfo::OpenclCVersion))
             .field("LinkerAvailable", &self.info(DeviceInfo::LinkerAvailable))
             .field("BuiltInKernels", &self.info(DeviceInfo::BuiltInKernels))
-            .field("ImageMaxBufferSize", &self.info(DeviceInfo::ImageMaxBufferSize))
-            .field("ImageMaxArraySize", &self.info(DeviceInfo::ImageMaxArraySize))
+            .field(
+                "ImageMaxBufferSize",
+                &self.info(DeviceInfo::ImageMaxBufferSize),
+            )
+            .field(
+                "ImageMaxArraySize",
+                &self.info(DeviceInfo::ImageMaxArraySize),
+            )
             .field("ParentDevice", &self.info(DeviceInfo::ParentDevice))
-            .field("PartitionMaxSubDevices", &self.info(DeviceInfo::PartitionMaxSubDevices))
-            .field("PartitionProperties", &self.info(DeviceInfo::PartitionProperties))
-            .field("PartitionAffinityDomain", &self.info(DeviceInfo::PartitionAffinityDomain))
+            .field(
+                "PartitionMaxSubDevices",
+                &self.info(DeviceInfo::PartitionMaxSubDevices),
+            )
+            .field(
+                "PartitionProperties",
+                &self.info(DeviceInfo::PartitionProperties),
+            )
+            .field(
+                "PartitionAffinityDomain",
+                &self.info(DeviceInfo::PartitionAffinityDomain),
+            )
             .field("PartitionType", &self.info(DeviceInfo::PartitionType))
             .field("ReferenceCount", &self.info(DeviceInfo::ReferenceCount))
-            .field("PreferredInteropUserSync", &self.info(DeviceInfo::PreferredInteropUserSync))
+            .field(
+                "PreferredInteropUserSync",
+                &self.info(DeviceInfo::PreferredInteropUserSync),
+            )
             .field("PrintfBufferSize", &self.info(DeviceInfo::PrintfBufferSize))
-            .field("ImagePitchAlignment", &self.info(DeviceInfo::ImagePitchAlignment))
-            .field("ImageBaseAddressAlignment", &self.info(DeviceInfo::ImageBaseAddressAlignment))
+            .field(
+                "ImagePitchAlignment",
+                &self.info(DeviceInfo::ImagePitchAlignment),
+            )
+            .field(
+                "ImageBaseAddressAlignment",
+                &self.info(DeviceInfo::ImageBaseAddressAlignment),
+            )
             .finish()
     }
 }

@@ -1,15 +1,14 @@
 #![allow(unused_imports, unused_variables, dead_code)]
 
-use std::sync::Arc;
-use std::rc::{Rc, Weak};
-use std::cell::RefCell;
-use std::thread::{self, JoinHandle, Thread};
-use futures::{executor, SinkExt, StreamExt, Future, Never, Poll, Async, Stream, FutureExt};
-use futures::stream::FuturesUnordered;
-use futures::task::{Context, Waker, LocalMap, Wake};
-use futures::executor::{enter, Executor, SpawnError, ThreadPool};
 use futures::channel::mpsc::{self, Sender};
-
+use futures::executor::{enter, Executor, SpawnError, ThreadPool};
+use futures::stream::FuturesUnordered;
+use futures::task::{Context, LocalMap, Wake, Waker};
+use futures::{executor, Async, Future, FutureExt, Never, Poll, SinkExt, Stream, StreamExt};
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
+use std::sync::Arc;
+use std::thread::{self, JoinHandle, Thread};
 
 /// An error associated with `WorkPool`.
 #[derive(Debug, Fail)]
@@ -32,7 +31,6 @@ impl From<::futures::channel::mpsc::SendError> for WorkPoolError {
     }
 }
 
-
 struct ThreadNotify {
     thread: Thread,
 }
@@ -45,7 +43,9 @@ thread_local! {
 
 impl ThreadNotify {
     fn with_current<R, F>(f: F) -> R
-            where F: FnOnce(&Arc<ThreadNotify>) -> R {
+    where
+        F: FnOnce(&Arc<ThreadNotify>) -> R,
+    {
         CURRENT_THREAD_NOTIFY.with(f)
     }
 
@@ -59,7 +59,6 @@ impl Wake for ThreadNotify {
         arc_self.thread.unpark();
     }
 }
-
 
 /// A work pool task.
 struct Task {
@@ -75,7 +74,6 @@ impl Future for Task {
         self.fut.poll(&mut cx.with_locals(&mut self.map))
     }
 }
-
 
 /// The event loop components of a `WorkPool`.
 struct WorkPoolCore {
@@ -129,8 +127,10 @@ impl WorkPoolCore {
     }
 
     pub fn run(&mut self) {
-        let _enter = enter().expect("cannot execute `WorkPool` \
-            executor from within another executor");
+        let _enter = enter().expect(
+            "cannot execute `WorkPool` \
+            executor from within another executor",
+        );
 
         ThreadNotify::with_current(|thread| {
             let waker = &Waker::from(thread.clone());
@@ -143,7 +143,10 @@ impl WorkPoolCore {
         })
     }
 
-    fn spawn(&mut self, f: Box<dyn Future<Item = (), Error = Never> + Send>) -> Result<(), SpawnError> {
+    fn spawn(
+        &mut self,
+        f: Box<dyn Future<Item = (), Error = Never> + Send>,
+    ) -> Result<(), SpawnError> {
         let task = Task {
             fut: f,
             map: LocalMap::new(),
@@ -153,7 +156,6 @@ impl WorkPoolCore {
         Ok(())
     }
 }
-
 
 /// A general purpose work completion pool.
 ///
@@ -173,12 +175,14 @@ impl WorkPool {
         let core_thread_pre = "work_pool_core-".to_owned();
 
         let core_thread: JoinHandle<_> = thread::Builder::new()
-                .name(core_thread_pre).spawn(move || {
-            let mut core = WorkPoolCore::new().unwrap();
-            let work = Box::new(core_rx.for_each(|_| Ok(())).map(|_| ()));
-            core.spawn(work).unwrap();
-            core.run();
-        }).unwrap();
+            .name(core_thread_pre)
+            .spawn(move || {
+                let mut core = WorkPoolCore::new().unwrap();
+                let work = Box::new(core_rx.for_each(|_| Ok(())).map(|_| ()));
+                core.spawn(work).unwrap();
+                core.run();
+            })
+            .unwrap();
 
         Ok(WorkPool {
             core_tx: Some(core_tx),
@@ -189,9 +193,12 @@ impl WorkPool {
     /// Submits a future which need only be polled to completion and that
     /// contains no intensive CPU work (including memcpy).
     pub fn complete<F>(&mut self, future: F) -> Result<(), WorkPoolError>
-            where F: Future<Item = (), Error = Never> + Send + 'static {
+    where
+        F: Future<Item = (), Error = Never> + Send + 'static,
+    {
         let tx = self.core_tx.take().unwrap();
-        self.core_tx.get_or_insert(executor::block_on(tx.send(Box::new(future)))?);
+        self.core_tx
+            .get_or_insert(executor::block_on(tx.send(Box::new(future)))?);
         Ok(())
     }
 }
@@ -203,6 +210,10 @@ impl Drop for WorkPool {
     // TODO: Guarantee above.
     fn drop(&mut self) {
         self.core_tx.take().unwrap().close_channel();
-        self.core_thread.take().unwrap().join().expect("Error joining `WorkPool` thread");
+        self.core_thread
+            .take()
+            .unwrap()
+            .join()
+            .expect("Error joining `WorkPool` thread");
     }
 }

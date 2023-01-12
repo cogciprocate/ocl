@@ -6,8 +6,6 @@ pub const CL_CONTEXT_ADAPTER_D3D9_KHR: cl_uint = 0x2025;
 pub const CL_CONTEXT_ADAPTER_D3D9EX_KHR: cl_uint = 0x2026;
 pub const CL_CONTEXT_ADAPTER_DXVA_KHR: cl_uint = 0x2027;
 
-
-
 // /**********************************************************************************
 //  * Copyright (c) 2008-2015 The Khronos Group Inc.
 //  *
@@ -35,9 +33,7 @@ pub const CL_CONTEXT_ADAPTER_DXVA_KHR: cl_uint = 0x2027;
 //  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 //  * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
 //  **********************************************************************************/
-
 // /* $Revision: 11708 $ on $Date: 2010-06-13 23:36:24 -0700 (Sun, 13 Jun 2010) $ */
-
 // #ifndef __OPENCL_CL_DX9_MEDIA_SHARING_H
 // #define __OPENCL_CL_DX9_MEDIA_SHARING_H
 
@@ -64,9 +60,7 @@ pub const CL_CONTEXT_ADAPTER_DXVA_KHR: cl_uint = 0x2027;
 // } cl_dx9_surface_info_khr;
 // #endif
 
-
 // /******************************************************************************/
-
 // /* Error Codes */
 // #define CL_INVALID_DX9_MEDIA_ADAPTER_KHR                -1010
 // #define CL_INVALID_DX9_MEDIA_SURFACE_KHR                -1011
@@ -99,7 +93,6 @@ pub const CL_CONTEXT_ADAPTER_DXVA_KHR: cl_uint = 0x2027;
 // #define CL_COMMAND_RELEASE_DX9_MEDIA_SURFACES_KHR        0x202C
 
 // /******************************************************************************/
-
 // typedef CL_API_ENTRY cl_int (CL_API_CALL *clGetDeviceIDsFromDX9MediaAdapterKHR_fn)(
 //     cl_platform_id                   platform,
 //     cl_uint                          num_media_adapters,

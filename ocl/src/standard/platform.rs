@@ -4,20 +4,20 @@
 //! s/man/xhtml/clGetPlatformInfo.html](https://www.khronos.org/registry/cl/sd
 //! k/1.2/docs/man/xhtml/clGetPlatformInfo.html)
 
+use crate::core::{
+    self, ClPlatformIdPtr, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult,
+};
+use crate::error::{Error as OclError, Result as OclResult};
+use crate::ffi::cl_platform_id;
 use std;
 use std::ops::{Deref, DerefMut};
 use std::str::SplitWhitespace;
-use crate::ffi::cl_platform_id;
-use crate::core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
-use crate::error::{Error as OclError, Result as OclResult};
-
 
 #[derive(Debug, thiserror::Error)]
 pub enum PlatformError {
     #[error("No platforms found.")]
     NoPlatforms,
 }
-
 
 /// Extensions of a platform.
 #[derive(Debug, Clone)]
@@ -36,7 +36,6 @@ impl Extensions {
     }
 }
 
-
 /// A platform identifier.
 ///
 #[repr(C)]
@@ -46,8 +45,8 @@ pub struct Platform(PlatformIdCore);
 impl Platform {
     /// Returns a list of all platforms avaliable on the host machine.
     pub fn list() -> Vec<Platform> {
-        let list_core = core::get_platform_ids()
-            .expect("Platform::list: Error retrieving platform list");
+        let list_core =
+            core::get_platform_ids().expect("Platform::list: Error retrieving platform list");
 
         list_core.into_iter().map(Platform::new).collect()
     }
@@ -102,7 +101,8 @@ impl Platform {
     ///
     pub fn profile(&self) -> OclResult<String> {
         core::get_platform_info(&self.0, PlatformInfo::Profile)
-            .map(|r| r.into()).map_err(OclError::from)
+            .map(|r| r.into())
+            .map_err(OclError::from)
     }
 
     /// Returns the platform driver version as a string.
@@ -118,19 +118,22 @@ impl Platform {
     /// * TODO: Convert this to new version system returning an `OpenclVersion`.
     pub fn version(&self) -> OclResult<String> {
         core::get_platform_info(&self.0, PlatformInfo::Version)
-            .map(|r| r.into()).map_err(OclError::from)
+            .map(|r| r.into())
+            .map_err(OclError::from)
     }
 
     /// Returns the platform name as a string.
     pub fn name(&self) -> OclResult<String> {
         core::get_platform_info(&self.0, PlatformInfo::Name)
-            .map(|r| r.into()).map_err(OclError::from)
+            .map(|r| r.into())
+            .map_err(OclError::from)
     }
 
     /// Returns the platform vendor as a string.
     pub fn vendor(&self) -> OclResult<String> {
         core::get_platform_info(&self.0, PlatformInfo::Vendor)
-            .map(|r| r.into()).map_err(OclError::from)
+            .map(|r| r.into())
+            .map_err(OclError::from)
     }
 
     /// Returns the list of platform extensions.
@@ -139,7 +142,9 @@ impl Platform {
     /// with this platform.
     pub fn extensions(&self) -> OclResult<Extensions> {
         let extensions = core::get_platform_info(&self.0, PlatformInfo::Extensions);
-        extensions.map(|e| Extensions { inner: e.into() }).map_err(OclError::from)
+        extensions
+            .map(|e| Extensions { inner: e.into() })
+            .map_err(OclError::from)
     }
 
     /// Returns a reference to the underlying `PlatformIdCore`.
@@ -208,7 +213,6 @@ impl std::fmt::Display for Platform {
         self.fmt_info(f)
     }
 }
-
 
 impl Deref for Platform {
     type Target = PlatformIdCore;

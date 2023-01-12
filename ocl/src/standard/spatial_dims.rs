@@ -1,18 +1,18 @@
 //! A simple way to specify the sizes or offsets of up to three dimensions.
+use crate::core::util;
+use crate::error::Result as OclResult;
+use crate::standard::{MemLen, WorkDims};
+use num_traits::{Num, ToPrimitive};
 use std::convert::From;
 use std::fmt::Debug;
 use std::ops::Index;
-use num_traits::{Num, ToPrimitive};
-use crate::error::{Result as OclResult};
-use crate::standard::{MemLen, WorkDims};
-use crate::core::util;
-
 
 #[derive(Debug, thiserror::Error)]
-#[error("Cannot convert to a valid set of dimensions. \
-    Please specify some dimensions.")]
+#[error(
+    "Cannot convert to a valid set of dimensions. \
+    Please specify some dimensions."
+)]
 pub struct UnspecifiedDimensionsError;
-
 
 /// Specifies a size or offset in up to three dimensions.
 ///
@@ -31,9 +31,9 @@ pub struct UnspecifiedDimensionsError;
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
 pub enum SpatialDims {
     Unspecified,
-    One     (usize),
-    Two     (usize, usize),
-    Three   (usize, usize, usize),
+    One(usize),
+    Two(usize, usize),
+    Three(usize, usize, usize),
 }
 
 impl SpatialDims {
@@ -123,13 +123,18 @@ impl SpatialDims {
 
     /// Returns `true` if this `SpatialDims` is an `Unspecified` variant.
     pub fn is_unspecified(&self) -> bool {
-        if let SpatialDims::Unspecified = *self { true } else { false }
+        if let SpatialDims::Unspecified = *self {
+            true
+        } else {
+            false
+        }
     }
 }
 
 impl MemLen for SpatialDims {
     fn to_len_padded(&self, incr: usize) -> usize {
-        self.try_to_padded_len(incr).expect("ocl::SpatialDims::to_len_padded()")
+        self.try_to_padded_len(incr)
+            .expect("ocl::SpatialDims::to_len_padded()")
     }
 
     fn to_len(&self) -> usize {
@@ -155,35 +160,42 @@ impl WorkDims for SpatialDims {
     }
 }
 
-
 impl Index<usize> for SpatialDims {
     type Output = usize;
 
     fn index(&self, index: usize) -> &usize {
         match *self {
-            SpatialDims::Unspecified => panic!("ocl::SpatialDims::index(): \
-                Cannot index. No dimensions have been specified."),
+            SpatialDims::Unspecified => panic!(
+                "ocl::SpatialDims::index(): \
+                Cannot index. No dimensions have been specified."
+            ),
             SpatialDims::One(ref x) => {
-                assert!(index == 0, "ocl::SpatialDims::index(): Index: [{}], out of range. \
-                    Only one dimension avaliable.", index);
+                assert!(
+                    index == 0,
+                    "ocl::SpatialDims::index(): Index: [{}], out of range. \
+                    Only one dimension avaliable.",
+                    index
+                );
                 x
+            }
+            SpatialDims::Two(ref x, ref y) => match index {
+                0 => x,
+                1 => y,
+                _ => panic!(
+                    "ocl::SpatialDims::index(): Index: [{}], out of range. \
+                    Only two dimensions avaliable.",
+                    index
+                ),
             },
-            SpatialDims::Two(ref x, ref y) => {
-                match index {
-                    0 => x,
-                    1 => y,
-                    _ => panic!("ocl::SpatialDims::index(): Index: [{}], out of range. \
-                    Only two dimensions avaliable.", index),
-                }
-            },
-            SpatialDims::Three(ref x, ref y, ref z) => {
-                match index {
-                    0 => x,
-                    1 => y,
-                    2 => z,
-                    _ => panic!("ocl::SpatialDims::index(): Index: [{}], out of range. \
-                    Only three dimensions avaliable.", index),
-                }
+            SpatialDims::Three(ref x, ref y, ref z) => match index {
+                0 => x,
+                1 => y,
+                2 => z,
+                _ => panic!(
+                    "ocl::SpatialDims::index(): Index: [{}], out of range. \
+                    Only three dimensions avaliable.",
+                    index
+                ),
             },
         }
     }
@@ -205,8 +217,12 @@ impl From<usize> for SpatialDims {
 // [FIXME]: Quit being lazy and implement FromPrimitive.
 impl From<isize> for SpatialDims {
     fn from(val: isize) -> SpatialDims {
-        assert!(val > 0, "Invalid 'SpatialDims' value: {}. \
-            Dimensions must be greater than zero.", val);
+        assert!(
+            val > 0,
+            "Invalid 'SpatialDims' value: {}. \
+            Dimensions must be greater than zero.",
+            val
+        );
         (val as usize).into()
     }
 }
@@ -225,14 +241,14 @@ impl From<i32> for SpatialDims {
     }
 }
 
-impl<T: Num + ToPrimitive + Debug + Copy> From<(T, )> for SpatialDims {
-    fn from(val: (T, )) -> SpatialDims {
+impl<T: Num + ToPrimitive + Debug + Copy> From<(T,)> for SpatialDims {
+    fn from(val: (T,)) -> SpatialDims {
         SpatialDims::One(to_usize(val.0))
     }
 }
 
-impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a (T, )> for SpatialDims {
-    fn from(val: &(T, )) -> SpatialDims {
+impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a (T,)> for SpatialDims {
+    fn from(val: &(T,)) -> SpatialDims {
         SpatialDims::One(to_usize(val.0))
     }
 }
@@ -251,84 +267,57 @@ impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a [T; 1]> for SpatialDims {
 
 impl<T: Num + ToPrimitive + Debug + Copy> From<(T, T)> for SpatialDims {
     fn from(pair: (T, T)) -> SpatialDims {
-        SpatialDims::Two(
-            to_usize(pair.0),
-            to_usize(pair.1),
-        )
+        SpatialDims::Two(to_usize(pair.0), to_usize(pair.1))
     }
 }
 
 impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a (T, T)> for SpatialDims {
     fn from(pair: &(T, T)) -> SpatialDims {
-        SpatialDims::Two(
-            to_usize(pair.0),
-            to_usize(pair.1),
-        )
+        SpatialDims::Two(to_usize(pair.0), to_usize(pair.1))
     }
 }
 
 impl<T: Num + ToPrimitive + Debug + Copy> From<[T; 2]> for SpatialDims {
     fn from(pair: [T; 2]) -> SpatialDims {
-        SpatialDims::Two(
-            to_usize(pair[0]),
-            to_usize(pair[1]),
-        )
+        SpatialDims::Two(to_usize(pair[0]), to_usize(pair[1]))
     }
 }
 
 impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a [T; 2]> for SpatialDims {
     fn from(pair: &[T; 2]) -> SpatialDims {
-        SpatialDims::Two(
-            to_usize(pair[0]),
-            to_usize(pair[1]),
-        )
+        SpatialDims::Two(to_usize(pair[0]), to_usize(pair[1]))
     }
 }
 
 impl<T: Num + ToPrimitive + Debug + Copy> From<(T, T, T)> for SpatialDims {
     fn from(set: (T, T, T)) -> SpatialDims {
-        SpatialDims::Three(
-            to_usize(set.0),
-            to_usize(set.1),
-            to_usize(set.2),
-        )
+        SpatialDims::Three(to_usize(set.0), to_usize(set.1), to_usize(set.2))
     }
 }
 
 impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a (T, T, T)> for SpatialDims {
     fn from(set: &(T, T, T)) -> SpatialDims {
-        SpatialDims::Three(
-            to_usize(set.0),
-            to_usize(set.1),
-            to_usize(set.2),
-        )
+        SpatialDims::Three(to_usize(set.0), to_usize(set.1), to_usize(set.2))
     }
 }
 
 impl<T: Num + ToPrimitive + Debug + Copy> From<[T; 3]> for SpatialDims {
     fn from(set: [T; 3]) -> SpatialDims {
-        SpatialDims::Three(
-            to_usize(set[0]),
-            to_usize(set[1]),
-            to_usize(set[2]),
-        )
+        SpatialDims::Three(to_usize(set[0]), to_usize(set[1]), to_usize(set[2]))
     }
 }
 
 impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a [T; 3]> for SpatialDims {
     fn from(set: &[T; 3]) -> SpatialDims {
-        SpatialDims::Three(
-            to_usize(set[0]),
-            to_usize(set[1]),
-            to_usize(set[2]),
-        )
+        SpatialDims::Three(to_usize(set[0]), to_usize(set[1]), to_usize(set[2]))
     }
 }
 
-
 #[inline]
 pub fn to_usize<T: Num + ToPrimitive + Debug + Copy>(val: T) -> usize {
-    val.to_usize().expect(&format!("Unable to convert the value '{:?}' into a 'SpatialDims'. \
-        Dimensions must have positive values.", val))
+    val.to_usize().expect(&format!(
+        "Unable to convert the value '{:?}' into a 'SpatialDims'. \
+        Dimensions must have positive values.",
+        val
+    ))
 }
-

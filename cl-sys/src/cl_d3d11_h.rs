@@ -31,9 +31,7 @@ pub const CL_CONTEXT_D3D11_DEVICE_KHR: cl_uint = 0x401D;
 //  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 //  * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
 //  **********************************************************************************/
-
 // /* $Revision: 11708 $ on $Date: 2010-06-13 23:36:24 -0700 (Sun, 13 Jun 2010) $ */
-
 // #ifndef __OPENCL_CL_D3D11_H
 // #define __OPENCL_CL_D3D11_H
 
@@ -53,7 +51,6 @@ pub const CL_CONTEXT_D3D11_DEVICE_KHR: cl_uint = 0x401D;
 // typedef cl_uint cl_d3d11_device_set_khr;
 
 // /******************************************************************************/
-
 // /* Error Codes */
 // #define CL_INVALID_D3D11_DEVICE_KHR                  -1006
 // #define CL_INVALID_D3D11_RESOURCE_KHR                -1007
@@ -83,7 +80,6 @@ pub const CL_CONTEXT_D3D11_DEVICE_KHR: cl_uint = 0x401D;
 // #define CL_COMMAND_RELEASE_D3D11_OBJECTS_KHR         0x4021
 
 // /******************************************************************************/
-
 // typedef CL_API_ENTRY cl_int (CL_API_CALL *clGetDeviceIDsFromD3D11KHR_fn)(
 //     cl_platform_id             platform,
 //     cl_d3d11_device_source_khr d3d_device_source,

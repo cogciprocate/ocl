@@ -1,7 +1,7 @@
 extern crate ocl;
 extern crate ocl_extras;
 
-use ocl::{ProQue, Buffer, MemFlags};
+use ocl::{Buffer, MemFlags, ProQue};
 
 // Number of results to print out:
 const RESULTS_TO_PRINT: usize = 20;
@@ -28,7 +28,8 @@ fn basics() -> ocl::Result<()> {
     let ocl_pq = ProQue::builder()
         .src(KERNEL_SRC)
         .dims(WORK_SIZE)
-        .build().expect("Build ProQue");
+        .build()
+        .expect("Build ProQue");
 
     // Create a temporary init vector and the source buffer. Initialize them
     // with random floats between 0.0 and 20.0:
@@ -49,7 +50,8 @@ fn basics() -> ocl::Result<()> {
 
     // Create a kernel with arguments corresponding to those in the kernel.
     // Just for fun, one argument will be 'named':
-    let kern = ocl_pq.kernel_builder("multiply_by_scalar")
+    let kern = ocl_pq
+        .kernel_builder("multiply_by_scalar")
         .arg(COEFF)
         .arg(None::<&Buffer<f32>>)
         .arg_named("result", None::<&Buffer<f32>>)
@@ -63,10 +65,15 @@ fn basics() -> ocl::Result<()> {
     kern.set_arg(1, Some(&source_buffer))?;
     kern.set_arg(2, &result_buffer)?;
 
-    println!("Kernel global work size: {:?}", kern.default_global_work_size());
+    println!(
+        "Kernel global work size: {:?}",
+        kern.default_global_work_size()
+    );
 
     // Enqueue kernel:
-    unsafe { kern.enq()?; }
+    unsafe {
+        kern.enq()?;
+    }
 
     // Read results from the device into result_buffer's local vector:
     result_buffer.read(&mut vec_result).enq()?;
@@ -74,8 +81,13 @@ fn basics() -> ocl::Result<()> {
     // Check results and print the first 20:
     for idx in 0..WORK_SIZE {
         if idx < RESULTS_TO_PRINT {
-            println!("source[{idx}]: {:.03}, \t coeff: {}, \tresult[{idx}]: {}",
-            vec_source[idx], COEFF, vec_result[idx], idx = idx);
+            println!(
+                "source[{idx}]: {:.03}, \t coeff: {}, \tresult[{idx}]: {}",
+                vec_source[idx],
+                COEFF,
+                vec_result[idx],
+                idx = idx
+            );
         }
         assert_eq!(vec_source[idx] * COEFF, vec_result[idx]);
     }

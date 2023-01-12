@@ -14,19 +14,18 @@
 
 extern crate rand;
 
-pub mod build_error;
 pub mod buffer_copy;
 pub mod buffer_fill;
-pub mod vector_types;
+pub mod build_error;
 pub mod compile_program;
-use self::rand::{SeedableRng, Rng, rngs::SmallRng};
-use crate::error::{Result as OclCoreResult};
-use crate::{OclScl, PlatformId, DeviceId, Context};
+pub mod vector_types;
+use self::rand::{rngs::SmallRng, Rng, SeedableRng};
+use crate::error::Result as OclCoreResult;
+use crate::{Context, DeviceId, OclScl, PlatformId};
 
 const PRINT_ITERS_MAX: i32 = 3;
 const PRINT_SLICES_MAX: usize = 16;
 const PRINT: bool = false;
-
 
 /// Returns one context for each device on each platform available.
 pub fn get_available_contexts() -> Vec<(PlatformId, DeviceId, Context)> {
@@ -36,13 +35,17 @@ pub fn get_available_contexts() -> Vec<(PlatformId, DeviceId, Context)> {
     for platform in crate::get_platform_ids().unwrap() {
         for device in crate::get_device_ids(&platform, None, None).unwrap() {
             match crate::get_device_info(device, DeviceInfo::Available).unwrap() {
-                DeviceInfoResult::Available(r) => if !r { continue; },
+                DeviceInfoResult::Available(r) => {
+                    if !r {
+                        continue;
+                    }
+                }
                 _ => unreachable!(),
             }
 
             let context_properties = crate::ContextProperties::new().platform(platform);
-            let context = crate::create_context(Some(&context_properties),
-                &[device], None, None).unwrap();
+            let context =
+                crate::create_context(Some(&context_properties), &[device], None, None).unwrap();
 
             contexts.push((platform, device, context));
         }
@@ -77,24 +80,32 @@ fn within_region(coords: [usize; 3], region_ofs: [usize; 3], region_size: [usize
     within
 }
 
-fn verify_vec_rect<T: OclScl>(origin: [usize; 3], region: [usize; 3], in_region_val: T,
-            out_region_val: T, vec_dims: [usize; 3], ele_per_coord: usize, vec: &[T],
-            ttl_runs: i32, print: bool) -> OclCoreResult<()>
-{
+fn verify_vec_rect<T: OclScl>(
+    origin: [usize; 3],
+    region: [usize; 3],
+    in_region_val: T,
+    out_region_val: T,
+    vec_dims: [usize; 3],
+    ele_per_coord: usize,
+    vec: &[T],
+    ttl_runs: i32,
+    print: bool,
+) -> OclCoreResult<()> {
     let mut print = PRINT && print && ttl_runs <= PRINT_ITERS_MAX;
     let slices_to_print = PRINT_SLICES_MAX;
     let mut result = Ok(());
 
     if print {
-        println!("Verifying run: '{}', origin: {:?}, region: {:?}, vec_dims: {:?}", ttl_runs,
-            origin, region, vec_dims);
+        println!(
+            "Verifying run: '{}', origin: {:?}, region: {:?}, vec_dims: {:?}",
+            ttl_runs, origin, region, vec_dims
+        );
     }
 
     for z in 0..vec_dims[2] {
         for y in 0..vec_dims[1] {
             for x in 0..vec_dims[0] {
-                let pixel = (z * vec_dims[1] * vec_dims[0]) +
-                    (y * vec_dims[0]) + x;
+                let pixel = (z * vec_dims[1] * vec_dims[0]) + (y * vec_dims[0]) + x;
                 let idz = pixel * ele_per_coord;
 
                 for id in 0..ele_per_coord {
@@ -125,24 +136,38 @@ fn verify_vec_rect<T: OclScl>(origin: [usize; 3], region: [usize; 3], in_region_
                     if result.is_ok() {
                         if within_region([x, y, z], origin, region) {
                             if vec[idx] != in_region_val {
-                                result = Err(format!("vec[{}] should be '{}' but is '{}'",
-                                    idx, in_region_val, vec[idx]).into());
+                                result = Err(format!(
+                                    "vec[{}] should be '{}' but is '{}'",
+                                    idx, in_region_val, vec[idx]
+                                )
+                                .into());
                             }
                         } else {
                             if vec[idx] != out_region_val {
-                                result = Err(format!("vec[{}] should be '{}' but is '{}'",
-                                    idx, out_region_val, vec[idx]).into());
+                                result = Err(format!(
+                                    "vec[{}] should be '{}' but is '{}'",
+                                    idx, out_region_val, vec[idx]
+                                )
+                                .into());
                             }
                         }
                     }
                 }
             }
-            if print { print!("\n"); }
+            if print {
+                print!("\n");
+            }
         }
-        if print { print!("\n"); }
-        if print && z >= slices_to_print { print = false };
+        if print {
+            print!("\n");
+        }
+        if print && z >= slices_to_print {
+            print = false
+        };
     }
-    if print { print!("\n"); }
+    if print {
+        print!("\n");
+    }
 
     result
 }

@@ -1,11 +1,13 @@
 //! An `OpenCL` command queue.
 
-use std;
-use std::ops::{Deref, DerefMut};
-use crate::core::{self, Result as OclCoreResult, CommandQueue as CommandQueueCore, CommandQueueInfo,
-    CommandQueueInfoResult, OpenclVersion, CommandQueueProperties, ClWaitListPtr, ClContextPtr};
+use crate::core::{
+    self, ClContextPtr, ClWaitListPtr, CommandQueue as CommandQueueCore, CommandQueueInfo,
+    CommandQueueInfoResult, CommandQueueProperties, OpenclVersion, Result as OclCoreResult,
+};
 use crate::error::{Error as OclError, Result as OclResult};
 use crate::standard::{Context, Device, Event};
+use std;
+use std::ops::{Deref, DerefMut};
 
 /// A command queue which manages all actions taken on kernels, buffers, and
 /// images.
@@ -24,8 +26,11 @@ pub struct Queue {
 
 impl Queue {
     /// Returns a new Queue on the device specified by `device`.
-    pub fn new(context: &Context, device: Device, properties: Option<CommandQueueProperties>)
-            -> OclResult<Queue> {
+    pub fn new(
+        context: &Context,
+        device: Device,
+        properties: Option<CommandQueueProperties>,
+    ) -> OclResult<Queue> {
         let obj_core = core::create_command_queue(context, &device, properties)?;
         let device_version = device.version()?;
 
@@ -48,12 +53,18 @@ impl Queue {
     /// Enqueues a marker command which waits for either a list of events to
     /// complete, or all previously enqueued commands to complete.
     pub fn enqueue_marker<Ewl>(&self, ewait: Option<Ewl>) -> OclResult<Event>
-            where Ewl: ClWaitListPtr
+    where
+        Ewl: ClWaitListPtr,
     {
         let mut marker_event = Event::empty();
-        core::enqueue_marker_with_wait_list(&self.obj_core, ewait, Some(&mut marker_event),
-                Some(&self.device_version)).map(|_| marker_event)
-            .map_err(OclError::from)
+        core::enqueue_marker_with_wait_list(
+            &self.obj_core,
+            ewait,
+            Some(&mut marker_event),
+            Some(&self.device_version),
+        )
+        .map(|_| marker_event)
+        .map_err(OclError::from)
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
@@ -87,7 +98,10 @@ impl Queue {
         f.debug_struct("Queue")
             .field("Context", &self.info(CommandQueueInfo::Context))
             .field("Device", &self.info(CommandQueueInfo::Device))
-            .field("ReferenceCount", &self.info(CommandQueueInfo::ReferenceCount))
+            .field(
+                "ReferenceCount",
+                &self.info(CommandQueueInfo::ReferenceCount),
+            )
             .field("Properties", &self.info(CommandQueueInfo::Properties))
             .finish()
     }
@@ -127,7 +141,9 @@ impl DerefMut for Queue {
 
 unsafe impl<'a> ClContextPtr for &'a Queue {
     fn as_ptr(&self) -> crate::ffi::cl_context {
-        self.context_ptr().expect("<&Queue as ClContextPtr>::as_ptr: \
-            Unable to obtain a context pointer.")
+        self.context_ptr().expect(
+            "<&Queue as ClContextPtr>::as_ptr: \
+            Unable to obtain a context pointer.",
+        )
     }
 }

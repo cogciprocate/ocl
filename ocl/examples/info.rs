@@ -10,11 +10,14 @@
 //!
 
 extern crate ocl;
-#[macro_use] extern crate colorify;
+#[macro_use]
+extern crate colorify;
 
-use ocl::{Result as OclResult, Platform, Device, Context, Queue, Buffer, Image, Sampler, Program,
-    Kernel, Event, EventList};
-use ocl::core::{ProgramInfo, OclPrm};
+use ocl::core::{OclPrm, ProgramInfo};
+use ocl::{
+    Buffer, Context, Device, Event, EventList, Image, Kernel, Platform, Program, Queue,
+    Result as OclResult, Sampler,
+};
 
 const PRINT_DETAILED: bool = true;
 // Overrides above for device and program:
@@ -40,7 +43,9 @@ fn info() -> OclResult<()> {
 
         let devices = Device::list_all(platform)?;
 
-        if devices.is_empty() { continue; }
+        if devices.is_empty() {
+            continue;
+        }
 
         // [NOTE]: A new context can also be created for each device if desired.
         let context = Context::builder()
@@ -82,11 +87,17 @@ fn info() -> OclResult<()> {
                 .build()?;
 
             let mut event_list = EventList::new();
-            unsafe { kernel.cmd().enew(&mut event_list).enq()?; }
+            unsafe {
+                kernel.cmd().enew(&mut event_list).enq()?;
+            }
             event_list.wait_for()?;
 
             let mut event = Event::empty();
-            buffer.cmd().write(&vec![0.0; dims]).enew(&mut event).enq()?;
+            buffer
+                .cmd()
+                .write(&vec![0.0; dims])
+                .enew(&mut event)
+                .enq()?;
             event.wait_for()?;
 
             // Print all but device (just once per platform):
@@ -106,7 +117,6 @@ fn info() -> OclResult<()> {
     Ok(())
 }
 
-
 fn print_platform_info(platform: &Platform) -> OclResult<()> {
     printc!(blue: "{}", platform);
     let devices = Device::list_all(platform)?;
@@ -115,49 +125,46 @@ fn print_platform_info(platform: &Platform) -> OclResult<()> {
     Ok(())
 }
 
-
 fn print_device_info(device: &Device) -> OclResult<()> {
     if PRINT_DETAILED_DEVICE {
         printlnc!(teal: "{}", device);
     } else {
-        if !PRINT_DETAILED { print!("{t}", t = TAB); }
+        if !PRINT_DETAILED {
+            print!("{t}", t = TAB);
+        }
         printlnc!(teal: "Device (terse) {{ Name: {}, Vendor: {} }}", device.name()?,
             device.vendor()?);
     }
     Ok(())
 }
 
-
 fn print_context_info(context: &Context) {
     printlnc!(purple: "{}", context);
 }
-
 
 fn print_queue_info(queue: &Queue) {
     printlnc!(lime: "{}", queue);
 }
 
-
 fn print_buffer_info<T: OclPrm>(buffer: &Buffer<T>) {
     printlnc!(royal_blue: "{}", buffer);
 }
-
 
 fn print_image_info<S: OclPrm>(image: &Image<S>) {
     printlnc!(peach: "{}", image);
 }
 
-
 fn print_sampler_info(sampler: &Sampler) {
     printlnc!(cyan: "{}", sampler);
 }
-
 
 fn print_program_info(program: &Program) -> OclResult<()> {
     if PRINT_DETAILED_PROGRAM {
         printlnc!(magenta: "{}", program);
     } else {
-        if !PRINT_DETAILED { print!("{t}{t}", t = TAB); }
+        if !PRINT_DETAILED {
+            print!("{t}{t}", t = TAB);
+        }
         printlnc!(magenta: "Program (terse) {{ KernelNames: '{}', NumDevices: {}, ReferenceCount: {}, Context: {} }}",
             program.info(ProgramInfo::KernelNames)?,
             program.info(ProgramInfo::NumDevices)?,
@@ -168,21 +175,17 @@ fn print_program_info(program: &Program) -> OclResult<()> {
     Ok(())
 }
 
-
 fn print_kernel_info(kernel: &Kernel) {
     printlnc!(green: "{}", kernel);
 }
-
 
 fn print_event_list_info(event_list: &EventList) {
     printlnc!(orange: "{:?}", event_list);
 }
 
-
 fn print_event_info(event: &Event) {
     printlnc!(yellow: "{}", event);
 }
-
 
 pub fn main() {
     match info() {

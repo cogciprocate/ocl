@@ -6,13 +6,13 @@
 //! example will likely fail on that platform.
 //!
 
+extern crate find_folder;
 extern crate ocl;
 extern crate ocl_extras;
-extern crate find_folder;
 
 use find_folder::Search;
-use ocl::{core, ProQue, Program, Buffer, EventList};
-use ocl::ffi::{cl_event, cl_int, c_void};
+use ocl::ffi::{c_void, cl_event, cl_int};
+use ocl::{core, Buffer, EventList, ProQue, Program};
 
 // How many iterations we wish to run:
 const ITERATIONS: usize = 8;
@@ -20,7 +20,6 @@ const ITERATIONS: usize = 8;
 const PRINT_DEBUG: bool = true;
 // How many results to print from each iteration:
 const RESULTS_TO_PRINT: usize = 5;
-
 
 struct TestEventsStuff {
     seed_vec: *const [u32],
@@ -30,11 +29,10 @@ struct TestEventsStuff {
     itr: usize,
 }
 
-
 // Callback for `test_events()`.
 //
 // Yeah it's ugly.
-extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data: *mut c_void) {
+extern "C" fn _test_events_verify_result(event: cl_event, status: cl_int, user_data: *mut c_void) {
     let buncha_stuff = user_data as *const TestEventsStuff;
 
     unsafe {
@@ -44,17 +42,28 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
         let addend: u32 = (*buncha_stuff).addend;
         let itr: usize = (*buncha_stuff).itr;
 
-        if PRINT_DEBUG { println!("\nEvent: `{:?}` has completed with status: `{}`, data_set_size: '{}`, \
-                 addend: {}, itr: `{}`.", event, status, data_set_size, addend, itr); }
+        if PRINT_DEBUG {
+            println!(
+                "\nEvent: `{:?}` has completed with status: `{}`, data_set_size: '{}`, \
+                 addend: {}, itr: `{}`.",
+                event, status, data_set_size, addend, itr
+            );
+        }
 
         for idx in 0..data_set_size {
-            assert_eq!((*result_vec)[idx],
-                ((*seed_vec)[idx] + ((itr + 1) as u32) * addend));
+            assert_eq!(
+                (*result_vec)[idx],
+                ((*seed_vec)[idx] + ((itr + 1) as u32) * addend)
+            );
 
             if PRINT_DEBUG && (idx < RESULTS_TO_PRINT) {
                 let correct_result = (*seed_vec)[idx] + (((itr + 1) as u32) * addend);
-                print!("correct_result: {}, result_vec[{idx}]:{}\n",
-                    correct_result, (*result_vec)[idx], idx = idx);
+                print!(
+                    "correct_result: {}, result_vec[{idx}]:{}\n",
+                    correct_result,
+                    (*result_vec)[idx],
+                    idx = idx
+                );
             }
         }
 
@@ -62,15 +71,21 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 
         for idx in 0..data_set_size {
             // [FIXME]: Reportedly failing on OSX:
-            assert_eq!((*result_vec)[idx],
-             ((*seed_vec)[idx] + ((itr + 1) as u32) * addend));
+            assert_eq!(
+                (*result_vec)[idx],
+                ((*seed_vec)[idx] + ((itr + 1) as u32) * addend)
+            );
 
             if PRINT_DEBUG {
                 let correct_result = (*seed_vec)[idx] + (((itr + 1) as u32) * addend);
 
                 if (*result_vec)[idx] != correct_result {
-                    print!("correct_result:{}, result_vec[{idx}]:{}\n",
-                        correct_result, (*result_vec)[idx], idx = idx);
+                    print!(
+                        "correct_result:{}, result_vec[{idx}]:{}\n",
+                        correct_result,
+                        (*result_vec)[idx],
+                        idx = idx
+                    );
 
                     errors_found += 1;
                 }
@@ -78,27 +93,27 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
         }
 
         if PRINT_DEBUG {
-            if errors_found > 0 { print!("TOTAL ERRORS FOUND: {}\n", errors_found); }
+            if errors_found > 0 {
+                print!("TOTAL ERRORS FOUND: {}\n", errors_found);
+            }
         }
     }
 }
-
 
 fn event_callbacks() -> ocl::Result<()> {
     // Set up data set size and work dimensions:
     let dataset_len = 1 << 17;
 
     // Get a path for our program source:
-    let src_file = Search::ParentsThenKids(3, 3).for_folder("examples").unwrap()
+    let src_file = Search::ParentsThenKids(3, 3)
+        .for_folder("examples")
+        .unwrap()
         .join("cl/kernel_file.cl");
 
     // Create a context, program, & queue:
     let mut pb = Program::builder();
     pb.src_file(src_file);
-    let ocl_pq = ProQue::builder()
-        .dims(dataset_len)
-        .prog_bldr(pb)
-        .build()?;
+    let ocl_pq = ProQue::builder().dims(dataset_len).prog_bldr(pb).build()?;
 
     // Create source and result buffers (our data containers):
     // let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &dims, &ocl_pq.queue());
@@ -120,7 +135,8 @@ fn event_callbacks() -> ocl::Result<()> {
     let addend = 11u32;
 
     // Create kernel with the source initially set to our seed values.
-    let kernel = ocl_pq.kernel_builder("add_scalar")
+    let kernel = ocl_pq
+        .kernel_builder("add_scalar")
         .global_work_size(dataset_len)
         .arg_named("src", Some(&seed_buffer))
         .arg(addend)
@@ -156,16 +172,26 @@ fn event_callbacks() -> ocl::Result<()> {
             kernel.set_arg("src", &result_buffer)?;
         }
 
-        if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
+        if PRINT_DEBUG {
+            println!("Enqueuing kernel [itr:{}]...", itr);
+        }
         unsafe {
             kernel.cmd().enew(&mut kernel_event).enq()?;
         }
 
         let mut read_event = EventList::new();
 
-        if PRINT_DEBUG { println!("Enqueuing read buffer [itr:{}]...", itr); }
-        unsafe { result_buffer.cmd().read(&mut result_vec)
-            .enew(&mut read_event).block(true).enq()?; }
+        if PRINT_DEBUG {
+            println!("Enqueuing read buffer [itr:{}]...", itr);
+        }
+        unsafe {
+            result_buffer
+                .cmd()
+                .read(&mut result_vec)
+                .enew(&mut read_event)
+                .block(true)
+                .enq()?;
+        }
 
         // Clone event list just for fun (test drop a bit):
         let read_event = read_event.clone();
@@ -173,10 +199,16 @@ fn event_callbacks() -> ocl::Result<()> {
         let last_idx = buncha_stuffs.len() - 1;
 
         unsafe {
-            if PRINT_DEBUG { println!("Setting callback (verify_result, buncha_stuff[{}]) [i:{}]...",
-                last_idx, itr); }
-            read_event.last().unwrap().set_callback(_test_events_verify_result,
-                &mut buncha_stuffs[last_idx] as *mut _ as *mut c_void)?;
+            if PRINT_DEBUG {
+                println!(
+                    "Setting callback (verify_result, buncha_stuff[{}]) [i:{}]...",
+                    last_idx, itr
+                );
+            }
+            read_event.last().unwrap().set_callback(
+                _test_events_verify_result,
+                &mut buncha_stuffs[last_idx] as *mut _ as *mut c_void,
+            )?;
         }
     }
 

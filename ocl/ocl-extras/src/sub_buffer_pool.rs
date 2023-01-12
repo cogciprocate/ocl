@@ -1,17 +1,15 @@
 //! A sub-buffer allocator.
 
-use std::collections::{LinkedList, HashMap};
-use ocl::{Queue, Buffer};
-use ocl::traits::OclPrm;
 use ocl::flags::MemFlags;
-
+use ocl::traits::OclPrm;
+use ocl::{Buffer, Queue};
+use std::collections::{HashMap, LinkedList};
 
 pub struct PoolRegion {
     buffer_id: usize,
     origin: u32,
     len: u32,
 }
-
 
 /// A simple (linear search) sub-buffer allocator.
 pub struct SubBufferPool<T: OclPrm> {
@@ -32,7 +30,8 @@ impl<T: OclPrm> SubBufferPool<T> {
             .queue(default_queue)
             .flags(flags)
             .len(len as usize)
-            .build().unwrap();
+            .build()
+            .unwrap();
 
         SubBufferPool {
             buffer,
@@ -58,14 +57,26 @@ impl<T: OclPrm> SubBufferPool<T> {
         self.regions.append(&mut tail);
     }
 
-    fn create_sub_buffer(&mut self, region_idx: usize, flags: Option<MemFlags>,
-            origin: u32, len: u32) -> usize {
+    fn create_sub_buffer(
+        &mut self,
+        region_idx: usize,
+        flags: Option<MemFlags>,
+        origin: u32,
+        len: u32,
+    ) -> usize {
         let buffer_id = self.next_uid();
-        let region = PoolRegion { buffer_id, origin, len };
-        let sbuf = self.buffer.create_sub_buffer(flags, region.origin as usize,
-            region.len as usize).unwrap();
+        let region = PoolRegion {
+            buffer_id,
+            origin,
+            len,
+        };
+        let sbuf = self
+            .buffer
+            .create_sub_buffer(flags, region.origin as usize, region.len as usize)
+            .unwrap();
         if let Some(idx) = self.sub_buffers.insert(region.buffer_id, sbuf) {
-            panic!("Duplicate indexes: {}", idx); }
+            panic!("Duplicate indexes: {}", idx);
+        }
         self.insert_region(region, region_idx);
         buffer_id
     }
@@ -97,10 +108,8 @@ impl<T: OclPrm> SubBufferPool<T> {
                 } else {
                     Err(())
                 }
-            },
-            None => {
-                Ok(self.create_sub_buffer(0, flags, 0, len))
-            },
+            }
+            None => Ok(self.create_sub_buffer(0, flags, 0, len)),
         }
     }
 
@@ -116,7 +125,7 @@ impl<T: OclPrm> SubBufferPool<T> {
 
         if let Some(r_idx) = region_idx {
             let mut tail = self.regions.split_off(r_idx);
-            tail.pop_front().ok_or(buffer_id)   ?;
+            tail.pop_front().ok_or(buffer_id)?;
             self.regions.append(&mut tail);
             Ok(())
         } else {

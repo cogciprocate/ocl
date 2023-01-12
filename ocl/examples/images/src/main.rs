@@ -7,11 +7,14 @@
 
 extern crate image;
 extern crate ocl;
-#[macro_use] extern crate colorify;
+#[macro_use]
+extern crate colorify;
 
+use ocl::enums::{
+    AddressingMode, FilterMode, ImageChannelDataType, ImageChannelOrder, MemObjectType,
+};
+use ocl::{Context, Device, Image, Kernel, Program, Queue, Sampler};
 use std::path::Path;
-use ocl::{Context, Queue, Device, Program, Image, Sampler, Kernel};
-use ocl::enums::{ImageChannelOrder, ImageChannelDataType, AddressingMode, FilterMode, MemObjectType};
 
 const SAVE_IMAGES_TO_DISK: bool = false;
 static BEFORE_IMAGE_FILE_NAME: &'static str = "before_example_image.png";
@@ -39,7 +42,6 @@ static KERNEL_SRC: &'static str = r#"
     }
 "#;
 
-
 /// Generates a diagonal reddish stripe and a grey background.
 fn generate_image() -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
     let img = image::ImageBuffer::from_fn(512, 512, |x, y| {
@@ -55,7 +57,6 @@ fn generate_image() -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
     img
 }
 
-
 /// Generates and image then sends it through a kernel and optionally saves.
 fn main() {
     println!("Running 'examples/image.rs::main()'...");
@@ -65,17 +66,25 @@ fn main() {
         img.save(&Path::new(BEFORE_IMAGE_FILE_NAME)).unwrap();
     }
 
-    let context = Context::builder().devices(Device::specifier().first()).build().unwrap();
+    let context = Context::builder()
+        .devices(Device::specifier().first())
+        .build()
+        .unwrap();
     let device = context.devices()[0];
     let queue = Queue::new(&context, device, None).unwrap();
 
     let program = Program::builder()
         .src(KERNEL_SRC)
         .devices(device)
-        .build(&context).unwrap();
+        .build(&context)
+        .unwrap();
 
-    let sup_img_formats = Image::<u8>::supported_formats(&context, ocl::flags::MEM_READ_WRITE,
-        MemObjectType::Image2d).unwrap();
+    let sup_img_formats = Image::<u8>::supported_formats(
+        &context,
+        ocl::flags::MEM_READ_WRITE,
+        MemObjectType::Image2d,
+    )
+    .unwrap();
     println!("Image formats supported: {}.", sup_img_formats.len());
     // println!("Image Formats: {:#?}.", sup_img_formats);
 
@@ -100,20 +109,30 @@ fn main() {
         .channel_data_type(ImageChannelDataType::UnormInt8)
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
-        .flags(ocl::flags::MEM_READ_ONLY | ocl::flags::MEM_HOST_WRITE_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
+        .flags(
+            ocl::flags::MEM_READ_ONLY
+                | ocl::flags::MEM_HOST_WRITE_ONLY
+                | ocl::flags::MEM_COPY_HOST_PTR,
+        )
         .copy_host_slice(&img)
         .queue(queue.clone())
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     let dst_image = Image::<u8>::builder()
         .channel_order(ImageChannelOrder::Rgba)
         .channel_data_type(ImageChannelDataType::UnormInt8)
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
-        .flags(ocl::flags::MEM_WRITE_ONLY | ocl::flags::MEM_HOST_READ_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
+        .flags(
+            ocl::flags::MEM_WRITE_ONLY
+                | ocl::flags::MEM_HOST_READ_ONLY
+                | ocl::flags::MEM_COPY_HOST_PTR,
+        )
         .copy_host_slice(&img)
         .queue(queue.clone())
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     // Not sure why you'd bother creating a sampler on the host but here's how:
     let sampler = Sampler::new(&context, true, AddressingMode::None, FilterMode::Nearest).unwrap();
@@ -126,7 +145,8 @@ fn main() {
         .arg_sampler(&sampler)
         .arg(&src_image)
         .arg(&dst_image)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     println!("Printing image info:");
     printlnc!(dark_grey: "Source {}", src_image);
@@ -137,7 +157,9 @@ fn main() {
     printlnc!(dark_grey: "Pixel before: [0..16]: {:?}", &img[(0, 0)]);
 
     printlnc!(royal_blue: "Attempting to blue-ify the image...");
-    unsafe { kernel.enq().unwrap(); }
+    unsafe {
+        kernel.enq().unwrap();
+    }
 
     dst_image.read(&mut img).enq().unwrap();
 

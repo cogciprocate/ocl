@@ -21,16 +21,25 @@ fn main() {
     let device_ids = core::get_device_ids(&platform_id, None, None).unwrap();
     let device_id = device_ids[0];
     let context_properties = core::ContextProperties::new().platform(platform_id);
-    let context = core::create_context(Some(&context_properties),
-        &[device_id], None, None).unwrap();
+    let context =
+        core::create_context(Some(&context_properties), &[device_id], None, None).unwrap();
     let src_cstring = CString::new(src).unwrap();
     let program = core::create_program_with_source(&context, &[src_cstring]).unwrap();
-    core::build_program(&program, None::<&[()]>, &CString::new("").unwrap(),
-        None, None).unwrap();
+    core::build_program(
+        &program,
+        None::<&[()]>,
+        &CString::new("").unwrap(),
+        None,
+        None,
+    )
+    .unwrap();
 
     let dv0 = core::get_device_info(&device_id, core::DeviceInfo::Version).unwrap();
     println!("Pre-Parse: 'DeviceInfo::Version': {}", dv0);
 
     let dv1 = device_id.device_versions().unwrap();
-    println!("Parsed: 'core::get_device_version()': {}", dv1.first().unwrap());
+    println!(
+        "Parsed: 'core::get_device_version()': {}",
+        dv1.first().unwrap()
+    );
 }

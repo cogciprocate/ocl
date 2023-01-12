@@ -34,38 +34,49 @@
 
 extern crate find_folder;
 extern crate image;
-extern crate time;
 extern crate ocl;
-#[macro_use] extern crate colorify;
+extern crate time;
+#[macro_use]
+extern crate colorify;
 
-use std::path::Path;
-use ocl::{Context, Queue, Device, Program, Image, Kernel};
-use ocl::enums::{ImageChannelOrder, ImageChannelDataType, MemObjectType};
 use find_folder::Search;
+use ocl::enums::{ImageChannelDataType, ImageChannelOrder, MemObjectType};
+use ocl::{Context, Device, Image, Kernel, Program, Queue};
+use std::path::Path;
 use std::time::Instant;
-
 
 fn print_elapsed(title: &str, start: Instant) {
     let time_elapsed = start.elapsed();
     let separator = if title.len() > 0 { ": " } else { "" };
-    println!("    {}{}{}.{:03}", title, separator, time_elapsed.as_secs(), time_elapsed.subsec_millis());
+    println!(
+        "    {}{}{}.{:03}",
+        title,
+        separator,
+        time_elapsed.as_secs(),
+        time_elapsed.subsec_millis()
+    );
 }
 
-
-fn read_source_image(loco : &str) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
+fn read_source_image(loco: &str) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
     let dyn_image = image::open(&Path::new(loco)).unwrap();
     let img = dyn_image.to_rgba8();
     img
 }
 
-
 fn main() {
     let compute_program = Search::ParentsThenKids(3, 3)
-        .for_folder("cl_src").expect("Error locating 'cl_src'")
+        .for_folder("cl_src")
+        .expect("Error locating 'cl_src'")
         .join("cl/parallel.cl");
 
-    let context = Context::builder().devices(Device::specifier()
-        .type_flags(ocl::flags::DEVICE_TYPE_GPU).first()).build().unwrap();
+    let context = Context::builder()
+        .devices(
+            Device::specifier()
+                .type_flags(ocl::flags::DEVICE_TYPE_GPU)
+                .first(),
+        )
+        .build()
+        .unwrap();
     let device = context.devices()[0];
     let queue = Queue::new(&context, device, None).unwrap();
 
@@ -84,27 +95,37 @@ fn main() {
         .channel_data_type(ImageChannelDataType::UnormInt8)
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
-        .flags(ocl::flags::MEM_READ_ONLY | ocl::flags::MEM_HOST_WRITE_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
+        .flags(
+            ocl::flags::MEM_READ_ONLY
+                | ocl::flags::MEM_HOST_WRITE_ONLY
+                | ocl::flags::MEM_COPY_HOST_PTR,
+        )
         .queue(queue.clone())
         .copy_host_slice(&img)
-        .build().unwrap();
-
+        .build()
+        .unwrap();
 
     // ##################################################
     // #################### UNROLLED ####################
     // ##################################################
 
-    let mut result_unrolled: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> = image::ImageBuffer::new(dims.0, dims.1);
+    let mut result_unrolled: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> =
+        image::ImageBuffer::new(dims.0, dims.1);
 
     let cl_dest_unrolled = Image::<u8>::builder()
         .channel_order(ImageChannelOrder::Rgba)
         .channel_data_type(ImageChannelDataType::UnormInt8)
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
-        .flags(ocl::flags::MEM_WRITE_ONLY | ocl::flags::MEM_HOST_READ_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
+        .flags(
+            ocl::flags::MEM_WRITE_ONLY
+                | ocl::flags::MEM_HOST_READ_ONLY
+                | ocl::flags::MEM_COPY_HOST_PTR,
+        )
         .queue(queue.clone())
         .copy_host_slice(&result_unrolled)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     let kernel = Kernel::builder()
         .program(&program)
@@ -113,13 +134,16 @@ fn main() {
         .global_work_size(&dims)
         .arg(&cl_source)
         .arg(&cl_dest_unrolled)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     printlnc!(royal_blue: "\nRunning kernel (unrolled)...");
     printlnc!(white_bold: "image dims: {:?}", &dims);
     let start_time = Instant::now();
 
-    unsafe { kernel.enq().unwrap(); }
+    unsafe {
+        kernel.enq().unwrap();
+    }
     print_elapsed("kernel enqueued", start_time);
 
     queue.finish().unwrap();
@@ -128,8 +152,9 @@ fn main() {
     cl_dest_unrolled.read(&mut result_unrolled).enq().unwrap();
     print_elapsed("read finished", start_time);
 
-    result_unrolled.save(&Path::new("result_unrolled.png")).unwrap();
-
+    result_unrolled
+        .save(&Path::new("result_unrolled.png"))
+        .unwrap();
 
     // ##################################################
     // #################### PATCHES #####################
@@ -137,18 +162,23 @@ fn main() {
     // As noted above, this method is only shown here for demonstration
     // purposes and is unnecessary in this particular use case.
 
-    let mut result_patches: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> = image::ImageBuffer::new(dims.0, dims.1);
+    let mut result_patches: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> =
+        image::ImageBuffer::new(dims.0, dims.1);
 
     let cl_dest_patches = Image::<u8>::builder()
         .channel_order(ImageChannelOrder::Rgba)
         .channel_data_type(ImageChannelDataType::UnormInt8)
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
-        .flags(ocl::flags::MEM_WRITE_ONLY | ocl::flags::MEM_HOST_READ_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
+        .flags(
+            ocl::flags::MEM_WRITE_ONLY
+                | ocl::flags::MEM_HOST_READ_ONLY
+                | ocl::flags::MEM_COPY_HOST_PTR,
+        )
         .queue(queue.clone())
         .copy_host_slice(&result_patches)
-        .build().unwrap();
-
+        .build()
+        .unwrap();
 
     let patch_size = 32;
 
@@ -163,7 +193,8 @@ fn main() {
         .arg(patch_size as i32)
         .arg(&cl_source)
         .arg(&cl_dest_patches)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     let edge_sizes = (dims.0 % patch_size, dims.1 % patch_size);
     assert_eq!(dims.1 - edge_sizes.1, gws_patch_count.1 * patch_size);
@@ -179,7 +210,8 @@ fn main() {
         .global_work_size(&gws_rght_edge)
         .arg(&cl_source)
         .arg(&cl_dest_patches)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     let gwo_bot_edge = (0, dims.1 - edge_sizes.1);
     let gws_bot_edge = (dims.0 - edge_sizes.0, edge_sizes.1);
@@ -191,7 +223,8 @@ fn main() {
         .global_work_size(&gws_bot_edge)
         .arg(&cl_source)
         .arg(&cl_dest_patches)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     let gwo_corner = (dims.0 - edge_sizes.0, dims.1 - edge_sizes.1);
     let gws_corner = (edge_sizes.0, edge_sizes.1);
@@ -203,7 +236,8 @@ fn main() {
         .global_work_size(&gws_corner)
         .arg(&cl_source)
         .arg(&cl_dest_patches)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     printlnc!(royal_blue: "\nRunning kernels (patch bulk & patch edges)...");
     printlnc!(white_bold: "image dims: {:?}", &dims);
@@ -227,8 +261,9 @@ fn main() {
     cl_dest_patches.read(&mut result_patches).enq().unwrap();
     print_elapsed("read finished", start_time);
 
-    result_patches.save(&Path::new("result_patches.png")).unwrap();
-
+    result_patches
+        .save(&Path::new("result_patches.png"))
+        .unwrap();
 
     // ##################################################
     // ############### COMPARE / VERIFY #################

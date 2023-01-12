@@ -1,16 +1,16 @@
 //! An `OpenCL` context.
 
+use crate::core::error::Result as OclCoreResult;
+use crate::core::{
+    self, ClContextPtr, ClVersions, Context as ContextCore, ContextInfo, ContextInfoResult,
+    ContextProperties, ContextPropertyValue, CreateContextCallbackFn, DeviceInfo, DeviceInfoResult,
+    OpenclVersion, PlatformInfo, PlatformInfoResult, UserDataPtr,
+};
+use crate::error::{Error as OclError, Result as OclResult};
+use crate::ffi::cl_context;
+use crate::standard::{Device, DeviceSpecifier, Platform};
 use std;
 use std::ops::{Deref, DerefMut};
-use crate::ffi::cl_context;
-use crate::core::{self, Context as ContextCore, ContextProperties, ContextPropertyValue, ContextInfo,
-    ContextInfoResult, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult,
-    CreateContextCallbackFn, UserDataPtr, OpenclVersion, ClContextPtr, ClVersions};
-use crate::core::error::{Result as OclCoreResult};
-use crate::error::{Error as OclError, Result as OclResult};
-use crate::standard::{Platform, Device, DeviceSpecifier};
-
-
 
 /// A context for a particular platform and set of device types.
 ///
@@ -57,11 +57,16 @@ impl Context {
     /// [TEMPORARY] Passing a `Some` variant for `pfn_notify` or `user_data` is
     /// not yet supported. File an issue if you need this.
     ///
-    pub fn new(properties: Option<ContextProperties>, device_spec: Option<DeviceSpecifier>,
-                pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>)
-            -> OclResult<Context> {
-        assert!(pfn_notify.is_none() && user_data.is_none(),
-            "Context creation callbacks not yet implemented - file issue if you need this.");
+    pub fn new(
+        properties: Option<ContextProperties>,
+        device_spec: Option<DeviceSpecifier>,
+        pfn_notify: Option<CreateContextCallbackFn>,
+        user_data: Option<UserDataPtr>,
+    ) -> OclResult<Context> {
+        assert!(
+            pfn_notify.is_none() && user_data.is_none(),
+            "Context creation callbacks not yet implemented - file issue if you need this."
+        );
 
         let platform: Option<Platform> = match properties {
             Some(ref props) => props.get_platform().map(Platform::new),
@@ -75,7 +80,8 @@ impl Context {
 
         let device_list = device_spec.to_device_list(platform)?;
 
-        let obj_core = core::create_context(properties.as_ref(), &device_list, pfn_notify, user_data)?;
+        let obj_core =
+            core::create_context(properties.as_ref(), &device_list, pfn_notify, user_data)?;
 
         Ok(Context(obj_core))
     }
@@ -102,8 +108,10 @@ impl Context {
         match self.platform() {
             Ok(plat_opt) => match plat_opt {
                 Some(ref p) => core::get_platform_info(p, info_kind).map_err(OclError::from),
-                None => Err(OclError::from("Context::platform_info: \
-                    This context has no associated platform.")),
+                None => Err(OclError::from(
+                    "Context::platform_info: \
+                    This context has no associated platform.",
+                )),
             },
             Err(err) => Err(err),
         }
@@ -114,9 +122,7 @@ impl Context {
     pub fn device_info(&self, index: usize, info_kind: DeviceInfo) -> OclResult<DeviceInfoResult> {
         match self.devices().get(index) {
             Some(d) => core::get_device_info(d, info_kind).map_err(OclError::from),
-            None => {
-                Err(OclError::from("Context::device_info: Invalid device index"))
-            },
+            None => Err(OclError::from("Context::device_info: Invalid device index")),
         }
     }
 
@@ -141,13 +147,18 @@ impl Context {
 
     /// Returns the list of device versions associated with this context.
     pub fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
-        Device::list_from_core(self.0.devices().map_err(OclError::from)?).into_iter()
-            .map(|d| d.version().map_err(OclError::from)).collect()
+        Device::list_from_core(self.0.devices().map_err(OclError::from)?)
+            .into_iter()
+            .map(|d| d.version().map_err(OclError::from))
+            .collect()
     }
 
     /// Returns the platform this context is associated with.
     pub fn platform(&self) -> OclResult<Option<Platform>> {
-        self.0.platform().map(|opt| opt.map(Platform::from)).map_err(OclError::from)
+        self.0
+            .platform()
+            .map(|opt| opt.map(Platform::from))
+            .map_err(OclError::from)
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -193,16 +204,22 @@ unsafe impl<'a> ClContextPtr for &'a Context {
 }
 
 impl ClVersions for Context {
-    fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> { self.0.device_versions() }
-    fn platform_version(&self) -> OclCoreResult<OpenclVersion> { self.0.platform_version() }
+    fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
+        self.0.device_versions()
+    }
+    fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
+        self.0.platform_version()
+    }
 }
 
 impl<'a> ClVersions for &'a Context {
-    fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> { self.0.device_versions() }
-    fn platform_version(&self) -> OclCoreResult<OpenclVersion> { self.0.platform_version() }
+    fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
+        self.0.device_versions()
+    }
+    fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
+        self.0.platform_version()
+    }
 }
-
-
 
 /// A builder for `Context`.
 ///
@@ -297,9 +314,11 @@ impl ContextBuilder {
     /// [device_specifier_from]: enum.DeviceSpecifier.html#method.from
     /// [device_specifier]: enum.DeviceSpecifier.html
     ///
-    pub fn devices<D: Into<DeviceSpecifier>>(&mut self, device_spec: D)
-            -> &mut ContextBuilder {
-        assert!(self.device_spec.is_none(), "ocl::ContextBuilder::devices: Devices already specified");
+    pub fn devices<D: Into<DeviceSpecifier>>(&mut self, device_spec: D) -> &mut ContextBuilder {
+        assert!(
+            self.device_spec.is_none(),
+            "ocl::ContextBuilder::devices: Devices already specified"
+        );
         self.device_spec = Some(device_spec.into());
         self
     }

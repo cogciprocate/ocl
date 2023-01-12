@@ -18,9 +18,9 @@
 //!
 //!
 
-use std::cell::{Cell, RefCell, Ref};
-use std::collections::{HashMap, BTreeSet};
 use ocl::{Event, EventList};
+use std::cell::{Cell, Ref, RefCell};
+use std::collections::{BTreeSet, HashMap};
 
 pub struct RwCmdIdxs {
     writers: Vec<usize>,
@@ -29,7 +29,10 @@ pub struct RwCmdIdxs {
 
 impl RwCmdIdxs {
     fn new() -> RwCmdIdxs {
-        RwCmdIdxs { writers: Vec::new(), readers: Vec::new() }
+        RwCmdIdxs {
+            writers: Vec::new(),
+            readers: Vec::new(),
+        }
     }
 }
 
@@ -45,14 +48,26 @@ impl KernelArgBuffer {
     }
 }
 
-
 /// Details of a queuable command.
 pub enum CommandDetails {
-    Fill { target: usize },
-    Write { target: usize },
-    Read { source: usize },
-    Copy { source: usize, target: usize },
-    Kernel { id: usize, sources: Vec<KernelArgBuffer>, targets: Vec<KernelArgBuffer> },
+    Fill {
+        target: usize,
+    },
+    Write {
+        target: usize,
+    },
+    Read {
+        source: usize,
+    },
+    Copy {
+        source: usize,
+        target: usize,
+    },
+    Kernel {
+        id: usize,
+        sources: Vec<KernelArgBuffer>,
+        targets: Vec<KernelArgBuffer>,
+    },
 }
 
 impl CommandDetails {
@@ -64,7 +79,7 @@ impl CommandDetails {
             CommandDetails::Copy { source, .. } => vec![source],
             CommandDetails::Kernel { ref sources, .. } => {
                 sources.iter().map(|arg| arg.buffer_id).collect()
-            },
+            }
         }
     }
 
@@ -76,11 +91,10 @@ impl CommandDetails {
             CommandDetails::Copy { target, .. } => vec![target],
             CommandDetails::Kernel { ref targets, .. } => {
                 targets.iter().map(|arg| arg.buffer_id).collect()
-            },
+            }
         }
     }
 }
-
 
 pub struct Command {
     details: CommandDetails,
@@ -100,20 +114,27 @@ impl Command {
     /// Returns a list of commands which both precede a command and which
     /// write to a block of memory which is read from by that command.
     pub fn preceding_writers(&self, cmds: &HashMap<usize, RwCmdIdxs>) -> BTreeSet<usize> {
-        self.details.sources().iter().flat_map(|cmd_src_block|
-            cmds.get(cmd_src_block).unwrap().writers.iter().cloned()).collect()
+        self.details
+            .sources()
+            .iter()
+            .flat_map(|cmd_src_block| cmds.get(cmd_src_block).unwrap().writers.iter().cloned())
+            .collect()
     }
 
     /// Returns a list of commands which both follow a command and which read
     /// from a block of memory which is written to by that command.
     pub fn following_readers(&self, cmds: &HashMap<usize, RwCmdIdxs>) -> BTreeSet<usize> {
-        self.details.targets().iter().flat_map(|cmd_tar_block|
-            cmds.get(cmd_tar_block).unwrap().readers.iter().cloned()).collect()
+        self.details
+            .targets()
+            .iter()
+            .flat_map(|cmd_tar_block| cmds.get(cmd_tar_block).unwrap().readers.iter().cloned())
+            .collect()
     }
 
-    pub fn details(&self) -> &CommandDetails { &self.details }
+    pub fn details(&self) -> &CommandDetails {
+        &self.details
+    }
 }
-
 
 /// A directional sequence dependency graph representing the temporal
 /// requirements of each asynchronous read, write, copy, and kernel (commands)
@@ -155,7 +176,9 @@ impl CommandGraph {
 
     /// Adds a new command and returns the command index if successful.
     pub fn add(&mut self, command: Command) -> Result<usize, ()> {
-        if self.locked { return Err(()); }
+        if self.locked {
+            return Err(());
+        }
         self.commands.push(command);
         self.command_requisites.push(Vec::new());
         Ok(self.commands.len() - 1)
@@ -168,14 +191,16 @@ impl CommandGraph {
 
         for (cmd_idx, cmd) in self.commands.iter().enumerate() {
             for cmd_src_block in cmd.details.sources().into_iter() {
-                let rw_cmd_idxs = cmds.entry(cmd_src_block.clone())
+                let rw_cmd_idxs = cmds
+                    .entry(cmd_src_block.clone())
                     .or_insert(RwCmdIdxs::new());
 
                 rw_cmd_idxs.readers.push(cmd_idx);
             }
 
             for cmd_tar_block in cmd.details.targets().into_iter() {
-                let rw_cmd_idxs = cmds.entry(cmd_tar_block.clone())
+                let rw_cmd_idxs = cmds
+                    .entry(cmd_tar_block.clone())
                     .or_insert(RwCmdIdxs::new());
 
                 rw_cmd_idxs.writers.push(cmd_idx);
@@ -208,7 +233,9 @@ impl CommandGraph {
             let preceding_writers = cmd.preceding_writers(&cmds);
 
             // If there are none, `cmd` is a start endpoint.
-            if preceding_writers.len() == 0 { self.ends.0.push(cmd_idx); }
+            if preceding_writers.len() == 0 {
+                self.ends.0.push(cmd_idx);
+            }
 
             // Otherwise add them to the list of requisites.
             for &req_cmd_idx in preceding_writers.iter() {
@@ -219,7 +246,9 @@ impl CommandGraph {
             let following_readers = cmd.following_readers(&cmds);
 
             // If there are none, `cmd` is a finish endpoint.
-            if following_readers.len() == 0 { self.ends.1.push(cmd_idx); }
+            if following_readers.len() == 0 {
+                self.ends.1.push(cmd_idx);
+            }
 
             // Otherwise add them to the list of requisites.
             for &req_cmd_idx in following_readers.iter() {
@@ -236,16 +265,28 @@ impl CommandGraph {
 
     /// Returns the list of requisite events for a command.
     pub fn get_req_events(&self, cmd_idx: usize) -> Result<Ref<EventList>, &'static str> {
-        if !self.locked { return Err("Call '::populate_requisites' first."); }
-        if self.next_cmd_idx.get() != cmd_idx { return Err("Command events requested out of order."); }
+        if !self.locked {
+            return Err("Call '::populate_requisites' first.");
+        }
+        if self.next_cmd_idx.get() != cmd_idx {
+            return Err("Command events requested out of order.");
+        }
 
-        self.commands.get(cmd_idx).unwrap().requisite_events.borrow_mut().clear();
+        self.commands
+            .get(cmd_idx)
+            .unwrap()
+            .requisite_events
+            .borrow_mut()
+            .clear();
 
         for &req_idx in self.command_requisites[cmd_idx].iter() {
             let event_opt = self.commands[req_idx].event.borrow().clone();
 
             if let Some(event) = event_opt {
-                self.commands[cmd_idx].requisite_events.borrow_mut().push(event);
+                self.commands[cmd_idx]
+                    .requisite_events
+                    .borrow_mut()
+                    .push(event);
             }
         }
 
@@ -254,7 +295,9 @@ impl CommandGraph {
 
     /// Sets the event associated with the completion of a command.
     pub fn set_cmd_event(&self, cmd_idx: usize, event: Event) -> Result<(), &'static str> {
-        if !self.locked { return Err("Call '::populate_requisites' first."); }
+        if !self.locked {
+            return Err("Call '::populate_requisites' first.");
+        }
 
         // let event_opt = self.commands[req_idx].event.borrow();
 
@@ -274,9 +317,12 @@ impl CommandGraph {
         self.commands.as_slice()
     }
 
-    pub fn get_finish_events (&self, event_list: &mut EventList) {
-        assert!(self.next_cmd_idx.get() == 0, "Finish events can only be determined \
-            for each cycle just after the graph has set its last cmd event.");
+    pub fn get_finish_events(&self, event_list: &mut EventList) {
+        assert!(
+            self.next_cmd_idx.get() == 0,
+            "Finish events can only be determined \
+            for each cycle just after the graph has set its last cmd event."
+        );
 
         for &cmd_idx in self.ends.1.iter() {
             let event_opt = self.commands[cmd_idx].event.borrow().clone();

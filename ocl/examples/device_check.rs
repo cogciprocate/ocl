@@ -16,35 +16,37 @@
 //!
 
 extern crate futures;
-extern crate rand;
 extern crate ocl;
-#[macro_use] extern crate lazy_static;
-#[macro_use] extern crate colorify;
+extern crate rand;
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate colorify;
 
-use std::fmt::{Debug};
-use futures::{Future};
-use rand::{Rng, SeedableRng, rngs::SmallRng};
-use ocl::{core, Platform, Device, Context, Queue, Program, Buffer, Kernel, OclPrm,
-    Event, EventList, MemMap, RwVec};
-use ocl::error::{Error as OclError, Result as OclResult};
-use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
-use ocl::traits::{IntoRawEventArray};
-use ocl::prm::{Float4, Int4};
+use futures::Future;
 use ocl::core::{Event as EventCore, Status};
-use ocl::ffi::{cl_event, c_void};
+use ocl::error::{Error as OclError, Result as OclResult};
+use ocl::ffi::{c_void, cl_event};
+use ocl::flags::{CommandQueueProperties, MapFlags, MemFlags};
+use ocl::prm::{Float4, Int4};
+use ocl::traits::IntoRawEventArray;
+use ocl::{
+    core, Buffer, Context, Device, Event, EventList, Kernel, MemMap, OclPrm, Platform, Program,
+    Queue, RwVec,
+};
+use rand::{rngs::SmallRng, Rng, SeedableRng};
+use std::fmt::Debug;
 
 // The number of tasks to run concurrently.
 const TASK_ITERS: i32 = 16;
 
 const PRINT: bool = false;
 
-
 #[derive(Debug, Clone)]
 pub struct Kern {
     pub name: &'static str,
     pub op_add: bool,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct Vals<T: OclPrm> {
@@ -280,19 +282,22 @@ fn gen_kern_src(kernel_name: &str, type_str: &str, simple: bool, add: bool) -> S
     let op = if add { "+" } else { "-" };
 
     if simple {
-        format!(r#"__kernel void {kn}(
+        format!(
+            r#"__kernel void {kn}(
                 __global {ts}* in,
                 {ts} values,
                 __global {ts}* out)
             {{
                 uint idx = get_global_id(0);
                 out[idx] = in[idx] {op} values;
-            }}"#
-            ,
-            kn=kernel_name, op=op, ts=type_str
+            }}"#,
+            kn = kernel_name,
+            op = op,
+            ts = type_str
         )
     } else {
-        format!(r#"__kernel void {kn}(
+        format!(
+            r#"__kernel void {kn}(
                 __global {ts}* in_0,
                 __global {ts}* in_1,
                 __global {ts}* in_2,
@@ -301,16 +306,19 @@ fn gen_kern_src(kernel_name: &str, type_str: &str, simple: bool, add: bool) -> S
             {{
                 uint idx = get_global_id(0);
                 out[idx] = in_0[idx] {op} in_1[idx] {op} in_2[idx] {op} values;
-            }}"#
-            ,
-            kn=kernel_name, op=op, ts=type_str
+            }}"#,
+            kn = kernel_name,
+            op = op,
+            ts = type_str
         )
     }
 }
 
-
-fn create_queue(device: Device, context: &Context, flags: Option<CommandQueueProperties>)
-        -> OclResult<Queue> {
+fn create_queue(
+    device: Device,
+    context: &Context,
+    flags: Option<CommandQueueProperties>,
+) -> OclResult<Queue> {
     Queue::new(&context, device, flags.clone()).or_else(|err| {
         // match *err.kind() {
         //     OclCoreErrorKind::Status { status: Status::CL_INVALID_VALUE, .. } => {
@@ -319,23 +327,26 @@ fn create_queue(device: Device, context: &Context, flags: Option<CommandQueuePro
         //     _ => Err(err.into()),
         // }
         match err.api_status() {
-            Some(Status::CL_INVALID_VALUE) => Err("Device does not support out of order queues.".into()),
+            Some(Status::CL_INVALID_VALUE) => {
+                Err("Device does not support out of order queues.".into())
+            }
             _ => Err(err.into()),
         }
     })
 }
 
-
-pub fn create_queues(device: Device, context: &Context, out_of_order: bool)
-        -> OclResult<(Queue, Queue, Queue)>
-{
+pub fn create_queues(
+    device: Device,
+    context: &Context,
+    out_of_order: bool,
+) -> OclResult<(Queue, Queue, Queue)> {
     let ooo_flag = if out_of_order {
         CommandQueueProperties::new().out_of_order()
     } else {
         CommandQueueProperties::empty()
     };
 
-    let flags = Some( ooo_flag | CommandQueueProperties::new().profiling());
+    let flags = Some(ooo_flag | CommandQueueProperties::new().profiling());
 
     let write_queue = create_queue(device, context, flags.clone())?;
     let kernel_queue = create_queue(device, context, flags.clone())?;
@@ -344,13 +355,14 @@ pub fn create_queues(device: Device, context: &Context, out_of_order: bool)
     Ok((write_queue, kernel_queue, read_queue))
 }
 
-
 fn wire_callback(wire_callback: bool, context: &Context, map_event: &Event) -> Option<Event> {
     if wire_callback {
         unsafe {
             let user_map_event = EventCore::user(context).unwrap();
             let unmap_target_ptr = user_map_event.clone().into_raw();
-            map_event.set_callback(core::_complete_user_event, unmap_target_ptr).unwrap();
+            map_event
+                .set_callback(core::_complete_user_event, unmap_target_ptr)
+                .unwrap();
             Some(Event::from(user_map_event))
         }
     } else {
@@ -360,16 +372,17 @@ fn wire_callback(wire_callback: bool, context: &Context, map_event: &Event) -> O
 
 fn check_failure<T: OclPrm + Debug>(idx: usize, tar: T, src: T) -> OclResult<()> {
     if tar != src {
-        let fail_reason = format!(colorify!(red_bold:
+        let fail_reason = format!(
+            colorify!(red_bold:
             "VALUE MISMATCH AT INDEX [{}]: {:?} != {:?}"),
-            idx, tar, src);
+            idx, tar, src
+        );
 
         Err(fail_reason.into())
     } else {
         Ok(())
     }
 }
-
 
 fn print_result(operation: &str, result: OclResult<()>) {
     match result {
@@ -378,23 +391,25 @@ fn print_result(operation: &str, result: OclResult<()>) {
             printc!(white: "<");
             printc!(green_bold: "success");
             printc!(white: ">");
-        },
+        }
         Err(reason) => {
             println!("    {}", reason);
             printc!(white: "    {}  ", operation);
             printc!(white: "<");
             printc!(red_bold: "failure");
             printc!(white: ">");
-
         }
     }
 
     print!("\n");
 }
 
-pub fn check(device: Device, context: &Context, rng: &mut SmallRng, cfg: Switches<Float4>)
-        -> OclResult<()>
-{
+pub fn check(
+    device: Device,
+    context: &Context,
+    rng: &mut SmallRng,
+    cfg: Switches<Float4>,
+) -> OclResult<()> {
     let work_size_range = cfg.misc.work_size_range.0..cfg.misc.work_size_range.1;
     let work_size = rng.gen_range(work_size_range);
 
@@ -445,7 +460,6 @@ pub fn check(device: Device, context: &Context, rng: &mut SmallRng, cfg: Switche
         .arg(&target_buf)
         .build()?;
 
-
     let source_vec = if cfg.alloc_source_vec {
         // let source_vec = util::scrambled_vec(rand_val_range, work_size);
         vec![cfg.val.range.0; work_size as usize]
@@ -467,7 +481,9 @@ pub fn check(device: Device, context: &Context, rng: &mut SmallRng, cfg: Switche
 
         let mut mapped_mem = if cfg.futures {
             let future_mem = unsafe {
-                source_buf.cmd().map()
+                source_buf
+                    .cmd()
+                    .map()
                     .flags(MapFlags::new().write_invalidate_region())
                     // .flags(MapFlags::write())
                     .ewait(&wait_events)
@@ -506,9 +522,15 @@ pub fn check(device: Device, context: &Context, rng: &mut SmallRng, cfg: Switche
                     Some(&mut map_event),
                 )?;
 
-                MemMap::new(mm_core, source_buf.len(), None, None, source_buf.as_core().clone(),
+                MemMap::new(
+                    mm_core,
+                    source_buf.len(),
+                    None,
+                    None,
+                    source_buf.as_core().clone(),
                     write_queue.clone(), /*source_buf.is_mapped()
-                        .expect("Buffer unable to be mapped").clone()*/)
+                                         .expect("Buffer unable to be mapped").clone()*/
+                )
             };
 
             if let Some(tar_ev) = wire_callback(cfg.event_callback, context, &mut map_event) {
@@ -565,15 +587,12 @@ pub fn check(device: Device, context: &Context, rng: &mut SmallRng, cfg: Switche
         }
 
         mapped_mem.enqueue_unmap(None, None::<&Event>, Some(&mut write_event))?;
-
     } else {
         //#################### !(cfg.MAP_WRITE) ###########################
         // Ensure the source vec has been allocated:
         assert!(cfg.alloc_source_vec);
 
-        source_buf.write(&source_vec)
-            .enew(&mut write_event)
-            .enq()?;
+        source_buf.write(&source_vec).enew(&mut write_event).enq()?;
     }
 
     //#########################################################################
@@ -590,10 +609,7 @@ pub fn check(device: Device, context: &Context, rng: &mut SmallRng, cfg: Switche
     let mut kern_event = Event::empty();
 
     unsafe {
-        kern.cmd()
-            .ewait(&write_event)
-            .enew(&mut kern_event)
-            .enq()?;
+        kern.cmd().ewait(&write_event).enew(&mut kern_event).enq()?;
     }
 
     //#########################################################################
@@ -627,19 +643,29 @@ pub fn check(device: Device, context: &Context, rng: &mut SmallRng, cfg: Switche
                 Some(&mut read_event),
             )?;
 
-            target_map = Some(MemMap::new(mm_core, source_buf.len(), None, None,
-                source_buf.as_core().clone(), read_queue.clone(), /*target_buf.is_mapped()
-                    .expect("Buffer unable to be mapped").clone()*/));
+            target_map = Some(MemMap::new(
+                mm_core,
+                source_buf.len(),
+                None,
+                None,
+                source_buf.as_core().clone(),
+                read_queue.clone(), /*target_buf.is_mapped()
+                                    .expect("Buffer unable to be mapped").clone()*/
+            ));
         }
     } else {
         //##################### !(cfg.MAP_READ) ###########################
         let mut tvec = vec![cfg.val.zero; work_size as usize];
 
-        unsafe { target_buf.cmd().read(&mut tvec)
-            .ewait(&kern_event)
-            .enew(&mut read_event)
-            .block(true)
-            .enq()?; }
+        unsafe {
+            target_buf
+                .cmd()
+                .read(&mut tvec)
+                .ewait(&kern_event)
+                .enew(&mut read_event)
+                .block(true)
+                .enq()?;
+        }
 
         target_vec = Some(tvec);
     };
@@ -659,11 +685,21 @@ pub fn check(device: Device, context: &Context, rng: &mut SmallRng, cfg: Switche
 
     if cfg.alloc_source_vec && cfg.val.use_source_vec {
         if cfg.map_read {
-            for (idx, (&tar, &src)) in target_map.unwrap().iter().zip(source_vec.iter()).enumerate() {
+            for (idx, (&tar, &src)) in target_map
+                .unwrap()
+                .iter()
+                .zip(source_vec.iter())
+                .enumerate()
+            {
                 check_failure(idx, tar, src + cfg.val.addend)?;
             }
         } else {
-            for (idx, (&tar, &src)) in target_vec.unwrap().iter().zip(source_vec.iter()).enumerate() {
+            for (idx, (&tar, &src)) in target_vec
+                .unwrap()
+                .iter()
+                .zip(source_vec.iter())
+                .enumerate()
+            {
                 check_failure(idx, tar, src + cfg.val.addend)?;
             }
         }
@@ -683,18 +719,25 @@ pub fn check(device: Device, context: &Context, rng: &mut SmallRng, cfg: Switche
 }
 
 pub fn fill_junk(
-        src_buf: &Buffer<Int4>,
-        common_queue: &Queue,
-        kernel_event: Option<&Event>,
-        fill_event: &mut Option<Event>,
-        task_iter: i32)
-{
+    src_buf: &Buffer<Int4>,
+    common_queue: &Queue,
+    kernel_event: Option<&Event>,
+    fill_event: &mut Option<Event>,
+    task_iter: i32,
+) {
     // These just print status messages...
-    extern "C" fn _print_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
-        if PRINT { println!("* Fill starting        \t(iter: {}) ...", task_iter as usize); }
+    extern "C" fn _print_starting(_: cl_event, _: i32, task_iter: *mut c_void) {
+        if PRINT {
+            println!(
+                "* Fill starting        \t(iter: {}) ...",
+                task_iter as usize
+            );
+        }
     }
-    extern "C" fn _print_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
-        if PRINT { println!("* Fill complete        \t(iter: {})", task_iter as usize); }
+    extern "C" fn _print_complete(_: cl_event, _: i32, task_iter: *mut c_void) {
+        if PRINT {
+            println!("* Fill complete        \t(iter: {})", task_iter as usize);
+        }
     }
 
     // Clear the wait list and push the previous iteration's kernel event
@@ -705,44 +748,63 @@ pub fn fill_junk(
     let fill_wait_marker = wait_list.to_marker(&common_queue).unwrap();
 
     if let Some(ref marker) = fill_wait_marker {
-        unsafe { marker.set_callback(_print_starting, task_iter as *mut c_void).unwrap(); }
+        unsafe {
+            marker
+                .set_callback(_print_starting, task_iter as *mut c_void)
+                .unwrap();
+        }
     } else {
         _print_starting(0 as cl_event, 0, task_iter as *mut c_void);
     }
 
     *fill_event = Some(Event::empty());
 
-    src_buf.cmd().fill(Int4::new(-999, -999, -999, -999), None)
+    src_buf
+        .cmd()
+        .fill(Int4::new(-999, -999, -999, -999), None)
         .queue(common_queue)
         .ewait(&wait_list)
         .enew(fill_event.as_mut())
-        .enq().unwrap();
+        .enq()
+        .unwrap();
 
-    unsafe { fill_event.as_ref().unwrap()
-        .set_callback(_print_complete, task_iter as *mut c_void).unwrap(); }
+    unsafe {
+        fill_event
+            .as_ref()
+            .unwrap()
+            .set_callback(_print_complete, task_iter as *mut c_void)
+            .unwrap();
+    }
 }
 
 pub fn vec_write_async(
-        src_buf: &Buffer<Int4>,
-        rw_vec: &RwVec<Int4>,
-        common_queue: &Queue,
-        write_release_queue: &Queue,
-        fill_event: Option<&Event>,
-        write_event: &mut Option<Event>,
-        write_val: i32, task_iter: i32)
-        -> Box<dyn Future<Item=i32, Error=OclError> + Send>
-{
-    extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
-        if PRINT { println!("* Write init complete  \t(iter: {})", task_iter as usize); }
+    src_buf: &Buffer<Int4>,
+    rw_vec: &RwVec<Int4>,
+    common_queue: &Queue,
+    write_release_queue: &Queue,
+    fill_event: Option<&Event>,
+    write_event: &mut Option<Event>,
+    write_val: i32,
+    task_iter: i32,
+) -> Box<dyn Future<Item = i32, Error = OclError> + Send> {
+    extern "C" fn _write_complete(_: cl_event, _: i32, task_iter: *mut c_void) {
+        if PRINT {
+            println!("* Write init complete  \t(iter: {})", task_iter as usize);
+        }
     }
 
     let mut future_guard = rw_vec.clone().write();
     // let wait_list = [fill_event].into_raw_array();
     future_guard.set_lock_wait_events(fill_event);
-    let release_event = future_guard.create_release_event(write_release_queue).unwrap().clone();
+    let release_event = future_guard
+        .create_release_event(write_release_queue)
+        .unwrap()
+        .clone();
 
     let future_write_vec = future_guard.and_then(move |mut data| {
-        if PRINT { println!("* Write init starting  \t(iter: {}) ...", task_iter); }
+        if PRINT {
+            println!("* Write init starting  \t(iter: {}) ...", task_iter);
+        }
 
         for val in data.iter_mut() {
             *val = Int4::splat(write_val);
@@ -751,43 +813,70 @@ pub fn vec_write_async(
         Ok(())
     });
 
-    let mut future_write_buffer = src_buf.cmd().write(rw_vec)
+    let mut future_write_buffer = src_buf
+        .cmd()
+        .write(rw_vec)
         .queue(common_queue)
         .ewait(&release_event)
-        .enq_async().unwrap();
+        .enq_async()
+        .unwrap();
 
-    *write_event = Some(future_write_buffer.create_release_event(write_release_queue)
-        .unwrap().clone());
+    *write_event = Some(
+        future_write_buffer
+            .create_release_event(write_release_queue)
+            .unwrap()
+            .clone(),
+    );
 
-
-    unsafe { write_event.as_ref().unwrap().set_callback(_write_complete,
-        task_iter as *mut c_void).unwrap(); }
+    unsafe {
+        write_event
+            .as_ref()
+            .unwrap()
+            .set_callback(_write_complete, task_iter as *mut c_void)
+            .unwrap();
+    }
 
     let future_drop_guard = future_write_buffer.and_then(move |_| Ok(()));
 
-    Box::new(future_write_vec.join(future_drop_guard).map(move |(_, _)| task_iter))
+    Box::new(
+        future_write_vec
+            .join(future_drop_guard)
+            .map(move |(_, _)| task_iter),
+    )
 }
 
 pub fn kernel_add(
-        kern: &Kernel,
-        common_queue: &Queue,
-        verify_add_event: Option<&Event>,
-        write_init_event: Option<&Event>,
-        kernel_event: &mut Option<Event>,
-        task_iter: i32)
-{
-    extern "C" fn _print_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
-        if PRINT { println!("* Kernel starting      \t(iter: {}) ...", task_iter as usize); }
+    kern: &Kernel,
+    common_queue: &Queue,
+    verify_add_event: Option<&Event>,
+    write_init_event: Option<&Event>,
+    kernel_event: &mut Option<Event>,
+    task_iter: i32,
+) {
+    extern "C" fn _print_starting(_: cl_event, _: i32, task_iter: *mut c_void) {
+        if PRINT {
+            println!(
+                "* Kernel starting      \t(iter: {}) ...",
+                task_iter as usize
+            );
+        }
     }
-    extern "C" fn _print_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
-        if PRINT { println!("* Kernel complete      \t(iter: {})", task_iter as usize); }
+    extern "C" fn _print_complete(_: cl_event, _: i32, task_iter: *mut c_void) {
+        if PRINT {
+            println!("* Kernel complete      \t(iter: {})", task_iter as usize);
+        }
     }
 
     let wait_list = [&verify_add_event, &write_init_event].into_raw_array();
     let kernel_wait_marker = wait_list.to_marker(&common_queue).unwrap();
 
-    unsafe { kernel_wait_marker.as_ref().unwrap()
-        .set_callback(_print_starting, task_iter as *mut c_void).unwrap(); }
+    unsafe {
+        kernel_wait_marker
+            .as_ref()
+            .unwrap()
+            .set_callback(_print_starting, task_iter as *mut c_void)
+            .unwrap();
+    }
 
     *kernel_event = Some(Event::empty());
 
@@ -796,32 +885,50 @@ pub fn kernel_add(
             .queue(common_queue)
             .ewait(&wait_list)
             .enew(kernel_event.as_mut())
-            .enq().unwrap();
+            .enq()
+            .unwrap();
     }
 
-    unsafe { kernel_event.as_ref().unwrap().set_callback(_print_complete,
-        task_iter as *mut c_void).unwrap(); }
+    unsafe {
+        kernel_event
+            .as_ref()
+            .unwrap()
+            .set_callback(_print_complete, task_iter as *mut c_void)
+            .unwrap();
+    }
 }
 
-pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
-        verify_add_unmap_queue: Queue, wait_event: Option<&Event>,
-        verify_add_event: &mut Option<Event>, correct_val: i32,
-        task_iter: i32) -> Box<dyn Future<Item=i32, Error=OclError> + Send>
-{
-    extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
+pub fn map_read_async(
+    dst_buf: &Buffer<Int4>,
+    common_queue: &Queue,
+    verify_add_unmap_queue: Queue,
+    wait_event: Option<&Event>,
+    verify_add_event: &mut Option<Event>,
+    correct_val: i32,
+    task_iter: i32,
+) -> Box<dyn Future<Item = i32, Error = OclError> + Send> {
+    extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter: *mut c_void) {
         printlnc!(lime_bold: "* Verify add starting \t\t(iter: {}) ...",
             task_iter as usize);
     }
 
-    unsafe { wait_event.as_ref().unwrap()
-        .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
+    unsafe {
+        wait_event
+            .as_ref()
+            .unwrap()
+            .set_callback(_verify_starting, task_iter as *mut c_void)
+            .unwrap();
+    }
 
     let mut future_read_data = unsafe {
-        dst_buf.cmd().map()
+        dst_buf
+            .cmd()
+            .map()
             .queue(common_queue)
             .flags(MapFlags::new().read())
             .ewait(wait_event)
-            .enq_async().unwrap()
+            .enq_async()
+            .unwrap()
     };
 
     *verify_add_event = Some(future_read_data.create_unmap_event().unwrap().clone());
@@ -832,8 +939,11 @@ pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         for (idx, val) in data.iter().enumerate() {
             let cval = Int4::splat(correct_val);
             if *val != cval {
-                return Err(format!("Verify add: Result value mismatch: {:?} != {:?} @ [{}]",
-                    val, cval, idx).into());
+                return Err(format!(
+                    "Verify add: Result value mismatch: {:?} != {:?} @ [{}]",
+                    val, cval, idx
+                )
+                .into());
             }
             val_count += 1;
         }
@@ -847,28 +957,50 @@ pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
     }))
 }
 
-pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Queue,
-        verify_add_release_queue: &Queue, kernel_event: Option<&Event>,
-        verify_add_event: &mut Option<Event>, correct_val: i32, task_iter: i32)
-        -> Box<dyn Future<Item=i32, Error=OclError> + Send>
-{
-    extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
-        if PRINT { println!("* Verify add starting  \t(iter: {}) ...", task_iter as usize); }
+pub fn vec_read_async(
+    dst_buf: &Buffer<Int4>,
+    rw_vec: &RwVec<Int4>,
+    common_queue: &Queue,
+    verify_add_release_queue: &Queue,
+    kernel_event: Option<&Event>,
+    verify_add_event: &mut Option<Event>,
+    correct_val: i32,
+    task_iter: i32,
+) -> Box<dyn Future<Item = i32, Error = OclError> + Send> {
+    extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter: *mut c_void) {
+        if PRINT {
+            println!(
+                "* Verify add starting  \t(iter: {}) ...",
+                task_iter as usize
+            );
+        }
     }
 
-    let mut future_read_data = dst_buf.cmd().read(rw_vec)
+    let mut future_read_data = dst_buf
+        .cmd()
+        .read(rw_vec)
         .queue(common_queue)
         .ewait(kernel_event)
-        .enq_async().unwrap();
+        .enq_async()
+        .unwrap();
 
     // Attach a status message printing callback to what approximates the
     // verify_init start-time event:
-    unsafe { future_read_data.lock_event().unwrap().set_callback(
-        _verify_starting, task_iter as *mut c_void).unwrap(); }
+    unsafe {
+        future_read_data
+            .lock_event()
+            .unwrap()
+            .set_callback(_verify_starting, task_iter as *mut c_void)
+            .unwrap();
+    }
 
     // Create an empty event ready to hold the new verify_init event, overwriting any old one.
-    *verify_add_event = Some(future_read_data.create_release_event(verify_add_release_queue)
-        .unwrap().clone());
+    *verify_add_event = Some(
+        future_read_data
+            .create_release_event(verify_add_release_queue)
+            .unwrap()
+            .clone(),
+    );
 
     Box::new(future_read_data.and_then(move |data| {
         let mut val_count = 0;
@@ -876,21 +1008,30 @@ pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue
         for (idx, val) in data.iter().enumerate() {
             let cval = Int4::splat(correct_val);
             if *val != cval {
-                return Err(format!("Result value @ idx[{}]: {:?} \n    should be == {:?}\
-                    (task iter: [{}]).", idx, val, cval, task_iter).into());
+                return Err(format!(
+                    "Result value @ idx[{}]: {:?} \n    should be == {:?}\
+                    (task iter: [{}]).",
+                    idx, val, cval, task_iter
+                )
+                .into());
             }
             val_count += 1;
         }
 
-        if PRINT { println!("* Verify add complete  \t(iter: {})", task_iter); }
+        if PRINT {
+            println!("* Verify add complete  \t(iter: {})", task_iter);
+        }
 
         Ok(val_count)
     }))
 }
 
-pub fn check_async(device: Device, context: &Context, rng: &mut SmallRng, cfg: Switches<Int4>)
-        -> OclResult<()>
-{
+pub fn check_async(
+    device: Device,
+    context: &Context,
+    rng: &mut SmallRng,
+    cfg: Switches<Int4>,
+) -> OclResult<()> {
     use std::thread;
 
     let work_size_range = cfg.misc.work_size_range.0..cfg.misc.work_size_range.1;
@@ -953,7 +1094,6 @@ pub fn check_async(device: Device, context: &Context, rng: &mut SmallRng, cfg: S
         .arg(&tar_buf)
         .build()?;
 
-
     // A lockable vector for reads and writes:
     let rw_vec: RwVec<Int4> = RwVec::from(vec![Default::default(); work_size as usize]);
 
@@ -963,7 +1103,9 @@ pub fn check_async(device: Device, context: &Context, rng: &mut SmallRng, cfg: S
     let mut kernel_event = None;
     let mut read_event = None;
 
-    if PRINT { println!("Starting cycles ..."); }
+    if PRINT {
+        println!("Starting cycles ...");
+    }
 
     let mut threads = Vec::with_capacity(TASK_ITERS as usize);
 
@@ -977,7 +1119,8 @@ pub fn check_async(device: Device, context: &Context, rng: &mut SmallRng, cfg: S
             &common_queue,
             kernel_event.as_ref(),
             &mut fill_event,
-            task_iter);
+            task_iter,
+        );
 
         let write = vec_write_async(
             &src_buf,
@@ -987,7 +1130,8 @@ pub fn check_async(device: Device, context: &Context, rng: &mut SmallRng, cfg: S
             fill_event.as_ref(),
             &mut write_event,
             ival,
-            task_iter);
+            task_iter,
+        );
 
         kernel_add(
             &kern,
@@ -995,7 +1139,8 @@ pub fn check_async(device: Device, context: &Context, rng: &mut SmallRng, cfg: S
             read_event.as_ref(),
             write_event.as_ref(),
             &mut kernel_event,
-            task_iter);
+            task_iter,
+        );
 
         ////// KEEP:
         // let read = map_read_async(
@@ -1015,40 +1160,52 @@ pub fn check_async(device: Device, context: &Context, rng: &mut SmallRng, cfg: S
             kernel_event.as_ref(),
             &mut read_event,
             tval,
-            task_iter);
+            task_iter,
+        );
 
-        if PRINT { println!("All commands for iteration {} enqueued", task_iter); }
+        if PRINT {
+            println!("All commands for iteration {} enqueued", task_iter);
+        }
 
         let task = write.join(read);
 
-        threads.push(thread::Builder::new()
+        threads.push(
+            thread::Builder::new()
                 .name(format!("task_iter_[{}]", task_iter).into())
-                .spawn(move ||
-        {
-            if PRINT { println!("Waiting on task iter [{}]...", task_iter); }
-            match task.wait() {
-                Ok(res) => {
-                    if PRINT { println!("Task iter [{}] complete with result: {:?}", task_iter, res); }
-                    Ok(res)
-                },
-                Err(err) => {
-                    Err(format!("[{}] ERROR: {:?}", task_iter, err))
-                },
-            }
-        }).unwrap());
+                .spawn(move || {
+                    if PRINT {
+                        println!("Waiting on task iter [{}]...", task_iter);
+                    }
+                    match task.wait() {
+                        Ok(res) => {
+                            if PRINT {
+                                println!(
+                                    "Task iter [{}] complete with result: {:?}",
+                                    task_iter, res
+                                );
+                            }
+                            Ok(res)
+                        }
+                        Err(err) => Err(format!("[{}] ERROR: {:?}", task_iter, err)),
+                    }
+                })
+                .unwrap(),
+        );
     }
 
     let mut all_correct = true;
 
     for thread in threads {
         match thread.join() {
-            Ok(res) => {
-                match res {
-                    Ok(res) => if PRINT { println!("Thread result: {:?}", res) },
-                    Err(err) => {
-                        println!("{}", err);
-                        all_correct = false;
-                    },
+            Ok(res) => match res {
+                Ok(res) => {
+                    if PRINT {
+                        println!("Thread result: {:?}", res)
+                    }
+                }
+                Err(err) => {
+                    println!("{}", err);
+                    all_correct = false;
                 }
             },
             Err(err) => panic!("{:?}", err),
@@ -1058,20 +1215,21 @@ pub fn check_async(device: Device, context: &Context, rng: &mut SmallRng, cfg: S
     if all_correct {
         Ok(())
     } else {
-        Err("\nErrors found. Your device/platform does not properly support asynchronous\n\
+        Err(
+            "\nErrors found. Your device/platform does not properly support asynchronous\n\
             multi-threaded operation. It is recommended that you enable the `async_block`\n\
             feature when compiling this library for use with the device and platform combination \n\
-            listed just above (https://doc.rust-lang.org/book/conditional-compilation.html).\n".into())
+            listed just above (https://doc.rust-lang.org/book/conditional-compilation.html).\n"
+                .into(),
+        )
     }
 }
-
-
 
 pub fn device_check() -> OclResult<()> {
     let mut rng = SmallRng::from_entropy();
 
     for (p_idx, platform) in Platform::list().into_iter().enumerate() {
-    // for &platform in &[Platform::default()] {
+        // for &platform in &[Platform::default()] {
         let devices = Device::list_all(&platform).unwrap();
 
         for (d_idx, device) in devices.into_iter().enumerate() {
@@ -1079,40 +1237,62 @@ pub fn device_check() -> OclResult<()> {
             printlnc!(teal: "Device [{}]: {} {}", d_idx, device.vendor()?, device.name()?);
 
             if device.is_available().unwrap() {
-
                 let context = Context::builder()
                     .platform(platform)
                     .devices(device)
-                    .build().unwrap();
+                    .build()
+                    .unwrap();
 
-                let result = check(device, &context, &mut rng,
-                    CONFIG_MAPPED_WRITE_OOO_ASYNC.clone());
+                let result = check(
+                    device,
+                    &context,
+                    &mut rng,
+                    CONFIG_MAPPED_WRITE_OOO_ASYNC.clone(),
+                );
                 print_result("Out-of-order MW/Async-CB:     ", result);
 
-                let result = check(device, &context, &mut rng,
-                    CONFIG_MAPPED_WRITE_OOO_ASYNC_AHP.clone());
+                let result = check(
+                    device,
+                    &context,
+                    &mut rng,
+                    CONFIG_MAPPED_WRITE_OOO_ASYNC_AHP.clone(),
+                );
                 print_result("Out-of-order MW/Async-CB+AHP: ", result);
 
-                let result = check(device, &context, &mut rng,
-                    CONFIG_MAPPED_READ_OOO_ASYNC_CB.clone());
+                let result = check(
+                    device,
+                    &context,
+                    &mut rng,
+                    CONFIG_MAPPED_READ_OOO_ASYNC_CB.clone(),
+                );
                 print_result("Out-of-order MW/ASync+CB/MR:  ", result);
 
-                let result = check(device, &context, &mut rng,
-                    CONFIG_MAPPED_WRITE_INO_ASYNC_CB.clone());
+                let result = check(
+                    device,
+                    &context,
+                    &mut rng,
+                    CONFIG_MAPPED_WRITE_INO_ASYNC_CB.clone(),
+                );
                 print_result("In-order MW/ASync+CB:         ", result);
 
-                let result = check(device, &context, &mut rng,
-                    CONFIG_MAPPED_WRITE_OOO_ELOOP.clone());
+                let result = check(
+                    device,
+                    &context,
+                    &mut rng,
+                    CONFIG_MAPPED_WRITE_OOO_ELOOP.clone(),
+                );
                 print_result("Out-of-order MW/ELOOP:        ", result);
 
-                let result = check(device, &context, &mut rng,
-                    CONFIG_MAPPED_WRITE_OOO_ELOOP_CB.clone());
+                let result = check(
+                    device,
+                    &context,
+                    &mut rng,
+                    CONFIG_MAPPED_WRITE_OOO_ELOOP_CB.clone(),
+                );
                 print_result("Out-of-order MW/ELOOP+CB:     ", result);
 
-                let result = check_async(device, &context, &mut rng,
-                    CONFIG_THREADS.clone());
+                let result = check_async(device, &context, &mut rng, CONFIG_THREADS.clone());
                 print_result("In-order RwVec Multi-thread:  ", result);
-
             } else {
                 printlnc!(red: "    [UNAVAILABLE]");
             }
@@ -1122,7 +1302,6 @@ pub fn device_check() -> OclResult<()> {
     printlnc!(light_grey: "All checks complete.");
     Ok(())
 }
-
 
 pub fn main() {
     match device_check() {

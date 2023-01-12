@@ -2,14 +2,13 @@
 //!   operations.
 //!
 
-use crate::standard::ProQue;
 use crate::prm::Int4;
+use crate::standard::ProQue;
 
 const DATASET_SIZE: usize = 1 << 20;
 
 #[test]
 fn test_vector_types() {
-
     let src = r#"
         __kernel void add_int4(__global int4* in_buffer, int4 addend, __global int4* out_buffer) {
             uint idx = get_global_id(0);
@@ -24,7 +23,8 @@ fn test_vector_types() {
     let pro_que = ProQue::builder()
         .src(src)
         .dims(DATASET_SIZE)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     let in_buffer = pro_que.create_buffer::<Int4>().unwrap();
 
@@ -39,13 +39,17 @@ fn test_vector_types() {
 
     let out_buffer = pro_que.create_buffer::<Int4>().unwrap();
 
-    let kernel = pro_que.kernel_builder("add_int4")
+    let kernel = pro_que
+        .kernel_builder("add_int4")
         .arg(&in_buffer)
         .arg(&addend)
         .arg(&out_buffer)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
-    unsafe { kernel.enq().unwrap(); }
+    unsafe {
+        kernel.enq().unwrap();
+    }
 
     out_buffer.read(&mut vec).enq().unwrap();
 

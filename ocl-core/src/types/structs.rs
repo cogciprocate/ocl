@@ -1,22 +1,23 @@
 //! Rust implementations of various structs used by the OpenCL API.
 
+use crate::error::{Error as OclCoreError, Result as OclCoreResult};
+use crate::ffi::{
+    self, c_void, cl_buffer_region, cl_context_properties, cl_mem, cl_platform_id, cl_sampler,
+    size_t,
+};
+use crate::{
+    ContextProperty, ImageChannelDataType, ImageChannelOrder, Mem, MemObjectType, OclPrm,
+    PlatformId, Sampler,
+};
+use num_traits::FromPrimitive;
 use std;
+use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::mem;
 use std::ptr;
-use std::marker::PhantomData;
-use std::collections::HashMap;
-use num_traits::FromPrimitive;
-use crate::error::{Error as OclCoreError, Result as OclCoreResult};
-use crate::ffi::{self,cl_mem, cl_sampler, cl_buffer_region, cl_context_properties, cl_platform_id,
-    c_void, size_t};
-use crate::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
-    PlatformId, OclPrm, Sampler};
-
 
 // Until everything can be implemented:
 pub type TemporaryPlaceholderType = ();
-
-
 
 /// A reference to a kernel argument value.
 ///
@@ -83,7 +84,9 @@ impl<'a> ArgVal<'a> {
     // vector types need to be differentiated, at which point this method
     // would be deprecated.
     pub fn primitive<T>(prm: &'a T) -> ArgVal<'a>
-            where T: OclPrm {
+    where
+        T: OclPrm,
+    {
         ArgVal {
             size: mem::size_of::<T>() as size_t,
             value: prm as *const T as *const c_void,
@@ -94,13 +97,17 @@ impl<'a> ArgVal<'a> {
 
     /// Returns a new `ArgVal` referring to a scalar primitive.
     pub fn scalar<T>(scalar: &'a T) -> ArgVal<'a>
-            where T: OclPrm {
+    where
+        T: OclPrm,
+    {
         ArgVal::primitive(scalar)
     }
 
     /// Returns a new `ArgVal` referring to a vector primitive.
     pub fn vector<T>(vector: &'a T) -> ArgVal<'a>
-            where T: OclPrm {
+    where
+        T: OclPrm,
+    {
         ArgVal::primitive(vector)
     }
 
@@ -109,7 +116,9 @@ impl<'a> ArgVal<'a> {
     /// To specify a `__local` argument size in bytes, use `::raw` instead
     /// (with `value`: `std::ptr::null()`).
     pub fn local<T>(length: &usize) -> ArgVal<'a>
-            where T: OclPrm {
+    where
+        T: OclPrm,
+    {
         ArgVal {
             size: (mem::size_of::<T>() * length) as size_t,
             value: ptr::null(),
@@ -141,15 +150,12 @@ impl<'a> ArgVal<'a> {
         (self.size, self.value)
     }
 
-
     /// Returns `true` if this `ArgVal` represents a null `Mem` or `Sampler`
     /// object.
     pub fn is_mem_null(&self) -> bool {
         self.is_mem && self.value.is_null()
     }
 }
-
-
 
 /// Parsed OpenCL version in the layout `({major}, {minor})`.
 ///
@@ -162,11 +168,15 @@ pub struct OpenclVersion {
 
 impl OpenclVersion {
     pub fn new(major: u16, minor: u16) -> OpenclVersion {
-        OpenclVersion { ver: [major, minor] }
+        OpenclVersion {
+            ver: [major, minor],
+        }
     }
 
     pub fn max(&self) -> OpenclVersion {
-        OpenclVersion { ver: [u16::max_value(), u16::max_value()] }
+        OpenclVersion {
+            ver: [u16::max_value(), u16::max_value()],
+        }
     }
 
     pub fn to_raw(&self) -> (u16, u16) {
@@ -200,15 +210,37 @@ impl OpenclVersion {
 
             for (ch_idx, ch) in word.chars().enumerate() {
                 match ch_idx {
-                    0 => if ch != 'O' && ch != 'o' { break; },
-                    1 => if ch != 'P' && ch != 'p' { break; },
-                    2 => if ch != 'E' && ch != 'e' { break; },
-                    3 => if ch != 'N' && ch != 'n' { break; },
-                    4 => if ch != 'C' && ch != 'c' { break; },
-                    5 => if ch == 'L' || ch == 'l' {
-                        version_word_idx = Some(word_idx + 1);
-                        break;
-                    },
+                    0 => {
+                        if ch != 'O' && ch != 'o' {
+                            break;
+                        }
+                    }
+                    1 => {
+                        if ch != 'P' && ch != 'p' {
+                            break;
+                        }
+                    }
+                    2 => {
+                        if ch != 'E' && ch != 'e' {
+                            break;
+                        }
+                    }
+                    3 => {
+                        if ch != 'N' && ch != 'n' {
+                            break;
+                        }
+                    }
+                    4 => {
+                        if ch != 'C' && ch != 'c' {
+                            break;
+                        }
+                    }
+                    5 => {
+                        if ch == 'L' || ch == 'l' {
+                            version_word_idx = Some(word_idx + 1);
+                            break;
+                        }
+                    }
                     _ => break,
                 }
             }
@@ -216,8 +248,12 @@ impl OpenclVersion {
 
         match version {
             Some(cl_ver) => Ok(cl_ver),
-            None => Err(format!("DeviceInfoResult::as_opencl_version(): \
-                Error parsing version from the string: '{}'.", ver).into()),
+            None => Err(format!(
+                "DeviceInfoResult::as_opencl_version(): \
+                Error parsing version from the string: '{}'.",
+                ver
+            )
+            .into()),
         }
     }
 }
@@ -233,7 +269,6 @@ impl std::fmt::Display for OpenclVersion {
         write!(f, "{}.{}", self.ver[0], self.ver[1])
     }
 }
-
 
 // cl_context_properties enum  Property value  Description
 //
@@ -306,7 +341,6 @@ pub enum ContextPropertyValue {
 
 unsafe impl Send for ContextPropertyValue {}
 unsafe impl Sync for ContextPropertyValue {}
-
 
 /// Context properties list.
 ///
@@ -381,43 +415,64 @@ impl ContextProperties {
 
     /// Specifies a platform.
     pub fn set_platform<P: Into<PlatformId>>(&mut self, platform: P) {
-        self.props.insert(ContextProperty::Platform, ContextPropertyValue::Platform(platform.into()));
+        self.props.insert(
+            ContextProperty::Platform,
+            ContextPropertyValue::Platform(platform.into()),
+        );
     }
 
     /// Specifies whether the user is responsible for synchronization between
     /// OpenCL and other APIs.
     pub fn set_interop_user_sync(&mut self, sync: bool) {
-        self.props.insert(ContextProperty::InteropUserSync, ContextPropertyValue::InteropUserSync(sync));
+        self.props.insert(
+            ContextProperty::InteropUserSync,
+            ContextPropertyValue::InteropUserSync(sync),
+        );
     }
 
     /// Specifies an OpenGL context handle.
     pub fn set_gl_context(&mut self, gl_ctx: *mut c_void) {
-        self.props.insert(ContextProperty::GlContextKhr, ContextPropertyValue::GlContextKhr(gl_ctx));
+        self.props.insert(
+            ContextProperty::GlContextKhr,
+            ContextPropertyValue::GlContextKhr(gl_ctx),
+        );
         self.contains_gl_context_or_sharegroup = true;
     }
 
     /// Specifies a Display pointer for the GLX context.
     pub fn set_glx_display(&mut self, glx_disp: *mut c_void) {
-        self.props.insert(ContextProperty::GlxDisplayKhr, ContextPropertyValue::GlxDisplayKhr(glx_disp));
+        self.props.insert(
+            ContextProperty::GlxDisplayKhr,
+            ContextPropertyValue::GlxDisplayKhr(glx_disp),
+        );
         self.contains_gl_context_or_sharegroup = true;
     }
 
     /// Specifies a Display pointer for the WGL HDC.
     pub fn set_wgl_hdc(&mut self, wgl_hdc: *mut c_void) {
-        self.props.insert(ContextProperty::WglHdcKhr, ContextPropertyValue::WglHdcKhr(wgl_hdc));
+        self.props.insert(
+            ContextProperty::WglHdcKhr,
+            ContextPropertyValue::WglHdcKhr(wgl_hdc),
+        );
         self.contains_gl_context_or_sharegroup = true;
     }
 
     /// Specifies an OpenGL context CGL share group to associate the OpenCL
     /// context with.
     pub fn set_cgl_sharegroup(&mut self, gl_sharegroup: *mut c_void) {
-        self.props.insert(ContextProperty::CglSharegroupKhr, ContextPropertyValue::CglSharegroupKhr(gl_sharegroup));
+        self.props.insert(
+            ContextProperty::CglSharegroupKhr,
+            ContextPropertyValue::CglSharegroupKhr(gl_sharegroup),
+        );
         self.contains_gl_context_or_sharegroup = true;
     }
 
     /// Specifies a pointer for the EGL display.
     pub fn set_egl_display(&mut self, egl_disp: *mut c_void) {
-        self.props.insert(ContextProperty::EglDisplayKhr, ContextPropertyValue::EglDisplayKhr(egl_disp));
+        self.props.insert(
+            ContextProperty::EglDisplayKhr,
+            ContextPropertyValue::EglDisplayKhr(egl_disp),
+        );
         self.contains_gl_context_or_sharegroup = true;
     }
 
@@ -425,37 +480,52 @@ impl ContextProperties {
     pub fn set_property_value(&mut self, prop: ContextPropertyValue) {
         match prop {
             ContextPropertyValue::Platform(val) => {
-                self.props.insert(ContextProperty::Platform, ContextPropertyValue::Platform(val));
-            },
+                self.props.insert(
+                    ContextProperty::Platform,
+                    ContextPropertyValue::Platform(val),
+                );
+            }
             ContextPropertyValue::InteropUserSync(val) => {
-                self.props.insert(ContextProperty::InteropUserSync,
-                    ContextPropertyValue::InteropUserSync(val));
-            },
+                self.props.insert(
+                    ContextProperty::InteropUserSync,
+                    ContextPropertyValue::InteropUserSync(val),
+                );
+            }
             ContextPropertyValue::GlContextKhr(val) => {
-                self.props.insert(ContextProperty::GlContextKhr,
-                    ContextPropertyValue::GlContextKhr(val));
+                self.props.insert(
+                    ContextProperty::GlContextKhr,
+                    ContextPropertyValue::GlContextKhr(val),
+                );
                 self.contains_gl_context_or_sharegroup = true;
-            },
+            }
             ContextPropertyValue::GlxDisplayKhr(val) => {
-                self.props.insert(ContextProperty::GlxDisplayKhr,
-                    ContextPropertyValue::GlxDisplayKhr(val));
+                self.props.insert(
+                    ContextProperty::GlxDisplayKhr,
+                    ContextPropertyValue::GlxDisplayKhr(val),
+                );
                 self.contains_gl_context_or_sharegroup = true;
-            },
+            }
             ContextPropertyValue::WglHdcKhr(val) => {
-                self.props.insert(ContextProperty::WglHdcKhr,
-                    ContextPropertyValue::WglHdcKhr(val));
+                self.props.insert(
+                    ContextProperty::WglHdcKhr,
+                    ContextPropertyValue::WglHdcKhr(val),
+                );
                 self.contains_gl_context_or_sharegroup = true;
-            },
+            }
             ContextPropertyValue::CglSharegroupKhr(val) => {
-                self.props.insert(ContextProperty::CglSharegroupKhr,
-                    ContextPropertyValue::CglSharegroupKhr(val));
+                self.props.insert(
+                    ContextProperty::CglSharegroupKhr,
+                    ContextPropertyValue::CglSharegroupKhr(val),
+                );
                 self.contains_gl_context_or_sharegroup = true;
-            },
+            }
             ContextPropertyValue::EglDisplayKhr(val) => {
-                self.props.insert(ContextProperty::EglDisplayKhr,
-                    ContextPropertyValue::EglDisplayKhr(val));
+                self.props.insert(
+                    ContextProperty::EglDisplayKhr,
+                    ContextPropertyValue::EglDisplayKhr(val),
+                );
                 self.contains_gl_context_or_sharegroup = true;
-            },
+            }
             _ => panic!("'{:?}' is not yet a supported variant.", prop),
         }
     }
@@ -469,8 +539,8 @@ impl ContextProperties {
                 } else {
                     panic!("Internal error returning platform.");
                 }
-            },
-            None => None
+            }
+            None => None,
         }
     }
 
@@ -499,31 +569,31 @@ impl ContextProperties {
                 ContextPropertyValue::Platform(ref platform_id_core) => {
                     props_raw.push(*key as isize);
                     props_raw.push(platform_id_core.as_ptr() as isize);
-                },
+                }
                 ContextPropertyValue::InteropUserSync(sync) => {
                     props_raw.push(*key as isize);
                     props_raw.push(sync as isize);
-                },
+                }
                 ContextPropertyValue::GlContextKhr(sync) => {
                     props_raw.push(*key as isize);
                     props_raw.push(sync as isize);
-                },
+                }
                 ContextPropertyValue::GlxDisplayKhr(sync) => {
                     props_raw.push(*key as isize);
                     props_raw.push(sync as isize);
-                },
+                }
                 ContextPropertyValue::WglHdcKhr(sync) => {
                     props_raw.push(*key as isize);
                     props_raw.push(sync as isize);
-                },
+                }
                 ContextPropertyValue::CglSharegroupKhr(sync) => {
                     props_raw.push(*key as isize);
                     props_raw.push(sync as isize);
-                },
+                }
                 ContextPropertyValue::EglDisplayKhr(sync) => {
                     props_raw.push(*key as isize);
                     props_raw.push(sync as isize);
-                },
+                }
                 _ => panic!("'{:?}' is not yet a supported variant.", key),
             };
         }
@@ -536,9 +606,10 @@ impl ContextProperties {
     }
 
     /// Returns a single context property value.
-    pub unsafe fn extract_property_from_raw(property: ContextProperty,
-            raw_context_properties: &[isize]) -> Option<ContextPropertyValue>
-    {
+    pub unsafe fn extract_property_from_raw(
+        property: ContextProperty,
+        raw_context_properties: &[isize],
+    ) -> Option<ContextPropertyValue> {
         // REMEMBER: It's null terminated;
 
         // The raw properties **should** be `(isize, isize)` pairs + isize (null) terminator.
@@ -555,17 +626,17 @@ impl ContextProperties {
                     let val_raw = *raw_context_properties.get_unchecked(idz + 1);
 
                     if key_raw == property as cl_context_properties {
-                        return Some(ContextPropertyValue::Platform(
-                            PlatformId::from_raw(val_raw as cl_platform_id)));
+                        return Some(ContextPropertyValue::Platform(PlatformId::from_raw(
+                            val_raw as cl_platform_id,
+                        )));
                     }
                 }
-            },
+            }
             _ => unimplemented!(),
         }
 
         None
     }
-
 
     /// Converts raw stuff into other stuff.
     ///
@@ -588,76 +659,96 @@ impl ContextProperties {
             let key_raw = *raw_context_properties.get_unchecked(idz);
             let val_raw = *raw_context_properties.get_unchecked(idz + 1);
 
-            let key = ContextProperty::from_isize(key_raw).ok_or_else(|| OclCoreError::String(
-                format!("ContextProperties::from_raw: Unable to convert '{}' using \
-                    'ContextProperty::from_isize'.", key_raw)))?;
+            let key = ContextProperty::from_isize(key_raw).ok_or_else(|| {
+                OclCoreError::String(format!(
+                    "ContextProperties::from_raw: Unable to convert '{}' using \
+                    'ContextProperty::from_isize'.",
+                    key_raw
+                ))
+            })?;
 
             match key {
-                    ContextProperty::Platform => {
-                        context_props.props.insert(ContextProperty::Platform,
-                            ContextPropertyValue::Platform(PlatformId::from_raw(val_raw as cl_platform_id))
-                        );
-                    },
-                    ContextProperty::InteropUserSync => {
-                        context_props.props.insert(ContextProperty::InteropUserSync,
-                            ContextPropertyValue::InteropUserSync(val_raw > 0),
-                        );
-                    },
-                    ContextProperty::D3d10DeviceKhr => {
-                        context_props.props.insert(ContextProperty::D3d10DeviceKhr,
-                            ContextPropertyValue::D3d10DeviceKhr(val_raw as *mut ffi::cl_d3d10_device_source_khr),
-                        );
-                    },
-                    ContextProperty::GlContextKhr => {
-                        context_props.props.insert(ContextProperty::GlContextKhr,
-                            ContextPropertyValue::GlContextKhr(val_raw as *mut c_void),
-                        );
-                        context_props.contains_gl_context_or_sharegroup = true;
-                    },
-                    ContextProperty::EglDisplayKhr => {
-                        context_props.props.insert(ContextProperty::EglDisplayKhr,
-                            ContextPropertyValue::EglDisplayKhr(val_raw as ffi::CLeglDisplayKHR),
-                        );
-                        context_props.contains_gl_context_or_sharegroup = true;
-                    },
-                    ContextProperty::GlxDisplayKhr => {
-                        context_props.props.insert(ContextProperty::GlxDisplayKhr,
-                            ContextPropertyValue::GlxDisplayKhr(val_raw as *mut c_void),
-                        );
-                        context_props.contains_gl_context_or_sharegroup = true;
-                    },
-                    ContextProperty::CglSharegroupKhr => {
-                        context_props.props.insert(ContextProperty::CglSharegroupKhr,
-                            ContextPropertyValue::CglSharegroupKhr(val_raw as *mut c_void),
-                        );
-                        context_props.contains_gl_context_or_sharegroup = true;
-                    },
-                    ContextProperty::WglHdcKhr => {
-                        context_props.props.insert(ContextProperty::WglHdcKhr,
-                            ContextPropertyValue::WglHdcKhr(val_raw as *mut c_void),
-                        );
-                        context_props.contains_gl_context_or_sharegroup = true;
-                    },
-                    ContextProperty::AdapterD3d9Khr => {
-                        context_props.props.insert(ContextProperty::AdapterD3d9Khr,
-                            ContextPropertyValue::AdapterD3d9Khr(val_raw),
-                        );
-                    },
-                    ContextProperty::AdapterD3d9exKhr => {
-                        context_props.props.insert(ContextProperty::AdapterD3d9exKhr,
-                            ContextPropertyValue::AdapterD3d9exKhr(val_raw),
-                        );
-                    },
-                    ContextProperty::AdapterDxvaKhr => {
-                        context_props.props.insert(ContextProperty::AdapterDxvaKhr,
-                            ContextPropertyValue::AdapterDxvaKhr(val_raw),
-                        );
-                    },
-                    ContextProperty::D3d11DeviceKhr => {
-                        context_props.props.insert(ContextProperty::D3d11DeviceKhr,
-                            ContextPropertyValue::D3d11DeviceKhr(val_raw),
-                        );
-                    },
+                ContextProperty::Platform => {
+                    context_props.props.insert(
+                        ContextProperty::Platform,
+                        ContextPropertyValue::Platform(PlatformId::from_raw(
+                            val_raw as cl_platform_id,
+                        )),
+                    );
+                }
+                ContextProperty::InteropUserSync => {
+                    context_props.props.insert(
+                        ContextProperty::InteropUserSync,
+                        ContextPropertyValue::InteropUserSync(val_raw > 0),
+                    );
+                }
+                ContextProperty::D3d10DeviceKhr => {
+                    context_props.props.insert(
+                        ContextProperty::D3d10DeviceKhr,
+                        ContextPropertyValue::D3d10DeviceKhr(
+                            val_raw as *mut ffi::cl_d3d10_device_source_khr,
+                        ),
+                    );
+                }
+                ContextProperty::GlContextKhr => {
+                    context_props.props.insert(
+                        ContextProperty::GlContextKhr,
+                        ContextPropertyValue::GlContextKhr(val_raw as *mut c_void),
+                    );
+                    context_props.contains_gl_context_or_sharegroup = true;
+                }
+                ContextProperty::EglDisplayKhr => {
+                    context_props.props.insert(
+                        ContextProperty::EglDisplayKhr,
+                        ContextPropertyValue::EglDisplayKhr(val_raw as ffi::CLeglDisplayKHR),
+                    );
+                    context_props.contains_gl_context_or_sharegroup = true;
+                }
+                ContextProperty::GlxDisplayKhr => {
+                    context_props.props.insert(
+                        ContextProperty::GlxDisplayKhr,
+                        ContextPropertyValue::GlxDisplayKhr(val_raw as *mut c_void),
+                    );
+                    context_props.contains_gl_context_or_sharegroup = true;
+                }
+                ContextProperty::CglSharegroupKhr => {
+                    context_props.props.insert(
+                        ContextProperty::CglSharegroupKhr,
+                        ContextPropertyValue::CglSharegroupKhr(val_raw as *mut c_void),
+                    );
+                    context_props.contains_gl_context_or_sharegroup = true;
+                }
+                ContextProperty::WglHdcKhr => {
+                    context_props.props.insert(
+                        ContextProperty::WglHdcKhr,
+                        ContextPropertyValue::WglHdcKhr(val_raw as *mut c_void),
+                    );
+                    context_props.contains_gl_context_or_sharegroup = true;
+                }
+                ContextProperty::AdapterD3d9Khr => {
+                    context_props.props.insert(
+                        ContextProperty::AdapterD3d9Khr,
+                        ContextPropertyValue::AdapterD3d9Khr(val_raw),
+                    );
+                }
+                ContextProperty::AdapterD3d9exKhr => {
+                    context_props.props.insert(
+                        ContextProperty::AdapterD3d9exKhr,
+                        ContextPropertyValue::AdapterD3d9exKhr(val_raw),
+                    );
+                }
+                ContextProperty::AdapterDxvaKhr => {
+                    context_props.props.insert(
+                        ContextProperty::AdapterDxvaKhr,
+                        ContextPropertyValue::AdapterDxvaKhr(val_raw),
+                    );
+                }
+                ContextProperty::D3d11DeviceKhr => {
+                    context_props.props.insert(
+                        ContextProperty::D3d11DeviceKhr,
+                        ContextPropertyValue::D3d11DeviceKhr(val_raw),
+                    );
+                }
             }
         }
 
@@ -676,8 +767,6 @@ impl From<ContextProperties> for Vec<isize> {
         cp.to_raw()
     }
 }
-
-
 
 /// Defines a buffer region for creating a sub-buffer.
 ///
@@ -726,11 +815,12 @@ impl<T: OclPrm> BufferRegion<T> {
         assert!(ffi_struct.origin % mem::size_of::<T>() == 0);
         assert!(ffi_struct.size % mem::size_of::<T>() == 0);
 
-        BufferRegion::new(ffi_struct.origin / mem::size_of::<T>(),
-            ffi_struct.size / mem::size_of::<T>())
+        BufferRegion::new(
+            ffi_struct.origin / mem::size_of::<T>(),
+            ffi_struct.size / mem::size_of::<T>(),
+        )
     }
 }
-
 
 pub enum ImageFormatParseError {
     UnknownImageChannelOrder(ffi::cl_channel_order),
@@ -742,10 +832,10 @@ impl ::std::fmt::Debug for ImageFormatParseError {
         match *self {
             ImageFormatParseError::UnknownImageChannelOrder(ord) => {
                 write!(f, "unknown image channel ordering: '{}'", ord)
-            },
+            }
             ImageFormatParseError::UnknownImageChannelDataType(dt) => {
                 write!(f, "unknown image channel data type: '{}'", dt)
-            },
+            }
         }
     }
 }
@@ -760,15 +850,14 @@ impl ::std::error::Error for ImageFormatParseError {
     fn description(&self) -> &str {
         match *self {
             ImageFormatParseError::UnknownImageChannelOrder(_) => "unknown image channel ordering",
-            ImageFormatParseError::UnknownImageChannelDataType(_) => "unknown image channel data type",
+            ImageFormatParseError::UnknownImageChannelDataType(_) => {
+                "unknown image channel data type"
+            }
         }
     }
 }
 
 pub type ImageFormatParseResult = Result<ImageFormat, ImageFormatParseError>;
-
-
-
 
 /// Image format properties used by `Image`.
 ///
@@ -820,22 +909,30 @@ impl ImageFormat {
     pub fn from_raw(fmt_raw: ffi::cl_image_format) -> ImageFormatParseResult {
         let channel_order = match ImageChannelOrder::from_u32(fmt_raw.image_channel_order) {
             Some(ord) => ord,
-            None => return Err(ImageFormatParseError::UnknownImageChannelOrder(
-                fmt_raw.image_channel_order)),
+            None => {
+                return Err(ImageFormatParseError::UnknownImageChannelOrder(
+                    fmt_raw.image_channel_order,
+                ))
+            }
         };
 
-        let channel_data_type = match ImageChannelDataType::from_u32(fmt_raw.image_channel_data_type) {
-            Some(dt) => dt,
-            None => return Err(ImageFormatParseError::UnknownImageChannelDataType(
-                fmt_raw.image_channel_data_type)),
-        };
+        let channel_data_type =
+            match ImageChannelDataType::from_u32(fmt_raw.image_channel_data_type) {
+                Some(dt) => dt,
+                None => {
+                    return Err(ImageFormatParseError::UnknownImageChannelDataType(
+                        fmt_raw.image_channel_data_type,
+                    ))
+                }
+            };
 
-        Ok(ImageFormat { channel_order, channel_data_type })
+        Ok(ImageFormat {
+            channel_order,
+            channel_data_type,
+        })
     }
 
-    pub fn list_from_raw(list_raw: Vec<ffi::cl_image_format>)
-            -> Vec<ImageFormatParseResult>
-    {
+    pub fn list_from_raw(list_raw: Vec<ffi::cl_image_format>) -> Vec<ImageFormatParseResult> {
         list_raw.into_iter().map(ImageFormat::from_raw).collect()
     }
 
@@ -921,13 +1018,12 @@ impl ImageFormat {
             ImageChannelDataType::Float => 4,
             // Each channel component is a normalized unsigned 24-bit integer value:
             // UnormInt24 => 3,
-            _ => 0
+            _ => 0,
         };
 
         channel_count * channel_size
     }
 }
-
 
 /// An image descriptor use in the creation of `Image`.
 ///
@@ -978,9 +1074,16 @@ pub struct ImageDescriptor {
 }
 
 impl ImageDescriptor {
-    pub fn new(image_type: MemObjectType, width: usize, height: usize, depth: usize,
-                array_size: usize, row_pitch: usize, slc_pitch: usize, buffer: Option<Mem>,
-                ) -> ImageDescriptor {
+    pub fn new(
+        image_type: MemObjectType,
+        width: usize,
+        height: usize,
+        depth: usize,
+        array_size: usize,
+        row_pitch: usize,
+        slc_pitch: usize,
+        buffer: Option<Mem>,
+    ) -> ImageDescriptor {
         ImageDescriptor {
             image_type,
             image_width: width,
@@ -1007,10 +1110,9 @@ impl ImageDescriptor {
             num_mip_levels: self.num_mip_levels,
             num_samples: self.num_mip_levels,
             buffer: match self.buffer {
-                        Some(ref b) => b.as_ptr(),
-                        None => 0 as cl_mem,
-                    },
+                Some(ref b) => b.as_ptr(),
+                None => 0 as cl_mem,
+            },
         }
     }
 }
-

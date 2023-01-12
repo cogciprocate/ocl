@@ -38,19 +38,23 @@
 //!
 //! [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/abstractDataTypes.html
 
+use crate::error::Result as OclCoreResult;
+use crate::ffi::{
+    c_void, cl_command_queue, cl_context, cl_device_id, cl_event, cl_kernel, cl_mem,
+    cl_platform_id, cl_program, cl_sampler,
+};
+use crate::functions::{self, ApiFunction, VersionKind};
+use crate::{
+    CommandExecutionStatus, CommandQueueInfo, CommandQueueInfoResult, ContextInfo,
+    ContextInfoResult, DeviceInfo, DeviceInfoResult, DeviceType, EventCallbackFn, EventInfo,
+    EventInfoResult, KernelInfo, KernelInfoResult, OclPrm, OpenclVersion, PlatformInfo,
+    ProgramInfo, ProgramInfoResult, Status,
+};
+use std::cell::Ref;
+use std::fmt::Debug;
 use std::mem;
 use std::ptr;
 use std::slice;
-use std::cell::Ref;
-use std::fmt::Debug;
-use crate::ffi::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
-    cl_kernel, cl_event, cl_sampler, c_void};
-use crate::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceInfoResult,
-    ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
-    ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn, OclPrm,
-    EventInfo, EventInfoResult, DeviceType};
-use crate::error::{Result as OclCoreResult};
-use crate::functions::{self, ApiFunction, VersionKind};
 
 //=============================================================================
 //================================ CONSTANTS ==================================
@@ -64,17 +68,27 @@ use crate::functions::{self, ApiFunction, VersionKind};
 
 /// `AsRef` with a type being carried along for convenience.
 pub trait AsMem<T>
-        where T: OclPrm {
+where
+    T: OclPrm,
+{
     fn as_mem(&self) -> &Mem;
 }
 
-impl<'a, T, M> AsMem<T> for &'a M where T: OclPrm, M: AsMem<T> {
+impl<'a, T, M> AsMem<T> for &'a M
+where
+    T: OclPrm,
+    M: AsMem<T>,
+{
     fn as_mem(&self) -> &Mem {
         (**self).as_mem()
     }
 }
 
-impl<'a, T, M> AsMem<T> for &'a mut M where T: OclPrm, M: AsMem<T> {
+impl<'a, T, M> AsMem<T> for &'a mut M
+where
+    T: OclPrm,
+    M: AsMem<T>,
+{
     fn as_mem(&self) -> &Mem {
         (**self).as_mem()
     }
@@ -119,21 +133,28 @@ pub unsafe trait MemCmdRw {}
 /// trait.
 pub unsafe trait MemCmdAll {}
 
-
 /// Types with a fixed set of associated devices and an associated platform.
 pub trait ClVersions {
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>>;
     fn platform_version(&self) -> OclCoreResult<OpenclVersion>;
 
     fn verify_device_versions(&self, required_version: [u16; 2]) -> OclCoreResult<()> {
-        functions::verify_versions(&self.device_versions()?, required_version,
-            ApiFunction::None, VersionKind::Device)
+        functions::verify_versions(
+            &self.device_versions()?,
+            required_version,
+            ApiFunction::None,
+            VersionKind::Device,
+        )
     }
 
     fn verify_platform_version(&self, required_version: [u16; 2]) -> OclCoreResult<()> {
         let ver = [self.platform_version()?];
-        functions::verify_versions(&ver, required_version, ApiFunction::None,
-            VersionKind::Platform)
+        functions::verify_versions(
+            &ver,
+            required_version,
+            ApiFunction::None,
+            VersionKind::Platform,
+        )
     }
 }
 
@@ -169,7 +190,6 @@ impl ClVersions for cl_context {
     }
 }
 
-
 /// Types with a reference to a raw event pointer.
 pub unsafe trait ClEventPtrRef<'e> {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event;
@@ -181,13 +201,14 @@ unsafe impl<'e> ClEventPtrRef<'e> for &'e cl_event {
     }
 }
 
-unsafe impl<'e, L> ClEventPtrRef<'e> for &'e L where L: ClEventPtrRef<'e> {
+unsafe impl<'e, L> ClEventPtrRef<'e> for &'e L
+where
+    L: ClEventPtrRef<'e>,
+{
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
         (*self).as_ptr_ref()
     }
 }
-
-
 
 /// Types with a mutable pointer to a new, null raw event pointer.
 ///
@@ -206,8 +227,6 @@ unsafe impl ClNullEventPtr for () {
     }
 }
 
-
-
 /// Types with a reference to a raw event array and an associated element
 /// count.
 ///
@@ -217,15 +236,18 @@ pub unsafe trait ClWaitListPtr: Debug {
     /// Returns a pointer to the first pointer in this list.
     unsafe fn as_ptr_ptr(&self) -> *const cl_event;
     /// Returns the number of items in this wait list.
-    fn count (&self) -> u32;
+    fn count(&self) -> u32;
 }
 
-unsafe impl<'a, W> ClWaitListPtr for Ref<'a, W> where W: ClWaitListPtr {
+unsafe impl<'a, W> ClWaitListPtr for Ref<'a, W>
+where
+    W: ClWaitListPtr,
+{
     unsafe fn as_ptr_ptr(&self) -> *const cl_event {
         (*(*self)).as_ptr_ptr()
     }
 
-    fn count (&self) -> u32 {
+    fn count(&self) -> u32 {
         0 as u32
     }
 }
@@ -235,7 +257,7 @@ unsafe impl<'a> ClWaitListPtr for &'a [cl_event] {
         self.as_ptr()
     }
 
-    fn count (&self) -> u32 {
+    fn count(&self) -> u32 {
         self.len() as u32
     }
 }
@@ -245,7 +267,7 @@ unsafe impl<'a> ClWaitListPtr for &'a [Event] {
         self.as_ptr() as *const _ as *const cl_event
     }
 
-    fn count (&self) -> u32 {
+    fn count(&self) -> u32 {
         self.len() as u32
     }
 }
@@ -255,11 +277,10 @@ unsafe impl<'a> ClWaitListPtr for () {
         ptr::null() as *const _ as *const cl_event
     }
 
-    fn count (&self) -> u32 {
+    fn count(&self) -> u32 {
         0 as u32
     }
 }
-
 
 /// Types with a reference to a raw platform_id pointer.
 // pub unsafe trait ClPlatformIdPtr: Sized + Debug {
@@ -267,7 +288,10 @@ pub unsafe trait ClPlatformIdPtr: Debug + Copy {
     fn as_ptr(&self) -> cl_platform_id;
 }
 
-unsafe impl<'a, P> ClPlatformIdPtr for &'a P where P: ClPlatformIdPtr {
+unsafe impl<'a, P> ClPlatformIdPtr for &'a P
+where
+    P: ClPlatformIdPtr,
+{
     fn as_ptr(&self) -> cl_platform_id {
         (*self).as_ptr()
     }
@@ -278,7 +302,6 @@ unsafe impl ClPlatformIdPtr for () {
         ptr::null_mut() as *mut _ as cl_platform_id
     }
 }
-
 
 /// Types with a reference to a raw device_id pointer.
 // pub unsafe trait ClDeviceIdPtr: Sized + Debug {
@@ -292,12 +315,10 @@ unsafe impl ClDeviceIdPtr for () {
     }
 }
 
-
 /// Types with a copy of a context pointer.
 pub unsafe trait ClContextPtr: Debug + Copy {
     fn as_ptr(&self) -> cl_context;
 }
-
 
 unsafe impl ClContextPtr for cl_context {
     fn as_ptr(&self) -> cl_context {
@@ -331,7 +352,6 @@ unsafe impl<'e> ClEventPtrRef<'e> for EventRefWrapper {
         &self.0
     }
 }
-
 
 /// cl_platform_id
 #[repr(C)]
@@ -386,7 +406,6 @@ impl ClVersions for PlatformId {
         self.version()
     }
 }
-
 
 /// cl_device_id
 #[repr(C)]
@@ -453,7 +472,6 @@ impl ClVersions for DeviceId {
     }
 }
 
-
 /// cl_context
 #[repr(C)]
 #[derive(Debug)]
@@ -505,7 +523,9 @@ unsafe impl Send for Context {}
 
 impl Clone for Context {
     fn clone(&self) -> Context {
-        unsafe { functions::retain_context(self).unwrap(); }
+        unsafe {
+            functions::retain_context(self).unwrap();
+        }
         Context(self.0)
     }
 }
@@ -563,7 +583,6 @@ impl<'a> ClVersions for &'a Context {
     }
 }
 
-
 /// cl_command_queue
 #[repr(C)]
 #[derive(Debug)]
@@ -602,7 +621,8 @@ impl CommandQueue {
 
     /// Returns the `Context` associated with this command queue.
     pub fn context(&self) -> OclCoreResult<Context> {
-        self.context_ptr().map(|ptr| unsafe { Context::from_raw_copied_ptr(ptr) })
+        self.context_ptr()
+            .map(|ptr| unsafe { Context::from_raw_copied_ptr(ptr) })
     }
 
     /// Returns the `cl_context` associated with this command queue.
@@ -613,14 +633,18 @@ impl CommandQueue {
 
 impl Clone for CommandQueue {
     fn clone(&self) -> CommandQueue {
-        unsafe { functions::retain_command_queue(self).unwrap(); }
+        unsafe {
+            functions::retain_command_queue(self).unwrap();
+        }
         CommandQueue(self.0)
     }
 }
 
 impl Drop for CommandQueue {
     fn drop(&mut self) {
-        unsafe { functions::release_command_queue(self).unwrap(); }
+        unsafe {
+            functions::release_command_queue(self).unwrap();
+        }
     }
 }
 
@@ -632,15 +656,17 @@ impl AsRef<CommandQueue> for CommandQueue {
 
 unsafe impl<'a> ClContextPtr for &'a CommandQueue {
     fn as_ptr(&self) -> cl_context {
-        self.context_ptr().expect("<&CommandQueue as ClContextPtr>::as_ptr: \
-            Unable to obtain a context pointer.")
+        self.context_ptr().expect(
+            "<&CommandQueue as ClContextPtr>::as_ptr: \
+            Unable to obtain a context pointer.",
+        )
     }
 }
 
 unsafe impl Sync for CommandQueue {}
 unsafe impl Send for CommandQueue {}
 
-impl ClVersions for CommandQueue{
+impl ClVersions for CommandQueue {
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
         let device = self.device()?;
         device.version().map(|dv| vec![dv])
@@ -650,8 +676,6 @@ impl ClVersions for CommandQueue{
         self.device()?.platform_version()
     }
 }
-
-
 
 /// cl_mem
 #[repr(C)]
@@ -666,14 +690,14 @@ impl Mem {
         Mem(ptr)
     }
 
-	/// Only call this when passing a copied pointer such as from an
-	/// `clGet*****Info` function.
-	pub unsafe fn from_raw_copied_ptr(ptr: cl_mem) -> Mem {
+    /// Only call this when passing a copied pointer such as from an
+    /// `clGet*****Info` function.
+    pub unsafe fn from_raw_copied_ptr(ptr: cl_mem) -> Mem {
         assert!(!ptr.is_null(), "Null pointer passed.");
-		let copy = Mem(ptr);
-		functions::retain_mem_object(&copy).unwrap();
-		copy
-	}
+        let copy = Mem(ptr);
+        functions::retain_mem_object(&copy).unwrap();
+        copy
+    }
 
     /// Returns a pointer, do not store it.
     #[inline(always)]
@@ -684,14 +708,18 @@ impl Mem {
 
 impl Clone for Mem {
     fn clone(&self) -> Mem {
-        unsafe { functions::retain_mem_object(self).unwrap(); }
+        unsafe {
+            functions::retain_mem_object(self).unwrap();
+        }
         Mem(self.0)
     }
 }
 
 impl Drop for Mem {
     fn drop(&mut self) {
-        unsafe { functions::release_mem_object(self).unwrap(); }
+        unsafe {
+            functions::release_mem_object(self).unwrap();
+        }
     }
 }
 
@@ -701,7 +729,6 @@ impl<T: OclPrm> AsMem<T> for Mem {
         self
     }
 }
-
 
 unsafe impl<'a> MemCmdRw for Mem {}
 unsafe impl<'a> MemCmdRw for &'a Mem {}
@@ -760,7 +787,10 @@ impl<T: OclPrm> MemMap<T> {
     }
 }
 
-impl<T> AsMem<T> for MemMap<T> where T: OclPrm {
+impl<T> AsMem<T> for MemMap<T>
+where
+    T: OclPrm,
+{
     #[inline(always)]
     fn as_mem(&self) -> &Mem {
         unsafe { &*(self as *const _ as *const Mem) }
@@ -772,8 +802,6 @@ unsafe impl<'a, T: OclPrm> MemCmdRw for &'a MemMap<T> {}
 unsafe impl<'a, T: OclPrm> MemCmdRw for &'a mut MemMap<T> {}
 unsafe impl<T: OclPrm> Send for MemMap<T> {}
 // unsafe impl<T: OclPrm> Sync for MemMap<T> {}
-
-
 
 /// cl_program
 #[repr(C)]
@@ -788,20 +816,20 @@ impl Program {
         Program(ptr)
     }
 
-	/// Only call this when passing a copied pointer such as from an
-	/// `clGet*****Info` function.
-	pub unsafe fn from_raw_copied_ptr(ptr: cl_program) -> Program {
+    /// Only call this when passing a copied pointer such as from an
+    /// `clGet*****Info` function.
+    pub unsafe fn from_raw_copied_ptr(ptr: cl_program) -> Program {
         assert!(!ptr.is_null(), "Null pointer passed.");
-		let copy = Program(ptr);
-		functions::retain_program(&copy).unwrap();
-		copy
-	}
+        let copy = Program(ptr);
+        functions::retain_program(&copy).unwrap();
+        copy
+    }
 
-	/// Returns a pointer, do not store it.
+    /// Returns a pointer, do not store it.
     #[inline(always)]
-	pub fn as_ptr(&self) -> cl_program {
-		self.0
-	}
+    pub fn as_ptr(&self) -> cl_program {
+        self.0
+    }
 
     /// Returns the devices associated with this program.
     pub fn devices(&self) -> OclCoreResult<Vec<DeviceId>> {
@@ -815,14 +843,18 @@ impl Program {
 
 impl Clone for Program {
     fn clone(&self) -> Program {
-        unsafe { functions::retain_program(self).unwrap(); }
+        unsafe {
+            functions::retain_program(self).unwrap();
+        }
         Program(self.0)
     }
 }
 
 impl Drop for Program {
     fn drop(&mut self) {
-        unsafe { functions::release_program(self).unwrap(); }
+        unsafe {
+            functions::release_program(self).unwrap();
+        }
     }
 }
 
@@ -840,7 +872,6 @@ impl ClVersions for Program {
         devices[0].platform_version()
     }
 }
-
 
 /// cl_kernel
 ///
@@ -903,14 +934,18 @@ impl Kernel {
 
 impl Clone for Kernel {
     fn clone(&self) -> Kernel {
-        unsafe { functions::retain_kernel(self).unwrap(); }
+        unsafe {
+            functions::retain_kernel(self).unwrap();
+        }
         Kernel(self.0)
     }
 }
 
 impl Drop for Kernel {
     fn drop(&mut self) {
-        unsafe { functions::release_kernel(self).unwrap(); }
+        unsafe {
+            functions::release_kernel(self).unwrap();
+        }
     }
 }
 
@@ -927,7 +962,6 @@ impl ClVersions for Kernel {
 }
 
 unsafe impl Send for Kernel {}
-
 
 /// cl_event
 #[repr(C)]
@@ -955,7 +989,10 @@ impl Event {
     /// directly from `clCreate...`. Do not use this to clone or copy.
     #[inline]
     pub unsafe fn from_raw_create_ptr(ptr: cl_event) -> Event {
-        assert!(!ptr.is_null(), "ocl_core::Event::from_raw_create_ptr: Null pointer passed.");
+        assert!(
+            !ptr.is_null(),
+            "ocl_core::Event::from_raw_create_ptr: Null pointer passed."
+        );
         Event(ptr)
     }
 
@@ -963,7 +1000,10 @@ impl Event {
     /// `cl_event`.
     #[inline]
     pub unsafe fn from_raw_copied_ptr(ptr: cl_event) -> OclCoreResult<Event> {
-        assert!(!ptr.is_null(), "ocl_core::Event::from_raw_copied_ptr: Null pointer passed.");
+        assert!(
+            !ptr.is_null(),
+            "ocl_core::Event::from_raw_copied_ptr: Null pointer passed."
+        );
         let copy = Event(ptr);
         functions::retain_event(&copy)?;
         Ok(copy)
@@ -991,7 +1031,7 @@ impl Event {
 
     /// Causes the command queue to wait until this event is complete before returning.
     #[inline]
-    pub fn wait_for(&self) -> OclCoreResult <()> {
+    pub fn wait_for(&self) -> OclCoreResult<()> {
         crate::wait_for_event(self)
     }
 
@@ -1030,20 +1070,26 @@ impl Event {
     //
     // [NOTE]: Making callback_receiver optional is pointless. There is no way
     // to unset a previously set callback.
-    pub unsafe fn set_callback(&self,
-            callback_receiver: EventCallbackFn,
-            user_data_ptr: *mut c_void,
-            ) -> OclCoreResult<()>
-    {
+    pub unsafe fn set_callback(
+        &self,
+        callback_receiver: EventCallbackFn,
+        user_data_ptr: *mut c_void,
+    ) -> OclCoreResult<()> {
         if self.is_valid() {
-            crate::set_event_callback(self, CommandExecutionStatus::Complete,
-                Some(callback_receiver), user_data_ptr as *mut _ as *mut c_void)
+            crate::set_event_callback(
+                self,
+                CommandExecutionStatus::Complete,
+                Some(callback_receiver),
+                user_data_ptr as *mut _ as *mut c_void,
+            )
         } else {
-            Err("ocl_core::Event::set_callback: This event is null. Cannot set callback until \
-                internal event pointer is actually created by a `clCreate...` function.".into())
+            Err(
+                "ocl_core::Event::set_callback: This event is null. Cannot set callback until \
+                internal event pointer is actually created by a `clCreate...` function."
+                    .into(),
+            )
         }
     }
-
 
     /// Returns the `Context` associated with this event.
     pub fn context(&self) -> OclCoreResult<Context> {
@@ -1117,26 +1163,41 @@ impl Event {
 
     /// Ensures this contains a null event and returns a mutable pointer to it.
     fn _alloc_new(&mut self) -> *mut cl_event {
-        assert!(self.0.is_null(), "ocl_core::Event::alloc_new: An 'Event' cannot be \
-            used as target for event creation (as a new event) more than once.");
+        assert!(
+            self.0.is_null(),
+            "ocl_core::Event::alloc_new: An 'Event' cannot be \
+            used as target for event creation (as a new event) more than once."
+        );
         &mut self.0
     }
 
     /// Returns a pointer pointer expected when used as a wait list.
     unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
-        if self.0.is_null() { ptr::null() } else { &self.0 as *const cl_event }
+        if self.0.is_null() {
+            ptr::null()
+        } else {
+            &self.0 as *const cl_event
+        }
     }
 
     /// Returns a count expected when used as a wait list.
     fn _count(&self) -> u32 {
-        if self.0.is_null() { 0 } else { 1 }
+        if self.0.is_null() {
+            0
+        } else {
+            1
+        }
     }
 }
 
 unsafe impl<'a> ClNullEventPtr for &'a mut Event {
-    #[inline(always)] fn alloc_new(&mut self) -> *mut cl_event { self._alloc_new() }
+    #[inline(always)]
+    fn alloc_new(&mut self) -> *mut cl_event {
+        self._alloc_new()
+    }
 
-    #[inline(always)] unsafe fn clone_from<E: AsRef<Event>>(&mut self, ev: E) {
+    #[inline(always)]
+    unsafe fn clone_from<E: AsRef<Event>>(&mut self, ev: E) {
         let ptr = ev.as_ref().clone().into_raw();
         assert!(!ptr.is_null());
         self.0 = ptr;
@@ -1144,17 +1205,32 @@ unsafe impl<'a> ClNullEventPtr for &'a mut Event {
 }
 
 unsafe impl ClWaitListPtr for Event {
-    #[inline(always)] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
-    #[inline(always)] fn count(&self) -> u32 { self._count() }
+    #[inline(always)]
+    unsafe fn as_ptr_ptr(&self) -> *const cl_event {
+        self._as_ptr_ptr()
+    }
+    #[inline(always)]
+    fn count(&self) -> u32 {
+        self._count()
+    }
 }
 
 unsafe impl<'a> ClWaitListPtr for &'a Event {
-    #[inline(always)] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
-    #[inline(always)] fn count(&self) -> u32 { self._count() }
+    #[inline(always)]
+    unsafe fn as_ptr_ptr(&self) -> *const cl_event {
+        self._as_ptr_ptr()
+    }
+    #[inline(always)]
+    fn count(&self) -> u32 {
+        self._count()
+    }
 }
 
 unsafe impl<'e> ClEventPtrRef<'e> for Event {
-    #[inline(always)] unsafe fn as_ptr_ref(&'e self) -> &'e cl_event { &self.0 }
+    #[inline(always)]
+    unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
+        &self.0
+    }
 }
 
 impl AsRef<Event> for Event {
@@ -1165,9 +1241,14 @@ impl AsRef<Event> for Event {
 
 impl Clone for Event {
     fn clone(&self) -> Event {
-        assert!(!self.0.is_null(), "ocl_core::Event::clone: \
-            Cannot clone a null (empty) event.");
-        unsafe { functions::retain_event(self).expect("core::Event::clone"); }
+        assert!(
+            !self.0.is_null(),
+            "ocl_core::Event::clone: \
+            Cannot clone a null (empty) event."
+        );
+        unsafe {
+            functions::retain_event(self).expect("core::Event::clone");
+        }
         Event(self.0)
     }
 }
@@ -1175,7 +1256,9 @@ impl Clone for Event {
 impl Drop for Event {
     fn drop(&mut self) {
         if !self.0.is_null() {
-            unsafe { functions::release_event(self).unwrap(); }
+            unsafe {
+                functions::release_event(self).unwrap();
+            }
         }
     }
 }
@@ -1183,7 +1266,6 @@ impl Drop for Event {
 // unsafe impl EventPtr for Event {}
 unsafe impl Sync for Event {}
 unsafe impl Send for Event {}
-
 
 /// cl_sampler
 #[repr(C)]
@@ -1206,14 +1288,18 @@ impl Sampler {
 
 impl Clone for Sampler {
     fn clone(&self) -> Sampler {
-        unsafe { functions::retain_sampler(self).unwrap(); }
+        unsafe {
+            functions::retain_sampler(self).unwrap();
+        }
         Sampler(self.0)
     }
 }
 
 impl Drop for Sampler {
     fn drop(&mut self) {
-        unsafe { functions::release_sampler(self).unwrap(); }
+        unsafe {
+            functions::release_sampler(self).unwrap();
+        }
     }
 }
 

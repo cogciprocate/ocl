@@ -12,55 +12,60 @@
 // link to the relevant Khronos API reference web page.
 //
 
-use std::ptr;
-use std::mem;
+use crate::ffi::{c_void, size_t};
+use num_traits::FromPrimitive;
+use std::env;
 use std::ffi::CString;
+use std::fmt;
 use std::iter;
+use std::mem;
+use std::ptr;
 use std::thread;
 use std::time::Duration;
-use std::env;
-use std::fmt;
-use crate::ffi::{size_t, c_void};
-use num_traits::FromPrimitive;
 
-#[cfg(not(feature="opencl_vendor_mesa"))]
-use crate::ffi::{cl_GLuint, cl_GLint, cl_GLenum, cl_gl_context_info,};
-#[cfg(not(feature="opencl_vendor_mesa"))]
-use crate::ffi::{clCreateFromGLBuffer, clCreateFromGLRenderbuffer, clCreateFromGLTexture,
+#[cfg(not(feature = "opencl_vendor_mesa"))]
+use crate::ffi::{
+    clCreateFromGLBuffer, clCreateFromGLRenderbuffer, clCreateFromGLTexture,
     clCreateFromGLTexture2D, clCreateFromGLTexture3D, clEnqueueAcquireGLObjects,
-    clEnqueueReleaseGLObjects};
+    clEnqueueReleaseGLObjects,
+};
+#[cfg(not(feature = "opencl_vendor_mesa"))]
+use crate::ffi::{cl_GLenum, cl_GLint, cl_GLuint, cl_gl_context_info};
 
-use crate::ffi::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type,
-    cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties,
-    cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info,
-    cl_mem_flags, cl_mem_object_type, cl_buffer_create_type, cl_event, cl_program,
-    cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info,
-    cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info,
-    cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
+use crate::ffi::{
+    self, cl_addressing_mode, cl_bool, cl_buffer_create_type, cl_command_queue,
+    cl_command_queue_info, cl_context, cl_context_info, cl_context_properties, cl_device_id,
+    cl_device_info, cl_device_type, cl_event, cl_event_info, cl_filter_mode, cl_image_desc,
+    cl_image_format, cl_image_info, cl_int, cl_kernel, cl_kernel_arg_info, cl_kernel_info,
+    cl_kernel_work_group_info, cl_mem, cl_mem_flags, cl_mem_info, cl_mem_object_type,
+    cl_platform_id, cl_platform_info, cl_profiling_info, cl_program, cl_program_build_info,
+    cl_program_info, cl_sampler, cl_sampler_info, cl_uint,
+};
 
 use crate::error::{Error as OclCoreError, Result as OclCoreResult};
 
-use crate::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
-    ContextInfoResult, MemFlags, CommandQueue, Mem, MemObjectType, Program,
-    Kernel, ClNullEventPtr, Sampler, ArgVal, DeviceType, ImageFormat, ImageDescriptor,
-    CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult,
-    DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult,
-    ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult,
-    ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo,
-    KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventPtrRef,
-    ClWaitListPtr, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult,
-    CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr, ClDeviceIdPtr, ClContextPtr,
-    EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, MapFlags, BufferRegion,
-    BufferCreateType, OpenclVersion, ClVersions, Status, CommandQueueProperties, MemMap, AsMem,
-    MemCmdRw, MemCmdAll, Event, ImageFormatParseResult};
+use crate::{
+    AddressingMode, ArgVal, AsMem, BufferCreateType, BufferRegion, BuildProgramCallbackFn,
+    ClContextPtr, ClDeviceIdPtr, ClEventPtrRef, ClNullEventPtr, ClPlatformIdPtr, ClVersions,
+    ClWaitListPtr, CommandExecutionStatus, CommandQueue, CommandQueueInfo, CommandQueueInfoResult,
+    CommandQueueProperties, Context, ContextInfo, ContextInfoResult, ContextProperties,
+    CreateContextCallbackFn, DeviceId, DeviceInfo, DeviceInfoResult, DeviceType, Event,
+    EventCallbackFn, EventInfo, EventInfoResult, FilterMode, ImageDescriptor, ImageFormat,
+    ImageFormatParseResult, ImageInfo, ImageInfoResult, Kernel, KernelArgInfo, KernelArgInfoResult,
+    KernelInfo, KernelInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, MapFlags, Mem,
+    MemCmdAll, MemCmdRw, MemFlags, MemInfo, MemInfoResult, MemMap, MemMigrationFlags,
+    MemObjectType, OclPrm, OpenclVersion, PlatformId, PlatformInfo, PlatformInfoResult,
+    ProfilingInfo, ProfilingInfoResult, Program, ProgramBuildInfo, ProgramBuildInfoResult,
+    ProgramInfo, ProgramInfoResult, Sampler, SamplerInfo, SamplerInfoResult, Status, UserDataPtr,
+};
 
-#[cfg(not(feature="opencl_vendor_mesa"))]
+#[cfg(not(feature = "opencl_vendor_mesa"))]
 use crate::{GlContextInfo, GlContextInfoResult};
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 const CL_GL_SHARING_EXT: &str = "cl_APPLE_gl_sharing";
-#[cfg(not(target_os="macos"))]
+#[cfg(not(target_os = "macos"))]
 const CL_GL_SHARING_EXT: &str = "cl_khr_gl_sharing";
 
 const KERNEL_DEBUG_SLEEP_DURATION_MS: u64 = 150;
@@ -73,10 +78,8 @@ const PLATFORM_IDS_ATTEMPT_COUNT: u64 = 5;
 //============================================================================
 //============================================================================
 
-
 /// Don't be a dummy. Buckle your `_dummy_callback`.
 pub extern "C" fn _dummy_event_callback(_: ffi::cl_event, _: i32, _: *mut c_void) {}
-
 
 /// If `event_status` is `CommandExecutionStatus::Complete`, the `cl_event`
 /// pointed to by `user_data` will be set to the same.
@@ -87,9 +90,11 @@ pub extern "C" fn _dummy_event_callback(_: ffi::cl_event, _: i32, _: *mut c_void
 /// `src_event_ptr` is not used and does not need anything special done with
 /// its destructor (it will already have been managed by the call to `::set_event_callback`.
 ///
-pub extern "C" fn _complete_user_event(src_event_ptr: cl_event, event_status: i32,
-        user_data: *mut c_void)
-{
+pub extern "C" fn _complete_user_event(
+    src_event_ptr: cl_event,
+    event_status: i32,
+    user_data: *mut c_void,
+) {
     #[cfg(not(feature = "event_debug_print"))]
     let _ = src_event_ptr;
 
@@ -100,23 +105,37 @@ pub extern "C" fn _complete_user_event(src_event_ptr: cl_event, event_status: i3
             let user_event = Event::from_raw(tar_event_ptr);
 
             #[cfg(feature = "event_debug_print")]
-            println!("::_complete_user_event: Setting event complete for: \
-                source: {:?}, target: {:?}...", src_event_ptr, &user_event);
+            println!(
+                "::_complete_user_event: Setting event complete for: \
+                source: {:?}, target: {:?}...",
+                src_event_ptr, &user_event
+            );
 
             crate::set_user_event_status(&user_event, CommandExecutionStatus::Complete).unwrap();
         }
 
         #[cfg(feature = "event_debug_print")]
-        println!("  - Event status has been set to 'CommandExecutionStatus::Complete' \
-            for event: {:?}", tar_event_ptr);
+        println!(
+            "  - Event status has been set to 'CommandExecutionStatus::Complete' \
+            for event: {:?}",
+            tar_event_ptr
+        );
     } else {
         // NOTE: Though these should be unreachable, panic/unwrap will likely
         // crash the calling module:
         match CommandExecutionStatus::from_i32(event_status) {
-            Some(status_enum) => panic!("ocl_core::_complete_event: User data is null or event \
-                is not complete. Status: '{:?}'", status_enum),
-            None => eval_errcode(event_status, (), "clSetEventCallback",
-                Some(format!("src_event_ptr: {:?}", src_event_ptr))).unwrap(),
+            Some(status_enum) => panic!(
+                "ocl_core::_complete_event: User data is null or event \
+                is not complete. Status: '{:?}'",
+                status_enum
+            ),
+            None => eval_errcode(
+                event_status,
+                (),
+                "clSetEventCallback",
+                Some(format!("src_event_ptr: {:?}", src_event_ptr)),
+            )
+            .unwrap(),
         }
     }
 }
@@ -127,9 +146,9 @@ pub extern "C" fn _complete_user_event(src_event_ptr: cl_event, event_status: i3
 //============================================================================
 //============================================================================
 
-static SDK_DOCS_URL_PRE: &'static str = "https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/";
+static SDK_DOCS_URL_PRE: &'static str =
+    "https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/";
 static SDK_DOCS_URL_SUF: &'static str = ".html#errors";
-
 
 /// An OpenCL API error.
 #[derive(thiserror::Error)]
@@ -140,11 +159,18 @@ pub struct ApiError {
 }
 
 impl ApiError {
-    pub fn new<S: Into<String>>(errcode: i32, fn_name: &'static str, fn_info: Option<S>) -> ApiError {
+    pub fn new<S: Into<String>>(
+        errcode: i32,
+        fn_name: &'static str,
+        fn_info: Option<S>,
+    ) -> ApiError {
         let status = match Status::from_i32(errcode) {
             Some(s) => s,
-            None => panic!("ocl_core::Error::err_status: Invalid error code: '{}'. \
-                Aborting.", errcode),
+            None => panic!(
+                "ocl_core::Error::err_status: Invalid error code: '{}'. \
+                Aborting.",
+                errcode
+            ),
         };
 
         let fn_info = fn_info.map(|s| s.into());
@@ -171,14 +197,22 @@ impl fmt::Display for ApiError {
 
         let status_int = self.status as i32;
 
-        write!(f, "\n\n\
+        write!(
+            f,
+            "\n\n\
             ################################ OPENCL ERROR ############################### \
             \n\nError executing function: {}{}  \
             \n\nStatus error code: {:?} ({})  \
             \n\nPlease visit the following url for more information: \n\n{}{}{}  \n\n\
             ############################################################################# \n",
-            self.fn_name, fn_info_string, self.status, status_int,
-            SDK_DOCS_URL_PRE, self.fn_name, SDK_DOCS_URL_SUF)
+            self.fn_name,
+            fn_info_string,
+            self.status,
+            status_int,
+            SDK_DOCS_URL_PRE,
+            self.fn_name,
+            SDK_DOCS_URL_SUF
+        )
     }
 }
 
@@ -192,16 +226,21 @@ impl fmt::Debug for ApiError {
 /// not 0 (Status::CL_SUCCESS).
 ///
 #[inline(always)]
-fn eval_errcode<T, S>(errcode: cl_int, result: T, fn_name: &'static str, fn_info: Option<S>)
-        -> OclCoreResult<T>
-        where S: Into<String> {
+fn eval_errcode<T, S>(
+    errcode: cl_int,
+    result: T,
+    fn_name: &'static str,
+    fn_info: Option<S>,
+) -> OclCoreResult<T>
+where
+    S: Into<String>,
+{
     if (Status::CL_SUCCESS as i32) == errcode {
         Ok(result)
     } else {
         Err(ApiError::new(errcode, fn_name, fn_info).into())
     }
 }
-
 
 /// An OpenCL program build error.
 #[derive(Debug, thiserror::Error)]
@@ -222,13 +261,14 @@ pub enum ProgramBuildError {
     InfoResult(Box<OclCoreError>),
 }
 
-
 /// If the program pointed to by `cl_program` for any of the devices listed in
 /// `device_ids` has a build log of any length, it will be returned as an
 /// errcode result.
 ///
-pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D])
-        -> Result<(), ProgramBuildError> {
+pub fn program_build_err<D: ClDeviceIdPtr>(
+    program: &Program,
+    device_ids: &[D],
+) -> Result<(), ProgramBuildError> {
     if device_ids.is_empty() {
         return Err(ProgramBuildError::DeviceListEmpty);
     }
@@ -239,7 +279,7 @@ pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D])
                 if log.len() > 1 {
                     return Err(ProgramBuildError::BuildLog(log));
                 }
-            },
+            }
             Err(err) => return Err(ProgramBuildError::InfoResult(Box::new(err))),
             _ => panic!("Unexpected 'ProgramBuildInfoResult' variant."),
         }
@@ -247,7 +287,6 @@ pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D])
 
     Ok(())
 }
-
 
 /// An API function identifier.
 #[allow(dead_code)]
@@ -270,14 +309,12 @@ pub(crate) enum ApiFunction {
     LinkProgram,
 }
 
-
 /// A version kind identifier.
 #[derive(Debug)]
 pub(crate) enum VersionKind {
     Device,
     Platform,
 }
-
 
 /// A version too low error.
 #[derive(Debug, thiserror::Error)]
@@ -288,7 +325,6 @@ pub struct VersionLowError {
     function: ApiFunction,
     kind: VersionKind,
 }
-
 
 /// An error representing miscellaneous errors from throughout this module.
 #[derive(Debug, thiserror::Error)]
@@ -301,31 +337,43 @@ pub enum ApiWrapperError {
     CreateContextNoDevicesSpecified,
     #[error("Buffer length and data length and do not match.")]
     CreateBufferDataLengthMismatch,
-    #[error("One or more of the devices contained in the list provided to \
+    #[error(
+        "One or more of the devices contained in the list provided to \
         '::create_context` doesn't support the cl_gl_sharing extension and cannot be \
         used to create a context associated with OpenGL. [FIXME: determine recommended \
-        resolution - gl_device list fn doesn't work yet].")]
+        resolution - gl_device list fn doesn't work yet]."
+    )]
     CreateContextClGlSharingUnsupported,
     #[error("Length of 'devices' must be greater than zero.")]
     CreateProgramWithBinaryDevicesLenZero,
-    #[error("Length of 'devices' must equal the length of 'binaries' \
-        (e.g. one binary per device).")]
+    #[error(
+        "Length of 'devices' must equal the length of 'binaries' \
+        (e.g. one binary per device)."
+    )]
     CreateProgramWithBinaryDevicesLenMismatch,
-    #[error("The specified function does not exist for the implementation or \
-        'platform' is not a valid platform.")]
+    #[error(
+        "The specified function does not exist for the implementation or \
+        'platform' is not a valid platform."
+    )]
     GetExtensionFunctionAddressForPlatformInvalidFunction,
     #[error("No OpenCL platforms found. Check your driver.")]
     DefaultPlatformNoPlatforms,
-    #[error("The default platform set by the environment variable \
+    #[error(
+        "The default platform set by the environment variable \
         'OCL_DEFAULT_PLATFORM_IDX' has an index which is out of range \
-        (index: [{default_platform_idx}], max: [{max_idx}]).")]
-    DefaultPlatformEnvVarBadIdx { default_platform_idx: usize, max_idx: usize },
-    #[error("The default device type set by the environment variable \
+        (index: [{default_platform_idx}], max: [{max_idx}])."
+    )]
+    DefaultPlatformEnvVarBadIdx {
+        default_platform_idx: usize,
+        max_idx: usize,
+    },
+    #[error(
+        "The default device type set by the environment variable \
         'OCL_DEFAULT_DEVICE_TYPE': ('{0}') is invalid. Valid types are: 'DEFAULT', 'CPU', \
-        'GPU', 'ACCELERATOR', 'CUSTOM', and 'ALL'.")]
+        'GPU', 'ACCELERATOR', 'CUSTOM', and 'ALL'."
+    )]
     DefaultDeviceTypeInvalidType(String),
 }
-
 
 //============================================================================
 //============================================================================
@@ -343,9 +391,7 @@ impl DevicePtrList {
     /// Create a new device pointer list.
     fn new<D: ClDeviceIdPtr>(devices: Option<&[D]>) -> DevicePtrList {
         let list = match devices {
-            Some(device_ids) => {
-                device_ids.iter().map(|d| d.as_ptr()).collect::<Vec<_>>()
-            },
+            Some(device_ids) => device_ids.iter().map(|d| d.as_ptr()).collect::<Vec<_>>(),
             None => Vec::new(),
         };
 
@@ -366,17 +412,20 @@ impl DevicePtrList {
     }
 }
 
-impl<D> From<Option<&[D]>> for DevicePtrList where D: ClDeviceIdPtr {
+impl<D> From<Option<&[D]>> for DevicePtrList
+where
+    D: ClDeviceIdPtr,
+{
     fn from(devices: Option<&[D]>) -> DevicePtrList {
         DevicePtrList::new(devices)
     }
 }
 
-
 /// Maps options of slices to pointers and a length.
-fn resolve_event_ptrs<En: ClNullEventPtr, Ewl: ClWaitListPtr>(wait_list: Option<Ewl>,
-            new_event: Option<En>) -> (cl_uint, *const cl_event, *mut cl_event)
-{
+fn resolve_event_ptrs<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> (cl_uint, *const cl_event, *mut cl_event) {
     // If the wait list is empty or if its containing option is none, map to (0, null),
     // otherwise map to the length and pointer:
     let (wait_list_len, wait_list_ptr) = match wait_list {
@@ -386,7 +435,7 @@ fn resolve_event_ptrs<En: ClNullEventPtr, Ewl: ClWaitListPtr>(wait_list: Option<
             } else {
                 (0, ptr::null() as *const cl_event)
             }
-        },
+        }
         None => (0, ptr::null() as *const cl_event),
     };
 
@@ -407,8 +456,12 @@ fn resolve_work_dims(work_dims: Option<&[usize; 3]>) -> *const size_t {
 }
 
 /// Verifies that OpenCL versions are above a specified threshold.
-pub(crate) fn verify_versions(versions: &[OpenclVersion], required_version: [u16; 2],
-        function: ApiFunction, kind: VersionKind) -> OclCoreResult<()> {
+pub(crate) fn verify_versions(
+    versions: &[OpenclVersion],
+    required_version: [u16; 2],
+    function: ApiFunction,
+    kind: VersionKind,
+) -> OclCoreResult<()> {
     let reqd_ver = OpenclVersion::from(required_version);
 
     for &d_ver in versions {
@@ -418,7 +471,8 @@ pub(crate) fn verify_versions(versions: &[OpenclVersion], required_version: [u16
                 required: reqd_ver,
                 function,
                 kind,
-            }.into())
+            }
+            .into());
         }
     }
 
@@ -427,36 +481,45 @@ pub(crate) fn verify_versions(versions: &[OpenclVersion], required_version: [u16
 
 // Verifies that a platform version (`provided_version`) is above a threshold
 // (`required_version`).
-fn verify_platform_version<V: ClVersions>(provided_version: Option<&OpenclVersion>,
-        required_version: [u16; 2], fallback_version_source: &V, function: ApiFunction)
-        -> OclCoreResult<()> {
+fn verify_platform_version<V: ClVersions>(
+    provided_version: Option<&OpenclVersion>,
+    required_version: [u16; 2],
+    fallback_version_source: &V,
+    function: ApiFunction,
+) -> OclCoreResult<()> {
     match provided_version {
         Some(pv) => {
             let vers = [*pv];
             verify_versions(&vers, required_version, function, VersionKind::Platform)
-        },
+        }
         None => fallback_version_source.verify_platform_version(required_version),
     }
 }
 
 // Verifies that a device version (`provided_version`) is above a threshold
 // (`required_version`).
-fn verify_device_version<V: ClVersions>(provided_version: Option<&OpenclVersion>,
-        required_version: [u16; 2], fallback_version_source: &V, function: ApiFunction)
-        -> OclCoreResult<()> {
+fn verify_device_version<V: ClVersions>(
+    provided_version: Option<&OpenclVersion>,
+    required_version: [u16; 2],
+    fallback_version_source: &V,
+    function: ApiFunction,
+) -> OclCoreResult<()> {
     match provided_version {
         Some(pv) => {
             let ver = [*pv];
             verify_versions(&ver, required_version, function, VersionKind::Device)
-        },
+        }
         None => fallback_version_source.verify_device_versions(required_version),
     }
 }
 
 // Verifies multiple device versions.
-fn verify_device_versions<V: ClVersions>(provided_versions: Option<&[OpenclVersion]>,
-        required_version: [u16; 2], fallback_versions_source: &V, function: ApiFunction)
-        -> OclCoreResult<()> {
+fn verify_device_versions<V: ClVersions>(
+    provided_versions: Option<&[OpenclVersion]>,
+    required_version: [u16; 2],
+    fallback_versions_source: &V,
+    function: ApiFunction,
+) -> OclCoreResult<()> {
     match provided_versions {
         Some(pv) => verify_versions(pv, required_version, function, VersionKind::Device),
         None => fallback_versions_source.verify_device_versions(required_version),
@@ -478,9 +541,8 @@ pub fn get_platform_ids() -> OclCoreResult<Vec<PlatformId>> {
     let mut num_platforms = 0 as cl_uint;
 
     // Get a count of available platforms:
-    let mut errcode: cl_int = unsafe {
-        ffi::clGetPlatformIDs(0, ptr::null_mut(), &mut num_platforms)
-    };
+    let mut errcode: cl_int =
+        unsafe { ffi::clGetPlatformIDs(0, ptr::null_mut(), &mut num_platforms) };
 
     // Deal with ICD wake up problems when called from multiple threads at the
     // same time by adding a delay/retry loop:
@@ -492,16 +554,16 @@ pub fn get_platform_ids() -> OclCoreResult<Vec<PlatformId>> {
         while errcode == Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
             if iters_rmng == 0 {
                 return Err(ApiWrapperError::GetPlatformIdsPlatformListUnavailable(
-                    (PLATFORM_IDS_ATTEMPT_COUNT * sleep_ms) / 1000).into())
+                    (PLATFORM_IDS_ATTEMPT_COUNT * sleep_ms) / 1000,
+                )
+                .into());
             }
 
             // Sleep to allow the ICD to refresh or whatever it does:
             thread::sleep(Duration::from_millis(sleep_ms));
 
             // Get a count of available platforms:
-            errcode = unsafe {
-                ffi::clGetPlatformIDs(0, ptr::null_mut(), &mut num_platforms)
-            };
+            errcode = unsafe { ffi::clGetPlatformIDs(0, ptr::null_mut(), &mut num_platforms) };
 
             iters_rmng -= 1;
         }
@@ -528,7 +590,7 @@ pub fn get_platform_ids() -> OclCoreResult<Vec<PlatformId>> {
         ffi::clGetPlatformIDs(
             num_platforms,
             platforms.as_mut_ptr() as *mut cl_platform_id,
-            ptr::null_mut()
+            ptr::null_mut(),
         )
     };
 
@@ -536,9 +598,10 @@ pub fn get_platform_ids() -> OclCoreResult<Vec<PlatformId>> {
 }
 
 /// Returns platform information of the requested type.
-pub fn get_platform_info<P: ClPlatformIdPtr>(platform: P, request: PlatformInfo,
-        ) -> OclCoreResult<PlatformInfoResult>
-{
+pub fn get_platform_info<P: ClPlatformIdPtr>(
+    platform: P,
+    request: PlatformInfo,
+) -> OclCoreResult<PlatformInfoResult> {
     let mut result_size = 0 as size_t;
 
     let errcode = unsafe {
@@ -583,11 +646,10 @@ pub fn get_platform_info<P: ClPlatformIdPtr>(platform: P, request: PlatformInfo,
 
 /// Returns a list of available devices for a particular platform.
 pub fn get_device_ids<P: ClPlatformIdPtr>(
-            platform: P,
-            device_types: Option<DeviceType>,
-            devices_max: Option<u32>,
-        ) -> OclCoreResult<Vec<DeviceId>>
-{
+    platform: P,
+    device_types: Option<DeviceType>,
+    devices_max: Option<u32>,
+) -> OclCoreResult<Vec<DeviceId>> {
     let device_types = device_types.unwrap_or(default_device_type()?);
     let mut devices_available: cl_uint = 0;
 
@@ -598,24 +660,29 @@ pub fn get_device_ids<P: ClPlatformIdPtr>(
             } else {
                 d
             }
-        },
+        }
         None => crate::DEVICES_MAX,
     };
 
-    let mut device_ids: Vec<DeviceId> = iter::repeat(unsafe { DeviceId::null() } )
-        .take(devices_max as usize).collect();
+    let mut device_ids: Vec<DeviceId> = iter::repeat(unsafe { DeviceId::null() })
+        .take(devices_max as usize)
+        .collect();
 
-    let errcode = unsafe { ffi::clGetDeviceIDs(
-        platform.as_ptr(),
-        device_types.bits() as cl_device_type,
-        devices_max,
-        device_ids.as_mut_ptr() as *mut cl_device_id,
-        &mut devices_available,
-    ) };
+    let errcode = unsafe {
+        ffi::clGetDeviceIDs(
+            platform.as_ptr(),
+            device_types.bits() as cl_device_type,
+            devices_max,
+            device_ids.as_mut_ptr() as *mut cl_device_id,
+            &mut devices_available,
+        )
+    };
     eval_errcode(errcode, (), "clGetDeviceIDs", None::<String>)?;
 
     // Trim vec len:
-    unsafe { device_ids.set_len(devices_available as usize); }
+    unsafe {
+        device_ids.set_len(devices_available as usize);
+    }
     device_ids.shrink_to_fit();
 
     Ok(device_ids)
@@ -625,13 +692,15 @@ pub fn get_device_ids<P: ClPlatformIdPtr>(
 pub fn get_device_info_raw<D: ClDeviceIdPtr>(device: D, request: u32) -> OclCoreResult<Vec<u8>> {
     let mut result_size: size_t = 0;
 
-    let errcode = unsafe { ffi::clGetDeviceInfo(
-        device.as_ptr() as cl_device_id,
-        request as cl_device_info,
-        0 as size_t,
-        ptr::null_mut(),
-        &mut result_size as *mut size_t,
-    ) };
+    let errcode = unsafe {
+        ffi::clGetDeviceInfo(
+            device.as_ptr() as cl_device_id,
+            request as cl_device_info,
+            0 as size_t,
+            ptr::null_mut(),
+            &mut result_size as *mut size_t,
+        )
+    };
 
     // Don't generate a full error report for `CL_INVALID_VALUE` or
     // `CL_INVALID_OPERATION` it's always just an extension unsupported by the
@@ -640,9 +709,13 @@ pub fn get_device_info_raw<D: ClDeviceIdPtr>(device: D, request: u32) -> OclCore
     // function and is a bug. Don't hold your breath for a fix.
     if errcode < 0 {
         if Status::from_i32(errcode).unwrap() == Status::CL_INVALID_VALUE {
-            return Err(OclCoreError::String("<unavailable (CL_INVALID_VALUE)>".to_string()));
+            return Err(OclCoreError::String(
+                "<unavailable (CL_INVALID_VALUE)>".to_string(),
+            ));
         } else if Status::from_i32(errcode).unwrap() == Status::CL_INVALID_OPERATION {
-            return Err(OclCoreError::String("<unavailable (CL_INVALID_OPERATION)>".to_string()));
+            return Err(OclCoreError::String(
+                "<unavailable (CL_INVALID_OPERATION)>".to_string(),
+            ));
         }
     }
 
@@ -655,21 +728,24 @@ pub fn get_device_info_raw<D: ClDeviceIdPtr>(device: D, request: u32) -> OclCore
 
     let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
-    let errcode = unsafe { ffi::clGetDeviceInfo(
-        device.as_ptr() as cl_device_id,
-        request as cl_device_info,
-        result_size as size_t,
-        result.as_mut_ptr() as *mut _ as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetDeviceInfo(
+            device.as_ptr() as cl_device_id,
+            request as cl_device_info,
+            result_size as size_t,
+            result.as_mut_ptr() as *mut _ as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
 
     eval_errcode(errcode, result, "clGetDeviceInfo", None::<String>)
 }
 
 /// Returns information about a device.
-pub fn get_device_info<D: ClDeviceIdPtr>(device: D, request: DeviceInfo)
-        -> OclCoreResult<DeviceInfoResult>
-{
+pub fn get_device_info<D: ClDeviceIdPtr>(
+    device: D,
+    request: DeviceInfo,
+) -> OclCoreResult<DeviceInfoResult> {
     let result = get_device_info_raw(device, request as cl_device_info)?;
 
     match request {
@@ -677,12 +753,14 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: D, request: DeviceInfo)
             let max_wi_dims = match get_device_info(device, DeviceInfo::MaxWorkItemDimensions)? {
                 DeviceInfoResult::MaxWorkItemDimensions(d) => d,
                 // Ok(DeviceInfoResult::Error(err)) => return Err(*err),
-                _ => panic!("get_device_info(): Error determining dimensions for \
-                    'DeviceInfo::MaxWorkItemSizes' due to mismatched variants."),
+                _ => panic!(
+                    "get_device_info(): Error determining dimensions for \
+                    'DeviceInfo::MaxWorkItemSizes' due to mismatched variants."
+                ),
             };
             DeviceInfoResult::from_bytes_max_work_item_sizes(request, result, max_wi_dims)
-        },
-        _ => DeviceInfoResult::from_bytes(request, result)
+        }
+        _ => DeviceInfoResult::from_bytes(request, result),
     }
 }
 
@@ -703,19 +781,33 @@ pub fn create_sub_devices(device_version: Option<&OpenclVersion>) -> OclCoreResu
 /// Increments the reference count of a device.
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
-pub unsafe fn retain_device(device: &DeviceId, device_version: Option<&OpenclVersion>)
-            -> OclCoreResult<()> {
+pub unsafe fn retain_device(
+    device: &DeviceId,
+    device_version: Option<&OpenclVersion>,
+) -> OclCoreResult<()> {
     verify_device_version(device_version, [1, 2], device, ApiFunction::RetainDevice)?;
-    eval_errcode(ffi::clRetainDevice(device.as_ptr()), (), "clRetainDevice", None::<String>)
+    eval_errcode(
+        ffi::clRetainDevice(device.as_ptr()),
+        (),
+        "clRetainDevice",
+        None::<String>,
+    )
 }
 
 /// Decrements the reference count of a device.
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
-pub unsafe fn release_device(device: &DeviceId, device_version: Option<&OpenclVersion>)
-            -> OclCoreResult<()> {
+pub unsafe fn release_device(
+    device: &DeviceId,
+    device_version: Option<&OpenclVersion>,
+) -> OclCoreResult<()> {
     verify_device_version(device_version, [1, 2], device, ApiFunction::ReleaseDevice)?;
-    eval_errcode(ffi::clReleaseDevice(device.as_ptr()), (), "clReleaseDevice", None::<String>)
+    eval_errcode(
+        ffi::clReleaseDevice(device.as_ptr()),
+        (),
+        "clReleaseDevice",
+        None::<String>,
+    )
 }
 
 //============================================================================
@@ -733,12 +825,14 @@ pub unsafe fn release_device(device: &DeviceId, device_version: Option<&OpenclVe
 //
 // [NOTE]: Leave commented "DEBUG" print statements intact until more
 // `ContextProperties` variants are implemented. [PROBABLY DONE]
-pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, device_ids: &[D],
-            pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>
-        ) -> OclCoreResult<Context>
-{
+pub fn create_context<D: ClDeviceIdPtr>(
+    properties: Option<&ContextProperties>,
+    device_ids: &[D],
+    pfn_notify: Option<CreateContextCallbackFn>,
+    user_data: Option<UserDataPtr>,
+) -> OclCoreResult<Context> {
     if device_ids.is_empty() {
-        return Err(ApiWrapperError::CreateContextNoDevicesSpecified.into())
+        return Err(ApiWrapperError::CreateContextNoDevicesSpecified.into());
     }
 
     // // [DEBUG]:
@@ -750,10 +844,10 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
         if properties.contains_gl_context_or_sharegroup() {
             for &device in device_ids {
                 match device_supports_cl_gl_sharing(device) {
-                    Ok(true) => {},
+                    Ok(true) => {}
                     Ok(false) => {
                         return Err(ApiWrapperError::CreateContextClGlSharingUnsupported.into())
-                    },
+                    }
                     Err(err) => return Err(err),
                 }
             }
@@ -787,14 +881,16 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
 
     let mut errcode: cl_int = 0;
 
-    let context_ptr = unsafe { ffi::clCreateContext(
-        properties_ptr,
-        device_ids.len() as cl_uint,
-        device_ids.as_ptr()  as *const cl_device_id,
-        pfn_notify,
-        user_data_ptr,
-        &mut errcode,
-    ) };
+    let context_ptr = unsafe {
+        ffi::clCreateContext(
+            properties_ptr,
+            device_ids.len() as cl_uint,
+            device_ids.as_ptr() as *const cl_device_id,
+            pfn_notify,
+            user_data_ptr,
+            &mut errcode,
+        )
+    };
     // // [DEBUG]:
     // println!("CREATE_CONTEXT: CONTEXT PTR: {:?}", context);
     eval_errcode(errcode, context_ptr, "clCreateContext", None::<String>)
@@ -812,10 +908,12 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
 //
 // [NOTE]: Leave commented "DEBUG" print statements intact until more
 // `ContextProperties` variants are implemented.
-pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>,
-            device_type: DeviceType, pfn_notify: Option<CreateContextCallbackFn>,
-            user_data: Option<UserDataPtr>) -> OclCoreResult<Context> {
-
+pub fn create_context_from_type<D: ClDeviceIdPtr>(
+    properties: Option<&ContextProperties>,
+    device_type: DeviceType,
+    pfn_notify: Option<CreateContextCallbackFn>,
+    user_data: Option<UserDataPtr>,
+) -> OclCoreResult<Context> {
     // [DEBUG]:
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
@@ -844,44 +942,65 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: Option<&ContextPro
 
     let mut errcode: cl_int = 0;
 
-    let context_ptr = unsafe { ffi::clCreateContextFromType(
-        properties_ptr,
-        device_type.bits(),
-        pfn_notify,
-        user_data_ptr,
-        &mut errcode,
-    ) };
-    eval_errcode(errcode, context_ptr, "clCreateContextFromType", None::<String>)
-        .map(|ctx_ptr| unsafe { Context::from_raw_create_ptr(ctx_ptr) })
+    let context_ptr = unsafe {
+        ffi::clCreateContextFromType(
+            properties_ptr,
+            device_type.bits(),
+            pfn_notify,
+            user_data_ptr,
+            &mut errcode,
+        )
+    };
+    eval_errcode(
+        errcode,
+        context_ptr,
+        "clCreateContextFromType",
+        None::<String>,
+    )
+    .map(|ctx_ptr| unsafe { Context::from_raw_create_ptr(ctx_ptr) })
 }
 
 /// Increments the reference count of a context.
 pub unsafe fn retain_context<C>(context: C) -> OclCoreResult<()>
-        where C: ClContextPtr
+where
+    C: ClContextPtr,
 {
-    eval_errcode(ffi::clRetainContext(context.as_ptr()), (), "clRetainContext", None::<String>)
+    eval_errcode(
+        ffi::clRetainContext(context.as_ptr()),
+        (),
+        "clRetainContext",
+        None::<String>,
+    )
 }
 
 /// Decrements reference count of a context.
 pub unsafe fn release_context<C>(context: C) -> OclCoreResult<()>
-        where C: ClContextPtr
+where
+    C: ClContextPtr,
 {
-    eval_errcode(ffi::clReleaseContext(context.as_ptr()), (), "clReleaseContext", None::<String>)
+    eval_errcode(
+        ffi::clReleaseContext(context.as_ptr()),
+        (),
+        "clReleaseContext",
+        None::<String>,
+    )
 }
 
-fn get_context_info_unparsed<C>(context: C, request: ContextInfo)
-        -> OclCoreResult<Vec<u8>>
-        where C: ClContextPtr
+fn get_context_info_unparsed<C>(context: C, request: ContextInfo) -> OclCoreResult<Vec<u8>>
+where
+    C: ClContextPtr,
 {
-   let mut result_size: size_t = 0;
+    let mut result_size: size_t = 0;
 
-    let errcode = unsafe { ffi::clGetContextInfo(
-        context.as_ptr() as cl_context,
-        request as cl_context_info,
-        0 as size_t,
-        ptr::null_mut(),
-        &mut result_size as *mut usize,
-    ) };
+    let errcode = unsafe {
+        ffi::clGetContextInfo(
+            context.as_ptr() as cl_context,
+            request as cl_context_info,
+            0 as size_t,
+            ptr::null_mut(),
+            &mut result_size as *mut usize,
+        )
+    };
 
     eval_errcode(errcode, (), "clGetContextInfo", None::<String>)?;
 
@@ -892,11 +1011,14 @@ fn get_context_info_unparsed<C>(context: C, request: ContextInfo)
         let err_if_zero_result_size = request as cl_context_info == ffi::CL_CONTEXT_DEVICES;
 
         if result_size > 10000 || (result_size == 0 && err_if_zero_result_size) {
-            return Err(OclCoreError::String("\n\nocl::core::context_info(): \
+            return Err(OclCoreError::String(
+                "\n\nocl::core::context_info(): \
                 Possible invalid context detected. \n\
                 Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
                 invalid context object. If not, please file an issue at: \n\
-                https://github.com/cogciprocate/ocl/issues.\n\n".to_string()));
+                https://github.com/cogciprocate/ocl/issues.\n\n"
+                    .to_string(),
+            ));
         }
     }
 
@@ -907,13 +1029,15 @@ fn get_context_info_unparsed<C>(context: C, request: ContextInfo)
 
     let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
 
-    let errcode = unsafe { ffi::clGetContextInfo(
-        context.as_ptr() as cl_context,
-        request as cl_context_info,
-        result_size as size_t,
-        result.as_mut_ptr() as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetContextInfo(
+            context.as_ptr() as cl_context,
+            request as cl_context_info,
+            result_size as size_t,
+            result.as_mut_ptr() as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
 
     eval_errcode(errcode, result, "clGetContextInfo", None::<String>)
 }
@@ -928,7 +1052,9 @@ fn get_context_info_unparsed<C>(context: C, request: ContextInfo)
 /// to an additional error when called with `CL_CONTEXT_DEVICES` as described
 /// in in the `verify_context()` documentation below.
 pub fn get_context_info<C>(context: C, request: ContextInfo) -> OclCoreResult<ContextInfoResult>
-        where C: ClContextPtr {
+where
+    C: ClContextPtr,
+{
     ContextInfoResult::from_bytes(request, get_context_info_unparsed(context, request)?)
 }
 
@@ -938,7 +1064,8 @@ pub fn get_context_info<C>(context: C, request: ContextInfo) -> OclCoreResult<Co
 ///
 /// Returns `None` if the context properties do not specify a platform.
 pub fn get_context_platform<C>(context: C) -> OclCoreResult<Option<PlatformId>>
-        where C: ClContextPtr
+where
+    C: ClContextPtr,
 {
     let props_raw_bytes = get_context_info_unparsed(context, ContextInfo::Properties)?;
 
@@ -974,10 +1101,11 @@ pub fn get_context_platform<C>(context: C) -> OclCoreResult<Option<PlatformId>>
 /// with how libraries are loaded into memory. There may alternatively just be
 /// a simple mistake somewhere.
 ///
-#[cfg(not(feature="opencl_vendor_mesa"))]
-pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContextInfo)
-        -> OclCoreResult<GlContextInfoResult>
-{
+#[cfg(not(feature = "opencl_vendor_mesa"))]
+pub fn get_gl_context_info_khr(
+    properties: &ContextProperties,
+    request: GlContextInfo,
+) -> OclCoreResult<GlContextInfoResult> {
     let cl_get_gl_context_info_khr_fn = unsafe {
         let fn_name = match ::std::ffi::CString::new("clGetGLContextInfoKHR") {
             Ok(s) => s,
@@ -988,17 +1116,21 @@ pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContex
             Some(p) => p,
             None => {
                 return Err("ocl::core::get_gl_context_info_khr: \
-                    Context properties must specify a platform.".into());
-            },
+                    Context properties must specify a platform."
+                    .into());
+            }
         };
 
-        let fn_ptr = ffi::clGetExtensionFunctionAddressForPlatform(plat.as_ptr(),
-            fn_name.as_ptr() as *mut _);
+        let fn_ptr = ffi::clGetExtensionFunctionAddressForPlatform(
+            plat.as_ptr(),
+            fn_name.as_ptr() as *mut _,
+        );
 
         if fn_ptr.is_null() {
             return Err("Unable to get extension function \
                 address for clGetGLContextInfoKHR. The function is not supported by this \
-                platform.".into());
+                platform."
+                .into());
         }
 
         fn_ptr as ffi::clGetGLContextInfoKHR_fn
@@ -1007,13 +1139,15 @@ pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContex
     let props_bytes = properties.to_raw();
     let mut result_size: size_t = 0;
 
-    let errcode = unsafe { (*cl_get_gl_context_info_khr_fn)(
-        props_bytes.as_ptr(),
-        request as cl_gl_context_info,
-        0 as size_t,
-        ptr::null_mut(),
-        &mut result_size as *mut usize,
-    ) };
+    let errcode = unsafe {
+        (*cl_get_gl_context_info_khr_fn)(
+            props_bytes.as_ptr(),
+            request as cl_gl_context_info,
+            0 as size_t,
+            ptr::null_mut(),
+            &mut result_size as *mut usize,
+        )
+    };
 
     // if let Err(err) = eval_errcode(errcode, (), "clGetGlContextInfoKhr", None::<String>) {
     //     return GlContextInfoResult::Error(Box::new(err));
@@ -1032,18 +1166,19 @@ pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContex
 
     let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
 
-    let errcode = unsafe { (*cl_get_gl_context_info_khr_fn)(
-        props_bytes.as_ptr(),
-        request as cl_gl_context_info,
-        result_size as size_t,
-        result.as_mut_ptr() as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        (*cl_get_gl_context_info_khr_fn)(
+            props_bytes.as_ptr(),
+            request as cl_gl_context_info,
+            result_size as size_t,
+            result.as_mut_ptr() as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
 
     let result = eval_errcode(errcode, result, "clGetGlContextInfoKhr", None::<String>)?;
     GlContextInfoResult::from_bytes(request, result)
 }
-
 
 //============================================================================
 //========================== Command Queue APIs ==============================
@@ -1051,11 +1186,13 @@ pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContex
 
 /// Returns a new command queue pointer.
 pub fn create_command_queue<C, D>(
-            context: C,
-            device: D,
-            properties: Option<CommandQueueProperties>,
-        ) -> OclCoreResult<CommandQueue>
-        where C: ClContextPtr, D: ClDeviceIdPtr
+    context: C,
+    device: D,
+    properties: Option<CommandQueueProperties>,
+) -> OclCoreResult<CommandQueue>
+where
+    C: ClContextPtr,
+    D: ClDeviceIdPtr,
 {
     // Verify that the context is valid:
     verify_context(context)?;
@@ -1067,42 +1204,56 @@ pub fn create_command_queue<C, D>(
 
     let mut errcode: cl_int = 0;
 
-    let cq_ptr = unsafe { ffi::clCreateCommandQueue(
-        context.as_ptr(),
-        device.as_ptr(),
-        cmd_queue_props,
-        &mut errcode
-    ) };
+    let cq_ptr = unsafe {
+        ffi::clCreateCommandQueue(
+            context.as_ptr(),
+            device.as_ptr(),
+            cmd_queue_props,
+            &mut errcode,
+        )
+    };
     eval_errcode(errcode, cq_ptr, "clCreateCommandQueue", None::<String>)
         .map(|cq_ptr| unsafe { CommandQueue::from_raw_create_ptr(cq_ptr) })
-
 }
 
 /// Increments the reference count of a command queue.
 pub unsafe fn retain_command_queue(queue: &CommandQueue) -> OclCoreResult<()> {
-    eval_errcode(ffi::clRetainCommandQueue(queue.as_ptr()), (), "clRetainCommandQueue", None::<String>)
+    eval_errcode(
+        ffi::clRetainCommandQueue(queue.as_ptr()),
+        (),
+        "clRetainCommandQueue",
+        None::<String>,
+    )
 }
 
 /// Decrements the reference count of a command queue.
 ///
 /// [FIXME]: Return result
 pub unsafe fn release_command_queue(queue: &CommandQueue) -> OclCoreResult<()> {
-    eval_errcode(ffi::clReleaseCommandQueue(queue.as_ptr()), (), "clReleaseCommandQueue", None::<String>)
+    eval_errcode(
+        ffi::clReleaseCommandQueue(queue.as_ptr()),
+        (),
+        "clReleaseCommandQueue",
+        None::<String>,
+    )
 }
 
 /// Returns information about a command queue
-pub fn get_command_queue_info(queue: &CommandQueue, request: CommandQueueInfo,
-        ) -> OclCoreResult<CommandQueueInfoResult>
-{
+pub fn get_command_queue_info(
+    queue: &CommandQueue,
+    request: CommandQueueInfo,
+) -> OclCoreResult<CommandQueueInfoResult> {
     let mut result_size: size_t = 0;
 
-    let errcode = unsafe { ffi::clGetCommandQueueInfo(
-        queue.as_ptr() as cl_command_queue,
-        request as cl_command_queue_info,
-        0 as size_t,
-        ptr::null_mut(),
-        &mut result_size as *mut size_t,
-    ) };
+    let errcode = unsafe {
+        ffi::clGetCommandQueueInfo(
+            queue.as_ptr() as cl_command_queue,
+            request as cl_command_queue_info,
+            0 as size_t,
+            ptr::null_mut(),
+            &mut result_size as *mut size_t,
+        )
+    };
 
     eval_errcode(errcode, (), "clGetCommandQueueInfo", None::<String>)?;
 
@@ -1113,13 +1264,15 @@ pub fn get_command_queue_info(queue: &CommandQueue, request: CommandQueueInfo,
 
     let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
-    let errcode = unsafe { ffi::clGetCommandQueueInfo(
-        queue.as_ptr() as cl_command_queue,
-        request as cl_command_queue_info,
-        result_size,
-        result.as_mut_ptr() as *mut _ as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetCommandQueueInfo(
+            queue.as_ptr() as cl_command_queue,
+            request as cl_command_queue_info,
+            result_size,
+            result.as_mut_ptr() as *mut _ as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
 
     let result = eval_errcode(errcode, result, "clGetCommandQueueInfo", None::<String>)?;
     CommandQueueInfoResult::from_bytes(request, result)
@@ -1137,12 +1290,14 @@ pub fn get_command_queue_info(queue: &CommandQueue, request: CommandQueueInfo,
 /// used.
 ///
 pub unsafe fn create_buffer<C, T>(
-            context: C,
-            flags: MemFlags,
-            len: usize,
-            data: Option<&[T]>,
-        ) -> OclCoreResult<Mem>
-        where C: ClContextPtr, T: OclPrm
+    context: C,
+    flags: MemFlags,
+    len: usize,
+    data: Option<&[T]>,
+) -> OclCoreResult<Mem>
+where
+    C: ClContextPtr,
+    T: OclPrm,
 {
     // Verify that the context is valid:
     verify_context(context)?;
@@ -1152,10 +1307,10 @@ pub unsafe fn create_buffer<C, T>(
     let host_ptr = match data {
         Some(d) => {
             if d.len() != len {
-                return Err(ApiWrapperError::CreateBufferDataLengthMismatch.into())
+                return Err(ApiWrapperError::CreateBufferDataLengthMismatch.into());
             }
             d.as_ptr() as cl_mem
-        },
+        }
         None => ptr::null_mut(),
     };
 
@@ -1181,13 +1336,14 @@ pub unsafe fn create_buffer<C, T>(
 ///
 // [UNTESTED]
 //
-#[cfg(not(feature="opencl_vendor_mesa"))]
+#[cfg(not(feature = "opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_buffer<C>(
-            context: C,
-            gl_object: cl_GLuint,
-            flags: MemFlags
-        ) -> OclCoreResult<Mem>
-        where C: ClContextPtr
+    context: C,
+    gl_object: cl_GLuint,
+    flags: MemFlags,
+) -> OclCoreResult<Mem>
+where
+    C: ClContextPtr,
 {
     // Verify that the context is valid
     verify_context(context)?;
@@ -1195,10 +1351,11 @@ pub unsafe fn create_from_gl_buffer<C>(
     let mut errcode: cl_int = 0;
 
     let buf_ptr = clCreateFromGLBuffer(
-            context.as_ptr(),
-            flags.bits() as cl_mem_flags,
-            gl_object,
-            &mut errcode);
+        context.as_ptr(),
+        flags.bits() as cl_mem_flags,
+        gl_object,
+        &mut errcode,
+    );
 
     eval_errcode(errcode, buf_ptr, "clCreateFromGLBuffer", None::<String>)
         .map(|ptr| Mem::from_raw_create_ptr(ptr))
@@ -1213,13 +1370,14 @@ pub unsafe fn create_from_gl_buffer<C>(
 ///
 // [UNTESTED]
 //
-#[cfg(not(feature="opencl_vendor_mesa"))]
+#[cfg(not(feature = "opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_renderbuffer<C>(
-            context: C,
-            renderbuffer: cl_GLuint,
-            flags: MemFlags
-        ) -> OclCoreResult<Mem>
-        where C: ClContextPtr
+    context: C,
+    renderbuffer: cl_GLuint,
+    flags: MemFlags,
+) -> OclCoreResult<Mem>
+where
+    C: ClContextPtr,
 {
     // Verify that the context is valid
     verify_context(context)?;
@@ -1227,13 +1385,19 @@ pub unsafe fn create_from_gl_renderbuffer<C>(
     let mut errcode: cl_int = 0;
 
     let buf_ptr = clCreateFromGLRenderbuffer(
-            context.as_ptr(),
-            flags.bits() as cl_mem_flags,
-            renderbuffer,
-            &mut errcode);
+        context.as_ptr(),
+        flags.bits() as cl_mem_flags,
+        renderbuffer,
+        &mut errcode,
+    );
 
-    eval_errcode(errcode, buf_ptr, "clCreateFromGLRenderbuffer", None::<String>)
-        .map(|ptr| Mem::from_raw_create_ptr(ptr))
+    eval_errcode(
+        errcode,
+        buf_ptr,
+        "clCreateFromGLRenderbuffer",
+        None::<String>,
+    )
+    .map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
 /// Return a texture2D pointer from a `OpenGL` texture2D object.
@@ -1249,23 +1413,28 @@ pub unsafe fn create_from_gl_renderbuffer<C>(
 //
 // [TODO]: If version is < 1.2, automatically use older versions.
 //
-#[cfg(not(feature="opencl_vendor_mesa"))]
+#[cfg(not(feature = "opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_texture<C>(
-            context: C,
-            texture_target: cl_GLenum,
-            miplevel: cl_GLint,
-            texture: cl_GLuint,
-            flags: MemFlags,
-            device_versions: Option<&[OpenclVersion]>,
-        ) -> OclCoreResult<Mem>
-        where C: ClContextPtr
+    context: C,
+    texture_target: cl_GLenum,
+    miplevel: cl_GLint,
+    texture: cl_GLuint,
+    flags: MemFlags,
+    device_versions: Option<&[OpenclVersion]>,
+) -> OclCoreResult<Mem>
+where
+    C: ClContextPtr,
 {
     // Verify that the context is valid
     verify_context(context)?;
 
     // Verify device versions:
-    verify_device_versions(device_versions, [1, 2], &context.as_ptr(),
-        ApiFunction::CreateFromGLTexture)?;
+    verify_device_versions(
+        device_versions,
+        [1, 2],
+        &context.as_ptr(),
+        ApiFunction::CreateFromGLTexture,
+    )?;
 
     // [TODO]: Forward old OpenCL versions to these instead:
     // let obj_core = match image_desc.image_depth {
@@ -1287,12 +1456,13 @@ pub unsafe fn create_from_gl_texture<C>(
     let mut errcode: cl_int = 0;
 
     let buf_ptr = clCreateFromGLTexture(
-            context.as_ptr(),
-            flags.bits() as cl_mem_flags,
-            texture_target,
-            miplevel,
-            texture,
-            &mut errcode);
+        context.as_ptr(),
+        flags.bits() as cl_mem_flags,
+        texture_target,
+        miplevel,
+        texture,
+        &mut errcode,
+    );
 
     eval_errcode(errcode, buf_ptr, "clCreateFromGLTexture", None::<String>)
         .map(|ptr| Mem::from_raw_create_ptr(ptr))
@@ -1301,15 +1471,16 @@ pub unsafe fn create_from_gl_texture<C>(
 /// Return a texture2D pointer from a `OpenGL` texture2D object.
 ///
 // [UNTESTED] [DEPRICATED]
-#[cfg(not(feature="opencl_vendor_mesa"))]
+#[cfg(not(feature = "opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_texture_2d<C>(
-            context: C,
-            texture_target: cl_GLenum,
-            miplevel: cl_GLint,
-            texture: cl_GLuint,
-            flags: MemFlags
-        ) -> OclCoreResult<Mem>
-        where C: ClContextPtr
+    context: C,
+    texture_target: cl_GLenum,
+    miplevel: cl_GLint,
+    texture: cl_GLuint,
+    flags: MemFlags,
+) -> OclCoreResult<Mem>
+where
+    C: ClContextPtr,
 {
     // Verify that the context is valid
     verify_context(context)?;
@@ -1317,12 +1488,13 @@ pub unsafe fn create_from_gl_texture_2d<C>(
     let mut errcode: cl_int = 0;
 
     let buf_ptr = clCreateFromGLTexture2D(
-            context.as_ptr(),
-            flags.bits() as cl_mem_flags,
-            texture_target,
-            miplevel,
-            texture,
-            &mut errcode);
+        context.as_ptr(),
+        flags.bits() as cl_mem_flags,
+        texture_target,
+        miplevel,
+        texture,
+        &mut errcode,
+    );
 
     eval_errcode(errcode, buf_ptr, "clCreateFromGLTexture2D", None::<String>)
         .map(|ptr| Mem::from_raw_create_ptr(ptr))
@@ -1331,15 +1503,16 @@ pub unsafe fn create_from_gl_texture_2d<C>(
 /// Return a texture3D pointer from a `OpenGL` texture3D object.
 ///
 // [UNTESTED] [DEPRICATED]
-#[cfg(not(feature="opencl_vendor_mesa"))]
+#[cfg(not(feature = "opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_texture_3d<C>(
-            context: C,
-            texture_target: cl_GLenum,
-            miplevel: cl_GLint,
-            texture: cl_GLuint,
-            flags: MemFlags
-        ) -> OclCoreResult<Mem>
-        where C: ClContextPtr
+    context: C,
+    texture_target: cl_GLenum,
+    miplevel: cl_GLint,
+    texture: cl_GLuint,
+    flags: MemFlags,
+) -> OclCoreResult<Mem>
+where
+    C: ClContextPtr,
 {
     // Verify that the context is valid
     verify_context(context)?;
@@ -1347,12 +1520,13 @@ pub unsafe fn create_from_gl_texture_3d<C>(
     let mut errcode: cl_int = 0;
 
     let buf_ptr = clCreateFromGLTexture3D(
-            context.as_ptr(),
-            flags.bits() as cl_mem_flags,
-            texture_target,
-            miplevel,
-            texture,
-            &mut errcode);
+        context.as_ptr(),
+        flags.bits() as cl_mem_flags,
+        texture_target,
+        miplevel,
+        texture,
+        &mut errcode,
+    );
 
     eval_errcode(errcode, buf_ptr, "clCreateFromGLTexture3D", None::<String>)
         .map(|ptr| Mem::from_raw_create_ptr(ptr))
@@ -1367,22 +1541,23 @@ pub unsafe fn create_from_gl_texture_3d<C>(
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubBuffer.html)
 ///
 pub fn create_sub_buffer<T: OclPrm>(
-            buffer: &Mem,
-            flags: MemFlags,
-            buffer_create_info: &BufferRegion<T>,
-        ) -> OclCoreResult<Mem>
-{
+    buffer: &Mem,
+    flags: MemFlags,
+    buffer_create_info: &BufferRegion<T>,
+) -> OclCoreResult<Mem> {
     let buffer_create_type = BufferCreateType::Region;
     let buffer_create_info_bytes = buffer_create_info.to_bytes();
     let mut errcode = 0i32;
 
-    let sub_buf_ptr = unsafe { ffi::clCreateSubBuffer(
-        buffer.as_ptr(),
-        flags.bits(),
-        buffer_create_type as cl_buffer_create_type,
-        &buffer_create_info_bytes as *const _ as *const c_void,
-        &mut errcode,
-    ) };
+    let sub_buf_ptr = unsafe {
+        ffi::clCreateSubBuffer(
+            buffer.as_ptr(),
+            flags.bits(),
+            buffer_create_type as cl_buffer_create_type,
+            &buffer_create_info_bytes as *const _ as *const c_void,
+            &mut errcode,
+        )
+    };
 
     eval_errcode(errcode, sub_buf_ptr, "clCreateSubBuffer", None::<String>)
         .map(|ptr| unsafe { Mem::from_raw_create_ptr(ptr) })
@@ -1399,20 +1574,27 @@ pub fn create_sub_buffer<T: OclPrm>(
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub unsafe fn create_image<C, T>(
-            context: C,
-            flags: MemFlags,
-            format: &ImageFormat,
-            desc: &ImageDescriptor,
-            data: Option<&[T]>,
-            device_versions: Option<&[OpenclVersion]>,
-        ) -> OclCoreResult<Mem>
-        where C: ClContextPtr, T: OclPrm
+    context: C,
+    flags: MemFlags,
+    format: &ImageFormat,
+    desc: &ImageDescriptor,
+    data: Option<&[T]>,
+    device_versions: Option<&[OpenclVersion]>,
+) -> OclCoreResult<Mem>
+where
+    C: ClContextPtr,
+    T: OclPrm,
 {
     // Verify that the context is valid:
     verify_context(context)?;
 
     // Verify device versions:
-    verify_device_versions(device_versions, [1, 2], &context.as_ptr(), ApiFunction::CreateImage)?;
+    verify_device_versions(
+        device_versions,
+        [1, 2],
+        &context.as_ptr(),
+        ApiFunction::CreateImage,
+    )?;
 
     let mut errcode: cl_int = 0;
 
@@ -1421,7 +1603,7 @@ pub unsafe fn create_image<C, T>(
             // [FIXME]: CALCULATE CORRECT IMAGE SIZE AND COMPARE WITH FORMAT/DESC
             // assert!(d.len() == len, "ocl::create_image(): Data length mismatch.");
             d.as_ptr() as cl_mem
-        },
+        }
         None => ptr::null_mut(),
     };
 
@@ -1440,12 +1622,22 @@ pub unsafe fn create_image<C, T>(
 
 /// Increments the reference counter of a mem object.
 pub unsafe fn retain_mem_object(mem: &Mem) -> OclCoreResult<()> {
-    eval_errcode(ffi::clRetainMemObject(mem.as_ptr()), (), "clRetainMemObject", None::<String>)
+    eval_errcode(
+        ffi::clRetainMemObject(mem.as_ptr()),
+        (),
+        "clRetainMemObject",
+        None::<String>,
+    )
 }
 
 /// Decrements the reference counter of a mem object.
 pub unsafe fn release_mem_object(mem: &Mem) -> OclCoreResult<()> {
-    eval_errcode(ffi::clReleaseMemObject(mem.as_ptr()), (), "clReleaseMemObject", None::<String>)
+    eval_errcode(
+        ffi::clReleaseMemObject(mem.as_ptr()),
+        (),
+        "clReleaseMemObject",
+        None::<String>,
+    )
 }
 
 /// Returns a list of supported image formats.
@@ -1459,22 +1651,25 @@ pub unsafe fn release_mem_object(mem: &Mem) -> OclCoreResult<()> {
 ///    core::MEM_READ_WRITE, core::MemObjectType::Image2d)
 /// ```
 pub fn get_supported_image_formats<C>(
-            context: C,
-            flags: MemFlags,
-            image_type: MemObjectType,
-        ) -> OclCoreResult<Vec<ImageFormatParseResult>>
-        where C: ClContextPtr
+    context: C,
+    flags: MemFlags,
+    image_type: MemObjectType,
+) -> OclCoreResult<Vec<ImageFormatParseResult>>
+where
+    C: ClContextPtr,
 {
     let mut num_image_formats = 0 as cl_uint;
 
-    let errcode = unsafe { ffi::clGetSupportedImageFormats(
-        context.as_ptr(),
-        flags.bits() as cl_mem_flags,
-        image_type as cl_mem_object_type,
-        0 as cl_uint,
-        ptr::null_mut() as *mut cl_image_format,
-        &mut num_image_formats as *mut cl_uint,
-    ) };
+    let errcode = unsafe {
+        ffi::clGetSupportedImageFormats(
+            context.as_ptr(),
+            flags.bits() as cl_mem_flags,
+            image_type as cl_mem_object_type,
+            0 as cl_uint,
+            ptr::null_mut() as *mut cl_image_format,
+            &mut num_image_formats as *mut cl_uint,
+        )
+    };
     eval_errcode(errcode, (), "clGetSupportedImageFormats", None::<String>)?;
 
     // If no formats found, return an empty list directly:
@@ -1482,37 +1677,40 @@ pub fn get_supported_image_formats<C>(
         return Ok(vec![]);
     }
 
-    let mut image_formats: Vec<cl_image_format> = (0..(num_image_formats as usize)).map(|_| {
-           ImageFormat::new_raw()
-        } ).collect();
+    let mut image_formats: Vec<cl_image_format> = (0..(num_image_formats as usize))
+        .map(|_| ImageFormat::new_raw())
+        .collect();
 
     debug_assert!(image_formats.len() == num_image_formats as usize && !image_formats.is_empty());
 
-    let errcode = unsafe { ffi::clGetSupportedImageFormats(
-        context.as_ptr(),
-        flags.bits() as cl_mem_flags,
-        image_type as cl_mem_object_type,
-        num_image_formats,
-        image_formats.as_mut_ptr() as *mut _ as *mut cl_image_format,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetSupportedImageFormats(
+            context.as_ptr(),
+            flags.bits() as cl_mem_flags,
+            image_type as cl_mem_object_type,
+            num_image_formats,
+            image_formats.as_mut_ptr() as *mut _ as *mut cl_image_format,
+            ptr::null_mut(),
+        )
+    };
 
     eval_errcode(errcode, (), "clGetSupportedImageFormats", None::<String>)?;
     Ok(ImageFormat::list_from_raw(image_formats))
 }
 
-
 /// Get mem object info.
 pub fn get_mem_object_info(obj: &Mem, request: MemInfo) -> OclCoreResult<MemInfoResult> {
     let mut result_size: size_t = 0;
 
-    let errcode = unsafe { ffi::clGetMemObjectInfo(
-        obj.as_ptr() as cl_mem,
-        request as cl_mem_info,
-        0 as size_t,
-        ptr::null_mut(),
-        &mut result_size as *mut size_t,
-    ) };
+    let errcode = unsafe {
+        ffi::clGetMemObjectInfo(
+            obj.as_ptr() as cl_mem,
+            request as cl_mem_info,
+            0 as size_t,
+            ptr::null_mut(),
+            &mut result_size as *mut size_t,
+        )
+    };
 
     eval_errcode(errcode, (), "clGetMemObjectInfo", None::<String>)?;
 
@@ -1523,29 +1721,32 @@ pub fn get_mem_object_info(obj: &Mem, request: MemInfo) -> OclCoreResult<MemInfo
 
     let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
-    let errcode = unsafe { ffi::clGetMemObjectInfo(
-        obj.as_ptr() as cl_mem,
-        request as cl_mem_info,
-        result_size,
-        result.as_mut_ptr() as *mut _ as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetMemObjectInfo(
+            obj.as_ptr() as cl_mem,
+            request as cl_mem_info,
+            result_size,
+            result.as_mut_ptr() as *mut _ as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
     let result = eval_errcode(errcode, result, "clGetMemObjectInfo", None::<String>)?;
     MemInfoResult::from_bytes(request, result)
 }
-
 
 /// Get image info.
 pub fn get_image_info(obj: &Mem, request: ImageInfo) -> OclCoreResult<ImageInfoResult> {
     let mut result_size: size_t = 0;
 
-    let errcode = unsafe { ffi::clGetImageInfo(
-        obj.as_ptr() as cl_mem,
-        request as cl_image_info,
-        0 as size_t,
-        ptr::null_mut(),
-        &mut result_size as *mut size_t,
-    ) };
+    let errcode = unsafe {
+        ffi::clGetImageInfo(
+            obj.as_ptr() as cl_mem,
+            request as cl_image_info,
+            0 as size_t,
+            ptr::null_mut(),
+            &mut result_size as *mut size_t,
+        )
+    };
 
     eval_errcode(errcode, (), "clGetImageInfo", None::<String>)?;
 
@@ -1556,13 +1757,15 @@ pub fn get_image_info(obj: &Mem, request: ImageInfo) -> OclCoreResult<ImageInfoR
 
     let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
-    let errcode = unsafe { ffi::clGetImageInfo(
-        obj.as_ptr() as cl_mem,
-        request as cl_image_info,
-        result_size,
-        result.as_mut_ptr() as *mut _ as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetImageInfo(
+            obj.as_ptr() as cl_mem,
+            request as cl_image_info,
+            result_size,
+            result.as_mut_ptr() as *mut _ as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
 
     let result = eval_errcode(errcode, result, "clGetImageInfo", None::<String>)?;
     ImageInfoResult::from_bytes(request, result)
@@ -1583,48 +1786,65 @@ pub fn set_mem_object_destructor_callback() -> OclCoreResult<()> {
 /// Creates and returns a new sampler object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSampler.html)
-pub fn create_sampler<C>(context: C, normalize_coords: bool, addressing_mode: AddressingMode,
-            filter_mode: FilterMode) -> OclCoreResult<Sampler>
-        where C: ClContextPtr
+pub fn create_sampler<C>(
+    context: C,
+    normalize_coords: bool,
+    addressing_mode: AddressingMode,
+    filter_mode: FilterMode,
+) -> OclCoreResult<Sampler>
+where
+    C: ClContextPtr,
 {
     let mut errcode = 0;
 
-    let sampler = unsafe { Sampler::from_raw_create_ptr(ffi::clCreateSampler(
-        context.as_ptr(),
-        normalize_coords as cl_bool,
-        addressing_mode as cl_addressing_mode,
-        filter_mode as cl_filter_mode,
-        &mut errcode,
-    )) };
+    let sampler = unsafe {
+        Sampler::from_raw_create_ptr(ffi::clCreateSampler(
+            context.as_ptr(),
+            normalize_coords as cl_bool,
+            addressing_mode as cl_addressing_mode,
+            filter_mode as cl_filter_mode,
+            &mut errcode,
+        ))
+    };
 
     eval_errcode(errcode, sampler, "clCreateSampler", None::<String>)
 }
 
 /// Increments a sampler reference counter.
 pub unsafe fn retain_sampler(sampler: &Sampler) -> OclCoreResult<()> {
-    eval_errcode(ffi::clRetainSampler(sampler.as_ptr()), (), "clRetainSampler", None::<String>)
+    eval_errcode(
+        ffi::clRetainSampler(sampler.as_ptr()),
+        (),
+        "clRetainSampler",
+        None::<String>,
+    )
 }
 
 /// Decrements a sampler reference counter.
 pub unsafe fn release_sampler(sampler: &Sampler) -> OclCoreResult<()> {
-    eval_errcode(ffi::clReleaseSampler(sampler.as_ptr()), (), "clReleaseSampler", None::<String>)
+    eval_errcode(
+        ffi::clReleaseSampler(sampler.as_ptr()),
+        (),
+        "clReleaseSampler",
+        None::<String>,
+    )
 }
 
 /// Returns information about the sampler object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clGetSamplerInfo.html)
-pub fn get_sampler_info(obj: &Sampler, request: SamplerInfo,
-    ) -> OclCoreResult<SamplerInfoResult>
-{
+pub fn get_sampler_info(obj: &Sampler, request: SamplerInfo) -> OclCoreResult<SamplerInfoResult> {
     let mut result_size: size_t = 0;
 
-    let errcode = unsafe { ffi::clGetSamplerInfo(
-        obj.as_ptr() as cl_sampler,
-        request as cl_sampler_info,
-        0 as size_t,
-        ptr::null_mut(),
-        &mut result_size as *mut size_t,
-    ) };
+    let errcode = unsafe {
+        ffi::clGetSamplerInfo(
+            obj.as_ptr() as cl_sampler,
+            request as cl_sampler_info,
+            0 as size_t,
+            ptr::null_mut(),
+            &mut result_size as *mut size_t,
+        )
+    };
 
     // try!(eval_errcode(errcode, result, "clGetSamplerInfo", None::<String>));
     // if let Err(err) = eval_errcode(errcode, (), "clGetSamplerInfo", None::<String>) {
@@ -1639,13 +1859,15 @@ pub fn get_sampler_info(obj: &Sampler, request: SamplerInfo,
 
     let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
-    let errcode = unsafe { ffi::clGetSamplerInfo(
-        obj.as_ptr() as cl_sampler,
-        request as cl_sampler_info,
-        result_size,
-        result.as_mut_ptr() as *mut _ as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetSamplerInfo(
+            obj.as_ptr() as cl_sampler,
+            request as cl_sampler_info,
+            result_size,
+            result.as_mut_ptr() as *mut _ as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
 
     let result = eval_errcode(errcode, result, "clGetSamplerInfo", None::<String>)?;
     SamplerInfoResult::from_bytes(request, result)
@@ -1656,11 +1878,9 @@ pub fn get_sampler_info(obj: &Sampler, request: SamplerInfo,
 //============================================================================
 
 /// Creates a new program.
-pub fn create_program_with_source<C>(
-            context: C,
-            src_strings: &[CString],
-        ) -> OclCoreResult<Program>
-        where C: ClContextPtr
+pub fn create_program_with_source<C>(context: C, src_strings: &[CString]) -> OclCoreResult<Program>
+where
+    C: ClContextPtr,
 {
     // Verify that the context is valid:
     verify_context(context)?;
@@ -1673,18 +1893,24 @@ pub fn create_program_with_source<C>(
 
     let mut errcode: cl_int = 0;
 
-    let program_ptr = unsafe { ffi::clCreateProgramWithSource(
-        context.as_ptr(),
-        kern_string_ptrs.len() as cl_uint,
-        kern_string_ptrs.as_ptr() as *const *const _,
-        ks_lens.as_ptr() as *const usize,
-        &mut errcode,
-    ) };
+    let program_ptr = unsafe {
+        ffi::clCreateProgramWithSource(
+            context.as_ptr(),
+            kern_string_ptrs.len() as cl_uint,
+            kern_string_ptrs.as_ptr() as *const *const _,
+            ks_lens.as_ptr() as *const usize,
+            &mut errcode,
+        )
+    };
 
-    eval_errcode(errcode, program_ptr, "clCreateProgramWithSource", None::<String>)
-        .map(|ptr| unsafe { Program::from_raw_create_ptr(ptr) })
+    eval_errcode(
+        errcode,
+        program_ptr,
+        "clCreateProgramWithSource",
+        None::<String>,
+    )
+    .map(|ptr| unsafe { Program::from_raw_create_ptr(ptr) })
 }
-
 
 /// Creates a program object for a context, and loads the binary bits
 /// specified by binary into the program object.
@@ -1694,18 +1920,20 @@ pub fn create_program_with_source<C>(
 // [UNTESTED]
 ///
 pub fn create_program_with_binary<C, D>(
-            context: C,
-            devices: &[D],
-            binaries: &[&[u8]],
-        ) -> OclCoreResult<Program>
-        where C: ClContextPtr, D: ClDeviceIdPtr
+    context: C,
+    devices: &[D],
+    binaries: &[&[u8]],
+) -> OclCoreResult<Program>
+where
+    C: ClContextPtr,
+    D: ClDeviceIdPtr,
 {
     if devices.is_empty() {
-        return Err(ApiWrapperError::CreateProgramWithBinaryDevicesLenZero.into())
+        return Err(ApiWrapperError::CreateProgramWithBinaryDevicesLenZero.into());
     }
 
     if devices.len() != binaries.len() {
-        return Err(ApiWrapperError::CreateProgramWithBinaryDevicesLenMismatch.into())
+        return Err(ApiWrapperError::CreateProgramWithBinaryDevicesLenMismatch.into());
     }
 
     let lengths: Vec<usize> = binaries.iter().map(|bin| bin.len()).collect();
@@ -1714,20 +1942,27 @@ pub fn create_program_with_binary<C, D>(
 
     let ptrs = binaries.iter().map(|bin| bin.as_ptr()).collect::<Vec<_>>();
 
-    let program = unsafe { ffi::clCreateProgramWithBinary(
-        context.as_ptr(),
-        devices.len() as u32,
-        devices.as_ptr() as *const _ as *const cl_device_id,
-        lengths.as_ptr(),
-        ptrs.as_ptr() as *const *const u8,
-        binary_status.as_mut_ptr(),
-        &mut errcode,
-    ) };
+    let program = unsafe {
+        ffi::clCreateProgramWithBinary(
+            context.as_ptr(),
+            devices.len() as u32,
+            devices.as_ptr() as *const _ as *const cl_device_id,
+            lengths.as_ptr(),
+            ptrs.as_ptr() as *const *const u8,
+            binary_status.as_mut_ptr(),
+            &mut errcode,
+        )
+    };
 
     eval_errcode(errcode, (), "clCreateProgramWithBinary", None::<String>)?;
 
     for (i, item) in binary_status.iter().enumerate() {
-        eval_errcode(*item, (), "clCreateProgramWithBinary", Some(format!("Device [{}]", i)))?;
+        eval_errcode(
+            *item,
+            (),
+            "clCreateProgramWithBinary",
+            Some(format!("Device [{}]", i)),
+        )?;
     }
 
     unsafe { Ok(Program::from_raw_create_ptr(program)) }
@@ -1736,14 +1971,15 @@ pub fn create_program_with_binary<C, D>(
 /// [UNIMPLEMENTED: Please implement me]
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
-pub fn create_program_with_built_in_kernels(device_version: Option<&OpenclVersion>)
-            -> OclCoreResult<()> {
+pub fn create_program_with_built_in_kernels(
+    device_version: Option<&OpenclVersion>,
+) -> OclCoreResult<()> {
     // clCreateProgramWithBuiltInKernels(context: cl_context,
     //                                  num_devices: cl_uint,
     //                                  device_list: *const cl_device_id,
     //                                  kernel_names: *mut char,
     //                                  errcode_ret: *mut cl_int) -> cl_program;
-    let _ =  device_version;
+    let _ = device_version;
     unimplemented!();
 }
 
@@ -1752,35 +1988,58 @@ pub fn create_program_with_built_in_kernels(device_version: Option<&OpenclVersio
 /// [Version Controlled: OpenCL 2.1+] See module docs for more info.
 #[cfg(feature = "opencl_version_2_1")]
 pub fn create_program_with_il<C>(
-        context: C,
-        il: &[u8],
-        device_versions: Option<&[OpenclVersion]>,
-        ) -> OclCoreResult<Program>
-        where C: ClContextPtr + ClVersions
+    context: C,
+    il: &[u8],
+    device_versions: Option<&[OpenclVersion]>,
+) -> OclCoreResult<Program>
+where
+    C: ClContextPtr + ClVersions,
 {
-    verify_device_versions(device_versions, [2, 1], &context, ApiFunction::CreateProgramWithIl)?;
+    verify_device_versions(
+        device_versions,
+        [2, 1],
+        &context,
+        ApiFunction::CreateProgramWithIl,
+    )?;
 
     let mut errcode: cl_int = 0;
 
-    let program_ptr = unsafe { ffi::clCreateProgramWithIL(
-        context.as_ptr(),
-        il.as_ptr() as *mut c_void,
-        il.len(),
-        &mut errcode,
-    ) };
+    let program_ptr = unsafe {
+        ffi::clCreateProgramWithIL(
+            context.as_ptr(),
+            il.as_ptr() as *mut c_void,
+            il.len(),
+            &mut errcode,
+        )
+    };
 
-    eval_errcode(errcode, program_ptr, "clCreateProgramWithIL", None::<String>)
-        .map(|ptr| unsafe { Program::from_raw_create_ptr(ptr) })
+    eval_errcode(
+        errcode,
+        program_ptr,
+        "clCreateProgramWithIL",
+        None::<String>,
+    )
+    .map(|ptr| unsafe { Program::from_raw_create_ptr(ptr) })
 }
 
 /// Increments a program reference counter.
 pub unsafe fn retain_program(program: &Program) -> OclCoreResult<()> {
-    eval_errcode(ffi::clRetainProgram(program.as_ptr()), (), "clRetainProgram", None::<String>)
+    eval_errcode(
+        ffi::clRetainProgram(program.as_ptr()),
+        (),
+        "clRetainProgram",
+        None::<String>,
+    )
 }
 
 /// Decrements a program reference counter.
 pub unsafe fn release_program(program: &Program) -> OclCoreResult<()> {
-    eval_errcode(ffi::clReleaseProgram(program.as_ptr()), (), "clReleaseKernel", None::<String>)
+    eval_errcode(
+        ffi::clReleaseProgram(program.as_ptr()),
+        (),
+        "clReleaseKernel",
+        None::<String>,
+    )
 }
 
 pub struct UserDataPh(usize);
@@ -1800,15 +2059,16 @@ impl UserDataPh {
 // [NOTE]: Despite what the spec says, some platforms segfault when `null` is
 // passed for `devices_ptr`.
 pub fn build_program<D: ClDeviceIdPtr>(
-            program: &Program,
-            devices: Option<&[D]>,
-            options: &CString,
-            pfn_notify: Option<BuildProgramCallbackFn>,
-            user_data: Option<Box<UserDataPh>>,
-        ) -> OclCoreResult<()>
-{
-    assert!(pfn_notify.is_none() && user_data.is_none(),
-        "ocl::core::build_program(): Callback functions not yet implemented.");
+    program: &Program,
+    devices: Option<&[D]>,
+    options: &CString,
+    pfn_notify: Option<BuildProgramCallbackFn>,
+    user_data: Option<Box<UserDataPh>>,
+) -> OclCoreResult<()> {
+    assert!(
+        pfn_notify.is_none() && user_data.is_none(),
+        "ocl::core::build_program(): Callback functions not yet implemented."
+    );
 
     let device_ptrs = DevicePtrList::from(devices);
 
@@ -1817,14 +2077,16 @@ pub fn build_program<D: ClDeviceIdPtr>(
         None => ptr::null_mut(),
     };
 
-    let errcode = unsafe { ffi::clBuildProgram(
-        program.as_ptr() as cl_program,
-        device_ptrs.num(),
-        device_ptrs.as_ptr(),
-        options.as_ptr(),
-        pfn_notify,
-        user_data,
-    ) };
+    let errcode = unsafe {
+        ffi::clBuildProgram(
+            program.as_ptr() as cl_program,
+            device_ptrs.num(),
+            device_ptrs.as_ptr(),
+            options.as_ptr(),
+            pfn_notify,
+            user_data,
+        )
+    };
 
     if errcode == Status::CL_BUILD_PROGRAM_FAILURE as i32 {
         if let Some(ds) = devices {
@@ -1844,20 +2106,26 @@ pub fn build_program<D: ClDeviceIdPtr>(
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 #[cfg(feature = "opencl_version_1_2")]
 pub fn compile_program<D: ClDeviceIdPtr>(
-            program: &Program,
-            devices: Option<&[D]>,
-            options: &CString,
-            input_headers: &[&Program],
-            header_include_names: &[CString],
-            pfn_notify: Option<BuildProgramCallbackFn>,
-            user_data: Option<Box<UserDataPh>>,
-            device_versions: Option<&[OpenclVersion]>,
-        ) -> OclCoreResult<()>
-{
-    verify_device_versions(device_versions, [1, 2], program, ApiFunction::CompileProgram)?;
+    program: &Program,
+    devices: Option<&[D]>,
+    options: &CString,
+    input_headers: &[&Program],
+    header_include_names: &[CString],
+    pfn_notify: Option<BuildProgramCallbackFn>,
+    user_data: Option<Box<UserDataPh>>,
+    device_versions: Option<&[OpenclVersion]>,
+) -> OclCoreResult<()> {
+    verify_device_versions(
+        device_versions,
+        [1, 2],
+        program,
+        ApiFunction::CompileProgram,
+    )?;
 
-    assert!(pfn_notify.is_none() && user_data.is_none(),
-        "ocl::core::compile_program(): Callback functions not yet implemented.");
+    assert!(
+        pfn_notify.is_none() && user_data.is_none(),
+        "ocl::core::compile_program(): Callback functions not yet implemented."
+    );
 
     assert!(input_headers.len() == header_include_names.len(),
         "ocl::core::compile_program(): Length of input_headers and header_include_names should be equal.");
@@ -1865,7 +2133,8 @@ pub fn compile_program<D: ClDeviceIdPtr>(
     let device_ptrs = DevicePtrList::new(devices);
 
     let input_hdrs_ptrs: Vec<_> = input_headers.iter().map(|cs| cs.as_ptr()).collect();
-    let hdrs_names_ptrs: Vec<*const _> = header_include_names.iter().map(|cs| cs.as_ptr()).collect();
+    let hdrs_names_ptrs: Vec<*const _> =
+        header_include_names.iter().map(|cs| cs.as_ptr()).collect();
 
     // Will crash if ptrs is not NULL, but len is 0
     let (input_ptr, names_ptr) = if input_headers.is_empty() {
@@ -1879,17 +2148,19 @@ pub fn compile_program<D: ClDeviceIdPtr>(
         None => ptr::null_mut(),
     };
 
-    let errcode = unsafe { ffi::clCompileProgram(
-        program.as_ptr() as cl_program,
-        device_ptrs.num(),
-        device_ptrs.as_ptr(),
-        options.as_ptr(),
-        input_hdrs_ptrs.len() as cl_uint,
-        input_ptr as *const cl_program,
-        names_ptr as *const *const _,
-        pfn_notify,
-        user_data,
-    ) };
+    let errcode = unsafe {
+        ffi::clCompileProgram(
+            program.as_ptr() as cl_program,
+            device_ptrs.num(),
+            device_ptrs.as_ptr(),
+            options.as_ptr(),
+            input_hdrs_ptrs.len() as cl_uint,
+            input_ptr as *const cl_program,
+            names_ptr as *const *const _,
+            pfn_notify,
+            user_data,
+        )
+    };
 
     if errcode == Status::CL_COMPILE_PROGRAM_FAILURE as i32 {
         if let Some(ds) = devices {
@@ -1909,20 +2180,26 @@ pub fn compile_program<D: ClDeviceIdPtr>(
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 #[cfg(feature = "opencl_version_1_2")]
 pub fn link_program<D: ClDeviceIdPtr, C: ClContextPtr>(
-            context: C,
-            devices: Option<&[D]>,
-            options: &CString,
-            input_programs: &[&Program],
-            pfn_notify: Option<BuildProgramCallbackFn>,
-            user_data: Option<Box<UserDataPh>>,
-            device_versions: Option<&[OpenclVersion]>,
-        ) -> OclCoreResult<Program>
-{
+    context: C,
+    devices: Option<&[D]>,
+    options: &CString,
+    input_programs: &[&Program],
+    pfn_notify: Option<BuildProgramCallbackFn>,
+    user_data: Option<Box<UserDataPh>>,
+    device_versions: Option<&[OpenclVersion]>,
+) -> OclCoreResult<Program> {
     verify_context(context)?;
-    verify_device_versions(device_versions, [1, 2], &context.as_ptr(), ApiFunction::LinkProgram)?;
+    verify_device_versions(
+        device_versions,
+        [1, 2],
+        &context.as_ptr(),
+        ApiFunction::LinkProgram,
+    )?;
 
-    assert!(pfn_notify.is_none() && user_data.is_none(),
-        "ocl::core::link_program(): Callback functions not yet implemented.");
+    assert!(
+        pfn_notify.is_none() && user_data.is_none(),
+        "ocl::core::link_program(): Callback functions not yet implemented."
+    );
 
     let device_ptrs = DevicePtrList::new(devices);
 
@@ -1935,17 +2212,19 @@ pub fn link_program<D: ClDeviceIdPtr, C: ClContextPtr>(
 
     let mut errcode: cl_int = 0;
 
-    let program_ptr = unsafe { ffi::clLinkProgram(
-        context.as_ptr(),
-        device_ptrs.num(),
-        device_ptrs.as_ptr(),
-        options.as_ptr(),
-        input_programs_ptrs.len() as cl_uint,
-        input_programs_ptrs.as_ptr() as *const cl_program,
-        pfn_notify,
-        user_data,
-        &mut errcode,
-    ) };
+    let program_ptr = unsafe {
+        ffi::clLinkProgram(
+            context.as_ptr(),
+            device_ptrs.num(),
+            device_ptrs.as_ptr(),
+            options.as_ptr(),
+            input_programs_ptrs.len() as cl_uint,
+            input_programs_ptrs.as_ptr() as *const cl_program,
+            pfn_notify,
+            user_data,
+            &mut errcode,
+        )
+    };
 
     eval_errcode(errcode, program_ptr, "clLinkProgram", None::<String>)
         .map(|ptr| unsafe { Program::from_raw_create_ptr(ptr) })
@@ -1962,17 +2241,18 @@ pub fn link_program<D: ClDeviceIdPtr, C: ClContextPtr>(
 //         ffi::clUnloadPlatformCompiler(platform.as_ptr())) }
 // }
 
-
 fn get_program_info_raw(program: &Program, request: ProgramInfo) -> OclCoreResult<Vec<u8>> {
     let mut result_size: size_t = 0;
 
-    let errcode = unsafe { ffi::clGetProgramInfo(
-        program.as_ptr() as cl_program,
-        request as cl_program_info,
-        0 as size_t,
-        ptr::null_mut(),
-        &mut result_size as *mut size_t,
-    ) };
+    let errcode = unsafe {
+        ffi::clGetProgramInfo(
+            program.as_ptr() as cl_program,
+            request as cl_program_info,
+            0 as size_t,
+            ptr::null_mut(),
+            &mut result_size as *mut size_t,
+        )
+    };
 
     eval_errcode(errcode, (), "clGetProgramInfo", None::<String>)?;
 
@@ -1983,13 +2263,15 @@ fn get_program_info_raw(program: &Program, request: ProgramInfo) -> OclCoreResul
 
     let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
-    let errcode = unsafe { ffi::clGetProgramInfo(
-        program.as_ptr() as cl_program,
-        request as cl_program_info,
-        result_size,
-        result.as_mut_ptr() as *mut _ as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetProgramInfo(
+            program.as_ptr() as cl_program,
+            request as cl_program_info,
+            result_size,
+            result.as_mut_ptr() as *mut _ as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
 
     eval_errcode(errcode, result, "clGetProgramInfo", None::<String>)
 }
@@ -2000,52 +2282,60 @@ fn get_program_info_binaries(program: &Program) -> OclCoreResult<Vec<Vec<u8>>> {
     let binary_sizes_raw = get_program_info_raw(program, ProgramInfo::BinarySizes)?;
     let binary_sizes = unsafe { crate::util::bytes_into_vec::<usize>(binary_sizes_raw)? };
 
-    let binaries = binary_sizes.into_iter().map(|size| {
-        vec![0u8; size]
-    }).collect::<Vec<Vec<u8>>>();
+    let binaries = binary_sizes
+        .into_iter()
+        .map(|size| vec![0u8; size])
+        .collect::<Vec<Vec<u8>>>();
 
-    let mut binary_ptrs = binaries.iter().map(|vec| {
-        vec.as_ptr()
-    }).collect::<Vec<_>>();
+    let mut binary_ptrs = binaries.iter().map(|vec| vec.as_ptr()).collect::<Vec<_>>();
 
-    let errcode = unsafe { ffi::clGetProgramInfo(
-        program.as_ptr() as cl_program,
-        ProgramInfo::Binaries as cl_program_info,
-        mem::size_of::<*mut c_void>() * binary_ptrs.len(),
-        binary_ptrs.as_mut_ptr() as *mut _ as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetProgramInfo(
+            program.as_ptr() as cl_program,
+            ProgramInfo::Binaries as cl_program_info,
+            mem::size_of::<*mut c_void>() * binary_ptrs.len(),
+            binary_ptrs.as_mut_ptr() as *mut _ as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
 
     eval_errcode(errcode, binaries, "clGetProgramInfo", None::<String>)
 }
 
 /// Get program info.
-pub fn get_program_info(program: &Program, request: ProgramInfo) -> OclCoreResult<ProgramInfoResult> {
+pub fn get_program_info(
+    program: &Program,
+    request: ProgramInfo,
+) -> OclCoreResult<ProgramInfoResult> {
     match request {
         ProgramInfo::Binaries => {
             get_program_info_binaries(program).map(ProgramInfoResult::Binaries)
-        },
+        }
         _ => {
             let result = get_program_info_raw(program, request)?;
             ProgramInfoResult::from_bytes(request, result)
-        },
+        }
     }
 }
 
 /// Get program build info.
-pub fn get_program_build_info<D: ClDeviceIdPtr + fmt::Debug>(obj: &Program, device_obj: D,
-            request: ProgramBuildInfo) -> OclCoreResult<ProgramBuildInfoResult>
-{
+pub fn get_program_build_info<D: ClDeviceIdPtr + fmt::Debug>(
+    obj: &Program,
+    device_obj: D,
+    request: ProgramBuildInfo,
+) -> OclCoreResult<ProgramBuildInfoResult> {
     let mut result_size: size_t = 0;
 
-    let errcode = unsafe { ffi::clGetProgramBuildInfo(
-        obj.as_ptr() as cl_program,
-        device_obj.as_ptr() as cl_device_id,
-        request as cl_program_build_info,
-        0 as size_t,
-        ptr::null_mut(),
-        &mut result_size as *mut size_t,
-    ) };
+    let errcode = unsafe {
+        ffi::clGetProgramBuildInfo(
+            obj.as_ptr() as cl_program,
+            device_obj.as_ptr() as cl_device_id,
+            request as cl_program_build_info,
+            0 as size_t,
+            ptr::null_mut(),
+            &mut result_size as *mut size_t,
+        )
+    };
 
     eval_errcode(errcode, (), "clGetProgramBuildInfo", None::<String>)?;
 
@@ -2056,14 +2346,16 @@ pub fn get_program_build_info<D: ClDeviceIdPtr + fmt::Debug>(obj: &Program, devi
 
     let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
-    let errcode = unsafe { ffi::clGetProgramBuildInfo(
-        obj.as_ptr() as cl_program,
-        device_obj.as_ptr() as cl_device_id,
-        request as cl_program_build_info,
-        result_size as size_t,
-        result.as_mut_ptr() as *mut _ as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetProgramBuildInfo(
+            obj.as_ptr() as cl_program,
+            device_obj.as_ptr() as cl_device_id,
+            request as cl_program_build_info,
+            result_size as size_t,
+            result.as_mut_ptr() as *mut _ as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
 
     let result = eval_errcode(errcode, result, "clGetProgramBuildInfo", None::<String>)?;
     ProgramBuildInfoResult::from_bytes(request, result)
@@ -2100,14 +2392,23 @@ pub fn create_kernels_in_program() -> OclCoreResult<()> {
 
 /// Increments a kernel reference counter.
 pub unsafe fn retain_kernel(kernel: &Kernel) -> OclCoreResult<()> {
-    eval_errcode(ffi::clRetainKernel(kernel.as_ptr()), (), "clRetainKernel", None::<String>)
+    eval_errcode(
+        ffi::clRetainKernel(kernel.as_ptr()),
+        (),
+        "clRetainKernel",
+        None::<String>,
+    )
 }
 
 /// Decrements a kernel reference counter.
 pub unsafe fn release_kernel(kernel: &Kernel) -> OclCoreResult<()> {
-    eval_errcode(ffi::clReleaseKernel(kernel.as_ptr()), (), "clReleaseKernel", None::<String>)
+    eval_errcode(
+        ffi::clReleaseKernel(kernel.as_ptr()),
+        (),
+        "clReleaseKernel",
+        None::<String>,
+    )
 }
-
 
 /// Sets the argument value for the kernel argument at `index`.
 ///
@@ -2120,17 +2421,10 @@ pub unsafe fn release_kernel(kernel: &Kernel) -> OclCoreResult<()> {
 /// ```
 ///
 /// [SDK Documentation](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html)
-pub fn set_kernel_arg(kernel: &Kernel, index: u32, arg_val: ArgVal)
-        -> OclCoreResult<()>
-{
+pub fn set_kernel_arg(kernel: &Kernel, index: u32, arg_val: ArgVal) -> OclCoreResult<()> {
     let (size, value) = arg_val.as_raw();
 
-    let err = unsafe { ffi::clSetKernelArg(
-            kernel.as_ptr(),
-            index,
-            size,
-            value,
-    ) };
+    let err = unsafe { ffi::clSetKernelArg(kernel.as_ptr(), index, size, value) };
 
     if err != Status::CL_SUCCESS as i32 {
         let name = get_kernel_name(kernel)?;
@@ -2144,13 +2438,15 @@ pub fn set_kernel_arg(kernel: &Kernel, index: u32, arg_val: ArgVal)
 pub fn get_kernel_info(obj: &Kernel, request: KernelInfo) -> OclCoreResult<KernelInfoResult> {
     let mut result_size: size_t = 0;
 
-    let errcode = unsafe { ffi::clGetKernelInfo(
-        obj.as_ptr() as cl_kernel,
-        request as cl_kernel_info,
-        0 as size_t,
-        ptr::null_mut(),
-        &mut result_size as *mut size_t,
-    ) };
+    let errcode = unsafe {
+        ffi::clGetKernelInfo(
+            obj.as_ptr() as cl_kernel,
+            request as cl_kernel_info,
+            0 as size_t,
+            ptr::null_mut(),
+            &mut result_size as *mut size_t,
+        )
+    };
 
     eval_errcode(errcode, (), "clGetKernelInfo", None::<String>)?;
 
@@ -2161,13 +2457,15 @@ pub fn get_kernel_info(obj: &Kernel, request: KernelInfo) -> OclCoreResult<Kerne
 
     let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
-    let errcode = unsafe { ffi::clGetKernelInfo(
-        obj.as_ptr() as cl_kernel,
-        request as cl_kernel_info,
-        result_size,
-        result.as_mut_ptr() as *mut _ as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetKernelInfo(
+            obj.as_ptr() as cl_kernel,
+            request as cl_kernel_info,
+            result_size,
+            result.as_mut_ptr() as *mut _ as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
 
     let result = eval_errcode(errcode, result, "clGetKernelInfo", None::<String>)?;
     KernelInfoResult::from_bytes(request, result)
@@ -2176,9 +2474,12 @@ pub fn get_kernel_info(obj: &Kernel, request: KernelInfo) -> OclCoreResult<Kerne
 /// Get kernel arg info.
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
-pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
-        device_versions: Option<&[OpenclVersion]>) -> OclCoreResult<KernelArgInfoResult>
-{
+pub fn get_kernel_arg_info(
+    obj: &Kernel,
+    arg_index: u32,
+    request: KernelArgInfo,
+    device_versions: Option<&[OpenclVersion]>,
+) -> OclCoreResult<KernelArgInfoResult> {
     // Verify device version:
     // if let Err(err) = verify_device_versions(device_versions, [1, 2], obj,
     //         ApiFunction::GetKernelArgInfo) {
@@ -2190,14 +2491,16 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
 
     let mut result_size: size_t = 0;
 
-    let errcode = unsafe { ffi::clGetKernelArgInfo(
-        obj.as_ptr() as cl_kernel,
-        arg_index as cl_uint,
-        request as cl_kernel_arg_info,
-        0 as size_t,
-        ptr::null_mut(),
-        &mut result_size as *mut size_t,
-    ) };
+    let errcode = unsafe {
+        ffi::clGetKernelArgInfo(
+            obj.as_ptr() as cl_kernel,
+            arg_index as cl_uint,
+            request as cl_kernel_arg_info,
+            0 as size_t,
+            ptr::null_mut(),
+            &mut result_size as *mut size_t,
+        )
+    };
 
     // try!(eval_errcode(errcode, result, "clGetKernelArgInfo", None::<String>));
     // if let Err(err) = eval_errcode(errcode, (), "clGetKernelArgInfo", None::<String>) {
@@ -2212,40 +2515,46 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
 
     let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
-    let errcode = unsafe { ffi::clGetKernelArgInfo(
-        obj.as_ptr() as cl_kernel,
-        arg_index as cl_uint,
-        request as cl_kernel_arg_info,
-        result_size,
-        result.as_mut_ptr() as *mut _ as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetKernelArgInfo(
+            obj.as_ptr() as cl_kernel,
+            arg_index as cl_uint,
+            request as cl_kernel_arg_info,
+            result_size,
+            result.as_mut_ptr() as *mut _ as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
 
     let result = eval_errcode(errcode, result, "clGetKernelArgInfo", None::<String>)?;
     KernelArgInfoResult::from_bytes(request, result)
 }
 
 /// Get kernel work group info.
-pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: D,
-            request: KernelWorkGroupInfo) -> OclCoreResult<KernelWorkGroupInfoResult>
-{
+pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(
+    obj: &Kernel,
+    device_obj: D,
+    request: KernelWorkGroupInfo,
+) -> OclCoreResult<KernelWorkGroupInfoResult> {
     let mut result_size: size_t = 0;
 
-    let errcode = unsafe { ffi::clGetKernelWorkGroupInfo(
-        obj.as_ptr() as cl_kernel,
-        device_obj.as_ptr() as cl_device_id,
-        request as cl_kernel_work_group_info,
-        0 as size_t,
-        ptr::null_mut(),
-        &mut result_size as *mut size_t,
-    ) };
+    let errcode = unsafe {
+        ffi::clGetKernelWorkGroupInfo(
+            obj.as_ptr() as cl_kernel,
+            device_obj.as_ptr() as cl_device_id,
+            request as cl_kernel_work_group_info,
+            0 as size_t,
+            ptr::null_mut(),
+            &mut result_size as *mut size_t,
+        )
+    };
 
     // Make printing certain platform-specific errors less scary looking:
     if let Err(err) = eval_errcode(errcode, (), "clGetKernelWorkGroupInfo", None::<String>) {
         if let Some(status) = err.api_status() {
             // NVIDIA / APPLE (i think):
-            if request == KernelWorkGroupInfo::GlobalWorkSize &&
-                    status == Status::CL_INVALID_VALUE {
+            if request == KernelWorkGroupInfo::GlobalWorkSize && status == Status::CL_INVALID_VALUE
+            {
                 return Ok(KernelWorkGroupInfoResult::CustomBuiltinOnly);
             }
 
@@ -2265,14 +2574,16 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: D,
 
     let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
-    let errcode = unsafe { ffi::clGetKernelWorkGroupInfo(
-        obj.as_ptr() as cl_kernel,
-        device_obj.as_ptr() as cl_device_id,
-        request as cl_kernel_work_group_info,
-        result_size,
-        result.as_mut_ptr() as *mut _ as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetKernelWorkGroupInfo(
+            obj.as_ptr() as cl_kernel,
+            device_obj.as_ptr() as cl_device_id,
+            request as cl_kernel_work_group_info,
+            result_size,
+            result.as_mut_ptr() as *mut _ as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
 
     let result = eval_errcode(errcode, result, "clGetKernelWorkGroupInfo", None::<String>)?;
     KernelWorkGroupInfoResult::from_bytes(request, result)
@@ -2286,24 +2597,27 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: D,
 pub fn wait_for_events(num_events: u32, event_list: &dyn ClWaitListPtr) -> OclCoreResult<()> {
     assert!(event_list.count() >= num_events);
 
-    let errcode = unsafe {
-        ffi::clWaitForEvents(num_events, event_list.as_ptr_ptr())
-    };
+    let errcode = unsafe { ffi::clWaitForEvents(num_events, event_list.as_ptr_ptr()) };
 
     eval_errcode(errcode, (), "clWaitForEvents", None::<String>)
 }
 
 /// Get event info.
-pub fn get_event_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request: EventInfo) -> OclCoreResult<EventInfoResult> {
+pub fn get_event_info<'e, E: ClEventPtrRef<'e>>(
+    event: &'e E,
+    request: EventInfo,
+) -> OclCoreResult<EventInfoResult> {
     let mut result_size: size_t = 0;
 
-    let errcode = unsafe { ffi::clGetEventInfo(
-        *event.as_ptr_ref(),
-        request as cl_event_info,
-        0 as size_t,
-        ptr::null_mut(),
-        &mut result_size as *mut size_t,
-    ) };
+    let errcode = unsafe {
+        ffi::clGetEventInfo(
+            *event.as_ptr_ref(),
+            request as cl_event_info,
+            0 as size_t,
+            ptr::null_mut(),
+            &mut result_size as *mut size_t,
+        )
+    };
 
     eval_errcode(errcode, (), "clGetEventInfo", None::<String>)?;
 
@@ -2314,13 +2628,15 @@ pub fn get_event_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request: EventInfo
 
     let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
-    let errcode = unsafe { ffi::clGetEventInfo(
-        *event.as_ptr_ref(),
-        request as cl_event_info,
-        result_size,
-        result.as_mut_ptr() as *mut _ as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetEventInfo(
+            *event.as_ptr_ref(),
+            request as cl_event_info,
+            result_size,
+            result.as_mut_ptr() as *mut _ as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
 
     let result = eval_errcode(errcode, result, "clGetEventInfo", None::<String>)?;
     EventInfoResult::from_bytes(request, result)
@@ -2328,21 +2644,34 @@ pub fn get_event_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request: EventInfo
 
 /// Creates an event not already associated with any command.
 pub fn create_user_event<C>(context: C) -> OclCoreResult<Event>
-        where C: ClContextPtr
+where
+    C: ClContextPtr,
 {
     let mut errcode = 0;
-    let event = unsafe { Event::from_raw_create_ptr(ffi::clCreateUserEvent(context.as_ptr(), &mut errcode)) };
+    let event = unsafe {
+        Event::from_raw_create_ptr(ffi::clCreateUserEvent(context.as_ptr(), &mut errcode))
+    };
     eval_errcode(errcode, event, "clCreateUserEvent", None::<String>)
 }
 
 /// Increments an event's reference counter.
 pub unsafe fn retain_event<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclCoreResult<()> {
-    eval_errcode(ffi::clRetainEvent(*event.as_ptr_ref()), (), "clRetainEvent", None::<String>)
+    eval_errcode(
+        ffi::clRetainEvent(*event.as_ptr_ref()),
+        (),
+        "clRetainEvent",
+        None::<String>,
+    )
 }
 
 /// Decrements an event's reference counter.
 pub unsafe fn release_event<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclCoreResult<()> {
-    eval_errcode(ffi::clReleaseEvent(*event.as_ptr_ref()), (), "clReleaseEvent", None::<String>)
+    eval_errcode(
+        ffi::clReleaseEvent(*event.as_ptr_ref()),
+        (),
+        "clReleaseEvent",
+        None::<String>,
+    )
 }
 
 /// Updates a user events status.
@@ -2364,15 +2693,23 @@ pub unsafe fn release_event<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclCoreRe
 /// `::Complete`. Everything else is functionally equivalent and is useful
 /// only for debugging or profiling purposes (this may change in the future).
 ///
-pub fn set_user_event_status<'e,E: ClEventPtrRef<'e>>(event: &'e E,
-            execution_status: CommandExecutionStatus) -> OclCoreResult<()>
-{
+pub fn set_user_event_status<'e, E: ClEventPtrRef<'e>>(
+    event: &'e E,
+    execution_status: CommandExecutionStatus,
+) -> OclCoreResult<()> {
     unsafe {
         #[cfg(feature = "event_debug_print")]
-        println!("::set_user_event_status: Setting user event status for event: {:?}", *event.as_ptr_ref());
+        println!(
+            "::set_user_event_status: Setting user event status for event: {:?}",
+            *event.as_ptr_ref()
+        );
 
-        eval_errcode(ffi::clSetUserEventStatus(*event.as_ptr_ref(), execution_status as cl_int),
-            (), "clSetUserEventStatus", None::<String>)
+        eval_errcode(
+            ffi::clSetUserEventStatus(*event.as_ptr_ref(), execution_status as cl_int),
+            (),
+            "clSetUserEventStatus",
+            None::<String>,
+        )
     }
 }
 
@@ -2384,18 +2721,22 @@ pub fn set_user_event_status<'e,E: ClEventPtrRef<'e>>(event: &'e E,
 ///
 ///
 pub unsafe fn set_event_callback<'e, E: ClEventPtrRef<'e>>(
-            event: &'e E,
-            callback_trigger: CommandExecutionStatus,
-            callback_receiver: Option<EventCallbackFn>,
-            user_data: *mut c_void,
-        ) -> OclCoreResult<()>
-{
-    eval_errcode(ffi::clSetEventCallback(
-        *event.as_ptr_ref(),
-        callback_trigger as cl_int,
-        callback_receiver,
-        user_data,
-    ), (), "clSetEventCallback", None::<String>)
+    event: &'e E,
+    callback_trigger: CommandExecutionStatus,
+    callback_receiver: Option<EventCallbackFn>,
+    user_data: *mut c_void,
+) -> OclCoreResult<()> {
+    eval_errcode(
+        ffi::clSetEventCallback(
+            *event.as_ptr_ref(),
+            callback_trigger as cl_int,
+            callback_receiver,
+            user_data,
+        ),
+        (),
+        "clSetEventCallback",
+        None::<String>,
+    )
 }
 
 //============================================================================
@@ -2403,20 +2744,24 @@ pub unsafe fn set_event_callback<'e, E: ClEventPtrRef<'e>>(
 //============================================================================
 
 /// Get event profiling info (for debugging / benchmarking).
-pub fn get_event_profiling_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request: ProfilingInfo)
-        -> OclCoreResult<ProfilingInfoResult> {
+pub fn get_event_profiling_info<'e, E: ClEventPtrRef<'e>>(
+    event: &'e E,
+    request: ProfilingInfo,
+) -> OclCoreResult<ProfilingInfoResult> {
     // Apple compatibile value:
     let max_result_size_bytes = 8;
     let mut result_size: size_t = 0;
     let event: cl_event = unsafe { *event.as_ptr_ref() };
 
-    let errcode = unsafe { ffi::clGetEventProfilingInfo(
-        event,
-        request as cl_profiling_info,
-        max_result_size_bytes,
-        ptr::null_mut(),
-        &mut result_size as *mut size_t,
-    ) };
+    let errcode = unsafe {
+        ffi::clGetEventProfilingInfo(
+            event,
+            request as cl_profiling_info,
+            max_result_size_bytes,
+            ptr::null_mut(),
+            &mut result_size as *mut size_t,
+        )
+    };
 
     // Make sure our assumption about the maximum value was correct:
     assert!(result_size <= max_result_size_bytes);
@@ -2424,7 +2769,9 @@ pub fn get_event_profiling_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request:
     // Don't generate a full error report for `CL_INVALID_VALUE` it just means
     // that event profiling info is not available on this platform.
     if errcode < 0 && Status::from_i32(errcode).unwrap() == Status::CL_INVALID_VALUE {
-        return Err(OclCoreError::String("<unavailable (CL_INVALID_VALUE)>".to_string()));
+        return Err(OclCoreError::String(
+            "<unavailable (CL_INVALID_VALUE)>".to_string(),
+        ));
     }
 
     eval_errcode(errcode, (), "clGetEventProfilingInfo", None::<String>)?;
@@ -2436,13 +2783,15 @@ pub fn get_event_profiling_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request:
 
     let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
-    let errcode = unsafe { ffi::clGetEventProfilingInfo(
-        event,
-        request as cl_profiling_info,
-        result_size,
-        result.as_mut_ptr() as *mut _ as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetEventProfilingInfo(
+            event,
+            request as cl_profiling_info,
+            result_size,
+            result.as_mut_ptr() as *mut _ as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
 
     let result = eval_errcode(errcode, result, "clGetEventProfilingInfo", None::<String>)?;
     ProfilingInfoResult::from_bytes(request, result)
@@ -2457,7 +2806,14 @@ pub fn get_event_profiling_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request:
 /// Issues all previously queued OpenCL commands in a command-queue to the
 /// device associated with the command-queue.
 pub fn flush(command_queue: &CommandQueue) -> OclCoreResult<()> {
-    unsafe { eval_errcode(ffi::clFlush(command_queue.as_ptr()), (), "clFlush", None::<String>) }
+    unsafe {
+        eval_errcode(
+            ffi::clFlush(command_queue.as_ptr()),
+            (),
+            "clFlush",
+            None::<String>,
+        )
+    }
 }
 
 /// Waits for a queue to finish.
@@ -2488,18 +2844,21 @@ pub fn finish(command_queue: &CommandQueue) -> OclCoreResult<()> {
 /// [`core::EventList::get_clone`]: struct.EventList.html#method.last_clone
 ///
 pub unsafe fn enqueue_read_buffer<T, M, En, Ewl>(
-        command_queue: &CommandQueue,
-        buffer: M,
-        block: bool,
-        offset: usize,
-        data: &mut [T],
-        wait_list: Option<Ewl>,
-        new_event: Option<En>,
-        ) -> OclCoreResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
+    command_queue: &CommandQueue,
+    buffer: M,
+    block: bool,
+    offset: usize,
+    data: &mut [T],
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<()>
+where
+    T: OclPrm,
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+    M: AsMem<T> + MemCmdRw,
 {
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
     let offset_bytes = offset * mem::size_of::<T>();
 
@@ -2534,39 +2893,55 @@ pub unsafe fn enqueue_read_buffer<T, M, En, Ewl>(
 /// [`core::EventList::get_clone`]: struct.EventList.html#method.last_clone
 ///
 pub unsafe fn enqueue_read_buffer_rect<T, M, En, Ewl>(
-            command_queue: &CommandQueue,
-            buffer: M,
-            block: bool,
-            buffer_origin: [usize; 3],
-            host_origin: [usize; 3],
-            region: [usize; 3],
-            buffer_row_pitch_bytes: usize,
-            buffer_slc_pitch_bytes: usize,
-            host_row_pitch_bytes: usize,
-            host_slc_pitch_bytes: usize,
-            data: &mut [T],
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
+    command_queue: &CommandQueue,
+    buffer: M,
+    block: bool,
+    buffer_origin: [usize; 3],
+    host_origin: [usize; 3],
+    region: [usize; 3],
+    buffer_row_pitch_bytes: usize,
+    buffer_slc_pitch_bytes: usize,
+    host_row_pitch_bytes: usize,
+    host_slc_pitch_bytes: usize,
+    data: &mut [T],
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<()>
+where
+    T: OclPrm,
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+    M: AsMem<T> + MemCmdRw,
 {
-    let buffer_origin_bytes = [buffer_origin[0] * mem::size_of::<T>(),
-        buffer_origin[1], buffer_origin[2]];
-    let host_origin_bytes = [host_origin[0] * mem::size_of::<T>(),
-        host_origin[1], host_origin[2]];
+    let buffer_origin_bytes = [
+        buffer_origin[0] * mem::size_of::<T>(),
+        buffer_origin[1],
+        buffer_origin[2],
+    ];
+    let host_origin_bytes = [
+        host_origin[0] * mem::size_of::<T>(),
+        host_origin[1],
+        host_origin[2],
+    ];
     let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
 
     // DEBUG:
     if false {
-        println!("buffer_origin_bytes: {:?}, host_origin_bytes: {:?}, region_bytes: {:?}",
-            buffer_origin_bytes, host_origin_bytes, region_bytes);
-        println!("buffer_row_pitch_bytes: {}, buffer_slc_pitch_bytes: {}, \
+        println!(
+            "buffer_origin_bytes: {:?}, host_origin_bytes: {:?}, region_bytes: {:?}",
+            buffer_origin_bytes, host_origin_bytes, region_bytes
+        );
+        println!(
+            "buffer_row_pitch_bytes: {}, buffer_slc_pitch_bytes: {}, \
             host_row_pitch_bytes: {}, host_slc_pitch_bytes: {}",
-            buffer_row_pitch_bytes, buffer_slc_pitch_bytes, host_row_pitch_bytes, host_slc_pitch_bytes);
+            buffer_row_pitch_bytes,
+            buffer_slc_pitch_bytes,
+            host_row_pitch_bytes,
+            host_slc_pitch_bytes
+        );
     }
 
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
     let errcode = ffi::clEnqueueReadBufferRect(
         command_queue.as_ptr(),
@@ -2598,18 +2973,21 @@ pub unsafe fn enqueue_read_buffer_rect<T, M, En, Ewl>(
 /// an event list as `new_event`).
 ///
 pub unsafe fn enqueue_write_buffer<T, M, En, Ewl>(
-            command_queue: &CommandQueue,
-            buffer: M,
-            block: bool,
-            offset: usize,
-            data: &[T],
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
+    command_queue: &CommandQueue,
+    buffer: M,
+    block: bool,
+    offset: usize,
+    data: &[T],
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<()>
+where
+    T: OclPrm,
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+    M: AsMem<T> + MemCmdRw,
 {
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
     let offset_bytes = offset * mem::size_of::<T>();
 
@@ -2642,29 +3020,38 @@ pub unsafe fn enqueue_write_buffer<T, M, En, Ewl>(
 /// [SDK - clEnqueueWriteBufferRect]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueWriteBufferRect.html
 ///
 pub unsafe fn enqueue_write_buffer_rect<T, M, En, Ewl>(
-            command_queue: &CommandQueue,
-            buffer: M,
-            block: bool,
-            buffer_origin: [usize; 3],
-            host_origin: [usize; 3],
-            region: [usize; 3],
-            buffer_row_pitch_bytes: usize,
-            buffer_slc_pitch_bytes: usize,
-            host_row_pitch_bytes: usize,
-            host_slc_pitch_bytes: usize,
-            data: &[T],
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-    ) -> OclCoreResult<()>
-    where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
+    command_queue: &CommandQueue,
+    buffer: M,
+    block: bool,
+    buffer_origin: [usize; 3],
+    host_origin: [usize; 3],
+    region: [usize; 3],
+    buffer_row_pitch_bytes: usize,
+    buffer_slc_pitch_bytes: usize,
+    host_row_pitch_bytes: usize,
+    host_slc_pitch_bytes: usize,
+    data: &[T],
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<()>
+where
+    T: OclPrm,
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+    M: AsMem<T> + MemCmdRw,
 {
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
-    let buffer_origin_bytes = [buffer_origin[0] * mem::size_of::<T>(),
-        buffer_origin[1], buffer_origin[2]];
-    let host_origin_bytes = [host_origin[0] * mem::size_of::<T>(),
-        host_origin[1], host_origin[2]];
+    let buffer_origin_bytes = [
+        buffer_origin[0] * mem::size_of::<T>(),
+        buffer_origin[1],
+        buffer_origin[2],
+    ];
+    let host_origin_bytes = [
+        host_origin[0] * mem::size_of::<T>(),
+        host_origin[1],
+        host_origin[2],
+    ];
     let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
 
     let errcode = ffi::clEnqueueWriteBufferRect(
@@ -2691,74 +3078,88 @@ pub unsafe fn enqueue_write_buffer_rect<T, M, En, Ewl>(
 /// ## Pattern (from [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueFillBuffer.html))
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
-#[cfg(not(feature="opencl_vendor_mesa"))]
+#[cfg(not(feature = "opencl_vendor_mesa"))]
 pub fn enqueue_fill_buffer<T, M, En, Ewl>(
-            command_queue: &CommandQueue,
-            buffer: M,
-            pattern: T,
-            offset: usize,
-            len: usize,
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-            device_version: Option<&OpenclVersion>
-        ) -> OclCoreResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
+    command_queue: &CommandQueue,
+    buffer: M,
+    pattern: T,
+    offset: usize,
+    len: usize,
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+    device_version: Option<&OpenclVersion>,
+) -> OclCoreResult<()>
+where
+    T: OclPrm,
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+    M: AsMem<T> + MemCmdRw,
 {
-    verify_device_version(device_version, [1, 2], command_queue,
-            ApiFunction::EnqueueFillBuffer)?;
+    verify_device_version(
+        device_version,
+        [1, 2],
+        command_queue,
+        ApiFunction::EnqueueFillBuffer,
+    )?;
 
     let pattern_size = mem::size_of::<T>();
     let offset_bytes = offset * mem::size_of::<T>();
     let size_bytes = len * mem::size_of::<T>();
 
-    let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
-    let errcode = unsafe { ffi::clEnqueueFillBuffer(
-        command_queue.as_ptr(),
-        buffer.as_mem().as_ptr(),
-        &pattern as *const _ as *const c_void,
-        pattern_size,
-        offset_bytes,
-        size_bytes,
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr,
-    ) };
+    let errcode = unsafe {
+        ffi::clEnqueueFillBuffer(
+            command_queue.as_ptr(),
+            buffer.as_mem().as_ptr(),
+            &pattern as *const _ as *const c_void,
+            pattern_size,
+            offset_bytes,
+            size_bytes,
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        )
+    };
     eval_errcode(errcode, (), "clEnqueueFillBuffer", None::<String>)
 }
 
 /// Copies the contents of one buffer to another.
 pub fn enqueue_copy_buffer<T, M, En, Ewl>(
-            command_queue: &CommandQueue,
-            src_buffer: M,
-            dst_buffer: M,
-            src_offset: usize,
-            dst_offset: usize,
-            len: usize,
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
+    command_queue: &CommandQueue,
+    src_buffer: M,
+    dst_buffer: M,
+    src_offset: usize,
+    dst_offset: usize,
+    len: usize,
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<()>
+where
+    T: OclPrm,
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+    M: AsMem<T> + MemCmdAll,
 {
-    let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
     let src_offset_bytes = src_offset * mem::size_of::<T>();
     let dst_offset_bytes = dst_offset * mem::size_of::<T>();
     let len_bytes = len * mem::size_of::<T>();
 
-    let errcode = unsafe { ffi::clEnqueueCopyBuffer(
-        command_queue.as_ptr(),
-        src_buffer.as_mem().as_ptr(),
-        dst_buffer.as_mem().as_ptr(),
-        src_offset_bytes,
-        dst_offset_bytes,
-        len_bytes,
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr,
-    ) };
+    let errcode = unsafe {
+        ffi::clEnqueueCopyBuffer(
+            command_queue.as_ptr(),
+            src_buffer.as_mem().as_ptr(),
+            dst_buffer.as_mem().as_ptr(),
+            src_offset_bytes,
+            dst_offset_bytes,
+            len_bytes,
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        )
+    };
     eval_errcode(errcode, (), "clEnqueueCopyBuffer", None::<String>)
 }
 
@@ -2768,45 +3169,56 @@ pub fn enqueue_copy_buffer<T, M, En, Ewl>(
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyBufferRect.html)
 ///
 pub fn enqueue_copy_buffer_rect<T, M, En, Ewl>(
-            command_queue: &CommandQueue,
-            src_buffer: M,
-            dst_buffer: M,
-            src_origin: [usize; 3],
-            dst_origin: [usize; 3],
-            region: [usize; 3],
-            src_row_pitch_bytes: usize,
-            src_slc_pitch_bytes: usize,
-            dst_row_pitch_bytes: usize,
-            dst_slc_pitch_bytes: usize,
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
+    command_queue: &CommandQueue,
+    src_buffer: M,
+    dst_buffer: M,
+    src_origin: [usize; 3],
+    dst_origin: [usize; 3],
+    region: [usize; 3],
+    src_row_pitch_bytes: usize,
+    src_slc_pitch_bytes: usize,
+    dst_row_pitch_bytes: usize,
+    dst_slc_pitch_bytes: usize,
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<()>
+where
+    T: OclPrm,
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+    M: AsMem<T> + MemCmdAll,
 {
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
-    let src_origin_bytes = [src_origin[0] * mem::size_of::<T>(),
-        src_origin[1], src_origin[2]];
-    let dst_origin_bytes = [dst_origin[0] * mem::size_of::<T>(),
-        dst_origin[1], dst_origin[2]];
+    let src_origin_bytes = [
+        src_origin[0] * mem::size_of::<T>(),
+        src_origin[1],
+        src_origin[2],
+    ];
+    let dst_origin_bytes = [
+        dst_origin[0] * mem::size_of::<T>(),
+        dst_origin[1],
+        dst_origin[2],
+    ];
     let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
 
-    let errcode = unsafe { ffi::clEnqueueCopyBufferRect(
-        command_queue.as_ptr(),
-        src_buffer.as_mem().as_ptr(),
-        dst_buffer.as_mem().as_ptr(),
-        &src_origin_bytes as *const _ as *const usize,
-        &dst_origin_bytes as *const _ as *const usize,
-        &region_bytes as *const _ as *const usize,
-        src_row_pitch_bytes,
-        src_slc_pitch_bytes,
-        dst_row_pitch_bytes,
-        dst_slc_pitch_bytes,
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr,
-    ) };
+    let errcode = unsafe {
+        ffi::clEnqueueCopyBufferRect(
+            command_queue.as_ptr(),
+            src_buffer.as_mem().as_ptr(),
+            dst_buffer.as_mem().as_ptr(),
+            &src_origin_bytes as *const _ as *const usize,
+            &dst_origin_bytes as *const _ as *const usize,
+            &region_bytes as *const _ as *const usize,
+            src_row_pitch_bytes,
+            src_slc_pitch_bytes,
+            dst_row_pitch_bytes,
+            dst_slc_pitch_bytes,
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        )
+    };
     eval_errcode(errcode, (), "clEnqueueCopyBufferRect", None::<String>)
 }
 
@@ -2816,26 +3228,29 @@ pub fn enqueue_copy_buffer_rect<T, M, En, Ewl>(
 /// To create a slice from a single `Mem` reference without any cost, use
 /// something like: `unsafe { ::std::slice::from_raw_parts(&core_mem, 1) };`.
 ///
-#[cfg(not(feature="opencl_vendor_mesa"))]
+#[cfg(not(feature = "opencl_vendor_mesa"))]
 pub fn enqueue_acquire_gl_objects<En, Ewl>(
-            command_queue: &CommandQueue,
-            buffers: &[Mem],
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<()>
-        where En: ClNullEventPtr, Ewl: ClWaitListPtr
+    command_queue: &CommandQueue,
+    buffers: &[Mem],
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<()>
+where
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
 {
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
-    let errcode = unsafe { clEnqueueAcquireGLObjects(
-        command_queue.as_ptr(),
-        buffers.len() as u32,
-        buffers.as_ptr() as *const cl_mem,
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr
-    ) };
+    let errcode = unsafe {
+        clEnqueueAcquireGLObjects(
+            command_queue.as_ptr(),
+            buffers.len() as u32,
+            buffers.as_ptr() as *const cl_mem,
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        )
+    };
     eval_errcode(errcode, (), "clEnqueueAcquireGLObjects", None::<String>)
 }
 
@@ -2845,29 +3260,31 @@ pub fn enqueue_acquire_gl_objects<En, Ewl>(
 /// To create a slice from a single `Mem` reference without any cost, use
 /// something like: `unsafe { ::std::slice::from_raw_parts(&core_mem, 1) };`.
 ///
-#[cfg(not(feature="opencl_vendor_mesa"))]
+#[cfg(not(feature = "opencl_vendor_mesa"))]
 pub fn enqueue_release_gl_objects<En, Ewl>(
-            command_queue: &CommandQueue,
-            buffers: &[Mem],
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<()>
-        where En: ClNullEventPtr, Ewl: ClWaitListPtr
+    command_queue: &CommandQueue,
+    buffers: &[Mem],
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<()>
+where
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
 {
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
-    let errcode = unsafe { clEnqueueReleaseGLObjects(
-        command_queue.as_ptr(),
-        buffers.len() as u32,
-        buffers.as_ptr() as *const cl_mem,
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr
-    ) };
+    let errcode = unsafe {
+        clEnqueueReleaseGLObjects(
+            command_queue.as_ptr(),
+            buffers.len() as u32,
+            buffers.as_ptr() as *const cl_mem,
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        )
+    };
     eval_errcode(errcode, (), "clEnqueueReleaseGLObjects", None::<String>)
 }
-
 
 /// Reads an image from device to host memory.
 ///
@@ -2881,21 +3298,24 @@ pub fn enqueue_release_gl_objects<En, Ewl>(
 ///
 // pub unsafe fn enqueue_read_image<T>(
 pub unsafe fn enqueue_read_image<T, M, En, Ewl>(
-            command_queue: &CommandQueue,
-            image: M,
-            block: bool,
-            origin: [usize; 3],
-            region: [usize; 3],
-            row_pitch_bytes: usize,
-            slc_pitch_bytes: usize,
-            data: &mut [T],
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
+    command_queue: &CommandQueue,
+    image: M,
+    block: bool,
+    origin: [usize; 3],
+    region: [usize; 3],
+    row_pitch_bytes: usize,
+    slc_pitch_bytes: usize,
+    data: &mut [T],
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<()>
+where
+    T: OclPrm,
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+    M: AsMem<T> + MemCmdRw,
 {
-    let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
     let errcode = ffi::clEnqueueReadImage(
         command_queue.as_ptr(),
@@ -2913,7 +3333,6 @@ pub unsafe fn enqueue_read_image<T, M, En, Ewl>(
     eval_errcode(errcode, (), "clEnqueueReadImage", None::<String>)
 }
 
-
 /// Enqueues a command to write to an image or image array object from host memory.
 ///
 /// ## Safety
@@ -2927,21 +3346,24 @@ pub unsafe fn enqueue_read_image<T, M, En, Ewl>(
 // * Consider safetyness: local host data could change during write.
 //
 pub unsafe fn enqueue_write_image<T, M, En, Ewl>(
-            command_queue: &CommandQueue,
-            image: M,
-            block: bool,
-            origin: [usize; 3],
-            region: [usize; 3],
-            input_row_pitch_bytes: usize,
-            input_slc_pitch_bytes: usize,
-            data: &[T],
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
+    command_queue: &CommandQueue,
+    image: M,
+    block: bool,
+    origin: [usize; 3],
+    region: [usize; 3],
+    input_row_pitch_bytes: usize,
+    input_slc_pitch_bytes: usize,
+    data: &[T],
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<()>
+where
+    T: OclPrm,
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+    M: AsMem<T> + MemCmdRw,
 {
-    let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
     let errcode = ffi::clEnqueueWriteImage(
         command_queue.as_ptr(),
@@ -2978,67 +3400,78 @@ pub unsafe fn enqueue_write_image<T, M, En, Ewl>(
 // [UNTESTED]
 //
 pub fn enqueue_fill_image<T, M, En, Ewl>(
-            command_queue: &CommandQueue,
-            image: M,
-            color: &[T],
-            origin: [usize; 3],
-            region: [usize; 3],
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-            device_version: Option<&OpenclVersion>
-        ) -> OclCoreResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
+    command_queue: &CommandQueue,
+    image: M,
+    color: &[T],
+    origin: [usize; 3],
+    region: [usize; 3],
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+    device_version: Option<&OpenclVersion>,
+) -> OclCoreResult<()>
+where
+    T: OclPrm,
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+    M: AsMem<T> + MemCmdAll,
 {
     // Verify device version:
-    verify_device_version(device_version, [1, 2], command_queue,
-        ApiFunction::EnqueueFillImage)?;
+    verify_device_version(
+        device_version,
+        [1, 2],
+        command_queue,
+        ApiFunction::EnqueueFillImage,
+    )?;
 
-    let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
-    let errcode = unsafe { ffi::clEnqueueFillImage(
-        command_queue.as_ptr(),
-        image.as_mem().as_ptr(),
-        color as *const _ as *const c_void,
-        &origin as *const _ as *const usize,
-        &region as *const _ as *const usize,
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr,
-    ) };
+    let errcode = unsafe {
+        ffi::clEnqueueFillImage(
+            command_queue.as_ptr(),
+            image.as_mem().as_ptr(),
+            color as *const _ as *const c_void,
+            &origin as *const _ as *const usize,
+            &region as *const _ as *const usize,
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        )
+    };
     eval_errcode(errcode, (), "clEnqueueFillImage", None::<String>)
 }
-
 
 /// Enqueues a command to copy image objects.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyImage.html)
 pub fn enqueue_copy_image<En, Ewl>(
-            command_queue: &CommandQueue,
-            src_image: &Mem,
-            dst_image: &Mem,
-            src_origin: [usize; 3],
-            dst_origin: [usize; 3],
-            region: [usize; 3],
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<()>
-        where En: ClNullEventPtr, Ewl: ClWaitListPtr
+    command_queue: &CommandQueue,
+    src_image: &Mem,
+    dst_image: &Mem,
+    src_origin: [usize; 3],
+    dst_origin: [usize; 3],
+    region: [usize; 3],
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<()>
+where
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
 {
-    let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
-    let errcode = unsafe { ffi::clEnqueueCopyImage(
-        command_queue.as_ptr(),
-        src_image.as_ptr(),
-        dst_image.as_ptr(),
-        &src_origin as *const _ as *const usize,
-        &dst_origin as *const _ as *const usize,
-        &region as *const _ as *const usize,
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr,
-    ) };
+    let errcode = unsafe {
+        ffi::clEnqueueCopyImage(
+            command_queue.as_ptr(),
+            src_image.as_ptr(),
+            dst_image.as_ptr(),
+            &src_origin as *const _ as *const usize,
+            &dst_origin as *const _ as *const usize,
+            &region as *const _ as *const usize,
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        )
+    };
     eval_errcode(errcode, (), "clEnqueueCopyImage", None::<String>)
 }
 
@@ -3049,33 +3482,38 @@ pub fn enqueue_copy_image<En, Ewl>(
 // [UNTESTED]
 //
 pub fn enqueue_copy_image_to_buffer<T, M, En, Ewl>(
-            command_queue: &CommandQueue,
-            src_image: M,
-            dst_buffer: M,
-            src_origin: [usize; 3],
-            region: [usize; 3],
-            dst_offset: usize,
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
+    command_queue: &CommandQueue,
+    src_image: M,
+    dst_buffer: M,
+    src_origin: [usize; 3],
+    region: [usize; 3],
+    dst_offset: usize,
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<()>
+where
+    T: OclPrm,
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+    M: AsMem<T> + MemCmdAll,
 {
     let dst_offset_bytes = dst_offset * mem::size_of::<T>();
 
-    let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
-    let errcode = unsafe { ffi::clEnqueueCopyImageToBuffer(
-        command_queue.as_ptr(),
-        src_image.as_mem().as_ptr(),
-        dst_buffer.as_mem().as_ptr(),
-        &src_origin as *const _ as *const usize,
-        &region as *const _ as *const usize,
-        dst_offset_bytes,
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr,
-    ) };
+    let errcode = unsafe {
+        ffi::clEnqueueCopyImageToBuffer(
+            command_queue.as_ptr(),
+            src_image.as_mem().as_ptr(),
+            dst_buffer.as_mem().as_ptr(),
+            &src_origin as *const _ as *const usize,
+            &region as *const _ as *const usize,
+            dst_offset_bytes,
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        )
+    };
     eval_errcode(errcode, (), "clEnqueueCopyImageToBuffer", None::<String>)
 }
 
@@ -3086,49 +3524,56 @@ pub fn enqueue_copy_image_to_buffer<T, M, En, Ewl>(
 // [UNTESTED]
 //
 pub fn enqueue_copy_buffer_to_image<T, M, En, Ewl>(
-            command_queue: &CommandQueue,
-            src_buffer: M,
-            dst_image: M,
-            src_offset: usize,
-            dst_origin: [usize; 3],
-            region: [usize; 3],
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
+    command_queue: &CommandQueue,
+    src_buffer: M,
+    dst_image: M,
+    src_offset: usize,
+    dst_origin: [usize; 3],
+    region: [usize; 3],
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<()>
+where
+    T: OclPrm,
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+    M: AsMem<T> + MemCmdAll,
 {
     let src_offset_bytes = src_offset * mem::size_of::<T>();
 
-    let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
-    let errcode = unsafe { ffi::clEnqueueCopyBufferToImage(
-        command_queue.as_ptr(),
-        src_buffer.as_mem().as_ptr(),
-        dst_image.as_mem().as_ptr(),
-        src_offset_bytes,
-        &dst_origin as *const _ as *const usize,
-        &region as *const _ as *const usize,
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr,
-    ) };
+    let errcode = unsafe {
+        ffi::clEnqueueCopyBufferToImage(
+            command_queue.as_ptr(),
+            src_buffer.as_mem().as_ptr(),
+            dst_image.as_mem().as_ptr(),
+            src_offset_bytes,
+            &dst_origin as *const _ as *const usize,
+            &region as *const _ as *const usize,
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        )
+    };
     eval_errcode(errcode, (), "clEnqueueCopyBufferToImage", None::<String>)
 }
 
 #[inline]
 unsafe fn _enqueue_map_buffer<T, M>(
-        command_queue: &CommandQueue,
-        buffer: M,
-        block: bool,
-        map_flags: MapFlags,
-        offset: usize,
-        len: usize,
-        wait_list_len: cl_uint,
-        wait_list_ptr: *const cl_event,
-        new_event_ptr: *mut cl_event,
-        ) -> OclCoreResult<*mut T>
-        where T: OclPrm, M: AsMem<T> + MemCmdAll
+    command_queue: &CommandQueue,
+    buffer: M,
+    block: bool,
+    map_flags: MapFlags,
+    offset: usize,
+    len: usize,
+    wait_list_len: cl_uint,
+    wait_list_ptr: *const cl_event,
+    new_event_ptr: *mut cl_event,
+) -> OclCoreResult<*mut T>
+where
+    T: OclPrm,
+    M: AsMem<T> + MemCmdAll,
 {
     let offset_bytes = offset * mem::size_of::<T>();
     let size_bytes = len * mem::size_of::<T>();
@@ -3148,7 +3593,12 @@ unsafe fn _enqueue_map_buffer<T, M>(
         &mut errcode,
     );
 
-    eval_errcode(errcode, mapped_ptr as *mut T, "clEnqueueMapBuffer", None::<String>)
+    eval_errcode(
+        errcode,
+        mapped_ptr as *mut T,
+        "clEnqueueMapBuffer",
+        None::<String>,
+    )
 }
 
 /// Enqueues a command to map a region of the buffer object given
@@ -3168,22 +3618,34 @@ unsafe fn _enqueue_map_buffer<T, M>(
 /// [`EventList::get_clone`]: struct.EventList.html#method.last_clone
 ///
 pub unsafe fn enqueue_map_buffer<T, M, En, Ewl>(
-            command_queue: &CommandQueue,
-            buffer: M,
-            block: bool,
-            map_flags: MapFlags,
-            offset: usize,
-            len: usize,
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<MemMap<T>>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
+    command_queue: &CommandQueue,
+    buffer: M,
+    block: bool,
+    map_flags: MapFlags,
+    offset: usize,
+    len: usize,
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<MemMap<T>>
+where
+    T: OclPrm,
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+    M: AsMem<T> + MemCmdAll,
 {
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
-    let mapped_ptr_res = _enqueue_map_buffer(command_queue, buffer.as_mem(), block, map_flags, offset, len,
-        wait_list_len, wait_list_ptr, new_event_ptr);
+    let mapped_ptr_res = _enqueue_map_buffer(
+        command_queue,
+        buffer.as_mem(),
+        block,
+        map_flags,
+        offset,
+        len,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    );
 
     mapped_ptr_res.map(|ptr| MemMap::from_raw(ptr))
 }
@@ -3208,21 +3670,24 @@ pub unsafe fn enqueue_map_buffer<T, M, En, Ewl>(
 // [UNTESTED]
 //
 pub unsafe fn enqueue_map_image<T, M, En, Ewl>(
-            command_queue: &CommandQueue,
-            image: M,
-            block: bool,
-            map_flags: MapFlags,
-            origin: [usize; 3],
-            region: [usize; 3],
-            row_pitch_bytes: &mut usize,
-            slc_pitch_bytes: &mut usize,
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<MemMap<T>>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
+    command_queue: &CommandQueue,
+    image: M,
+    block: bool,
+    map_flags: MapFlags,
+    origin: [usize; 3],
+    region: [usize; 3],
+    row_pitch_bytes: &mut usize,
+    slc_pitch_bytes: &mut usize,
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<MemMap<T>>
+where
+    T: OclPrm,
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+    M: AsMem<T> + MemCmdAll,
 {
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
     let mut errcode = 0i32;
 
@@ -3260,25 +3725,30 @@ pub unsafe fn enqueue_map_image<T, M, En, Ewl>(
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueUnmapMemObject.html)
 ///
 pub fn enqueue_unmap_mem_object<T, M, En, Ewl>(
-            command_queue: &CommandQueue,
-            memobj: M,
-            mapped_mem: &MemMap<T>,
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
+    command_queue: &CommandQueue,
+    memobj: M,
+    mapped_mem: &MemMap<T>,
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<()>
+where
+    T: OclPrm,
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+    M: AsMem<T> + MemCmdAll,
 {
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
-    let errcode = unsafe { ffi::clEnqueueUnmapMemObject(
-        command_queue.as_ptr(),
-        memobj.as_mem().as_ptr(),
-        mapped_mem.as_void_ptr(),
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr,
-    ) };
+    let errcode = unsafe {
+        ffi::clEnqueueUnmapMemObject(
+            command_queue.as_ptr(),
+            memobj.as_mem().as_ptr(),
+            mapped_mem.as_void_ptr(),
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        )
+    };
 
     eval_errcode(errcode, (), "clEnqueueUnmapMemObject", None::<String>)
 }
@@ -3293,30 +3763,34 @@ pub fn enqueue_unmap_mem_object<T, M, En, Ewl>(
 // [UNTESTED]
 //
 pub fn enqueue_migrate_mem_objects<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
-            command_queue: &CommandQueue,
-            mem_objects: &[Mem],
-            flags: MemMigrationFlags,
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-            device_version: Option<&OpenclVersion>
-        ) -> OclCoreResult<()>
-{
+    command_queue: &CommandQueue,
+    mem_objects: &[Mem],
+    flags: MemMigrationFlags,
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+    device_version: Option<&OpenclVersion>,
+) -> OclCoreResult<()> {
     // Verify device version:
-    verify_device_version(device_version, [1, 2], command_queue,
-        ApiFunction::EnqueueMigrateMemObjects)?;
+    verify_device_version(
+        device_version,
+        [1, 2],
+        command_queue,
+        ApiFunction::EnqueueMigrateMemObjects,
+    )?;
 
-    let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
-    let errcode = unsafe { ffi::clEnqueueMigrateMemObjects(
-        command_queue.as_ptr(),
-        mem_objects.len() as u32,
-        mem_objects.as_ptr() as *const _ as *const cl_mem,
-        flags.bits(),
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr,
-    ) };
+    let errcode = unsafe {
+        ffi::clEnqueueMigrateMemObjects(
+            command_queue.as_ptr(),
+            mem_objects.len() as u32,
+            mem_objects.as_ptr() as *const _ as *const cl_mem,
+            flags.bits(),
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        )
+    };
     eval_errcode(errcode, (), "clEnqueueMigrateMemObjects", None::<String>)
 }
 
@@ -3333,48 +3807,52 @@ pub fn enqueue_migrate_mem_objects<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 ///   specialized types.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueNDRangeKernel.html)
-pub unsafe fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr> (
-            command_queue: &CommandQueue,
-            kernel: &Kernel,
-            work_dims: u32,
-            global_work_offset: Option<[usize; 3]>,
-            global_work_dims: &[usize; 3],
-            local_work_dims: Option<[usize; 3]>,
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<()>
-{
-    #[cfg(feature="kernel_debug_sleep")]
-    #[allow(unused_imports)] use std::thread;
-    #[cfg(feature="kernel_debug_sleep")]
-    #[allow(unused_imports)] use std::time::Duration;
+pub unsafe fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+    command_queue: &CommandQueue,
+    kernel: &Kernel,
+    work_dims: u32,
+    global_work_offset: Option<[usize; 3]>,
+    global_work_dims: &[usize; 3],
+    local_work_dims: Option<[usize; 3]>,
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+) -> OclCoreResult<()> {
+    #[cfg(feature = "kernel_debug_sleep")]
+    #[allow(unused_imports)]
+    use std::thread;
+    #[cfg(feature = "kernel_debug_sleep")]
+    #[allow(unused_imports)]
+    use std::time::Duration;
 
-    #[cfg(feature="kernel_debug_print")]
-    println!("Resolving events: wait_list: {:?}, new_event: {:?}", wait_list, new_event);
+    #[cfg(feature = "kernel_debug_print")]
+    println!(
+        "Resolving events: wait_list: {:?}, new_event: {:?}",
+        wait_list, new_event
+    );
 
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
-    #[cfg(feature="kernel_debug_print")]
+    #[cfg(feature = "kernel_debug_print")]
     println!("Resolving global work offset: {:?}...", global_work_offset);
 
     let gwo = resolve_work_dims(global_work_offset.as_ref());
 
-    #[cfg(feature="kernel_debug_print")]
+    #[cfg(feature = "kernel_debug_print")]
     println!("Assigning global work size: {:?}...", global_work_dims);
 
     let gws = global_work_dims as *const size_t;
 
-    #[cfg(feature="kernel_debug_print")]
+    #[cfg(feature = "kernel_debug_print")]
     println!("Resolving local work size: {:?}...", local_work_dims);
 
     let lws = resolve_work_dims(local_work_dims.as_ref());
 
-    #[cfg(feature="kernel_debug_print")]
+    #[cfg(feature = "kernel_debug_print")]
     println!("Preparing to print all details...");
 
-    #[cfg(feature="kernel_debug_print")]
-    print!("core::enqueue_kernel('{}': \
+    #[cfg(feature = "kernel_debug_print")]
+    print!(
+        "core::enqueue_kernel('{}': \
         work_dims: {}, \
         gwo: {:?}, \
         gws: {:?}, \
@@ -3405,8 +3883,10 @@ pub unsafe fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr> (
         new_event_ptr,
     );
 
-    if cfg!(feature="kernel_debug_print") { println!("-> Status: {}.", errcode); }
-    if cfg!(feature="kernel_debug_sleep") {
+    if cfg!(feature = "kernel_debug_print") {
+        println!("-> Status: {}.", errcode);
+    }
+    if cfg!(feature = "kernel_debug_sleep") {
         thread::sleep(Duration::from_millis(KERNEL_DEBUG_SLEEP_DURATION_MS));
     }
 
@@ -3437,15 +3917,13 @@ pub unsafe fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr> (
 // [UNTESTED]
 //
 pub unsafe fn enqueue_task<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
-            command_queue: &CommandQueue,
-            kernel: &Kernel,
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-            kernel_name: Option<&str>
-        ) -> OclCoreResult<()>
-{
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
+    command_queue: &CommandQueue,
+    kernel: &Kernel,
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+    kernel_name: Option<&str>,
+) -> OclCoreResult<()> {
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
     let errcode = ffi::clEnqueueTask(
         command_queue.as_ptr(),
@@ -3479,26 +3957,33 @@ pub fn enqueue_native_kernel() -> OclCoreResult<()> {
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn enqueue_marker_with_wait_list<En, Ewl>(
-            command_queue: &CommandQueue,
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-            device_version: Option<&OpenclVersion>
-        ) -> OclCoreResult<()>
-        where En: ClNullEventPtr, Ewl: ClWaitListPtr
+    command_queue: &CommandQueue,
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+    device_version: Option<&OpenclVersion>,
+) -> OclCoreResult<()>
+where
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
 {
     // Verify device version:
-    verify_device_version(device_version, [1, 2], command_queue,
-        ApiFunction::EnqueueMarkerWithWaitList)?;
+    verify_device_version(
+        device_version,
+        [1, 2],
+        command_queue,
+        ApiFunction::EnqueueMarkerWithWaitList,
+    )?;
 
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
-    let errcode = unsafe { ffi::clEnqueueMarkerWithWaitList(
-        command_queue.as_ptr(),
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr,
-    ) };
+    let errcode = unsafe {
+        ffi::clEnqueueMarkerWithWaitList(
+            command_queue.as_ptr(),
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        )
+    };
     eval_errcode(errcode, (), "clEnqueueMarkerWithWaitList", None::<String>)
 }
 
@@ -3508,30 +3993,35 @@ pub fn enqueue_marker_with_wait_list<En, Ewl>(
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn enqueue_barrier_with_wait_list<En, Ewl>(
-            command_queue: &CommandQueue,
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-            device_version: Option<&OpenclVersion>
-        ) -> OclCoreResult<()>
-        where En: ClNullEventPtr, Ewl: ClWaitListPtr
+    command_queue: &CommandQueue,
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+    device_version: Option<&OpenclVersion>,
+) -> OclCoreResult<()>
+where
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
 {
     // Verify device version:
-    verify_device_version(device_version, [1, 2], command_queue,
-        ApiFunction::EnqueueBarrierWithWaitList)?;
+    verify_device_version(
+        device_version,
+        [1, 2],
+        command_queue,
+        ApiFunction::EnqueueBarrierWithWaitList,
+    )?;
 
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
 
-    let errcode = unsafe { ffi::clEnqueueBarrierWithWaitList(
-        command_queue.as_ptr(),
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr,
-    ) };
+    let errcode = unsafe {
+        ffi::clEnqueueBarrierWithWaitList(
+            command_queue.as_ptr(),
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        )
+    };
     eval_errcode(errcode, (), "clEnqueueBarrierWithWaitList", None::<String>)
 }
-
-
 
 // Extension function access
 //
@@ -3582,21 +4072,22 @@ pub fn enqueue_barrier_with_wait_list<En, Ewl>(
 // [UNTESTED]
 //
 pub unsafe fn get_extension_function_address_for_platform(
-            platform: &PlatformId,
-            func_name: &str,
-            platform_version: Option<&OpenclVersion>
-        ) -> OclCoreResult<*mut c_void>
-{
+    platform: &PlatformId,
+    func_name: &str,
+    platform_version: Option<&OpenclVersion>,
+) -> OclCoreResult<*mut c_void> {
     // Verify platform version:
-    verify_platform_version(platform_version, [1, 2], platform,
-        ApiFunction::GetExtensionFunctionAddressForPlatform)?;
+    verify_platform_version(
+        platform_version,
+        [1, 2],
+        platform,
+        ApiFunction::GetExtensionFunctionAddressForPlatform,
+    )?;
 
     let func_name_c = CString::new(func_name)?;
 
-    let ext_fn = ffi::clGetExtensionFunctionAddressForPlatform(
-        platform.as_ptr(),
-        func_name_c.as_ptr(),
-    );
+    let ext_fn =
+        ffi::clGetExtensionFunctionAddressForPlatform(platform.as_ptr(), func_name_c.as_ptr());
 
     if ext_fn.is_null() {
         Err(ApiWrapperError::GetExtensionFunctionAddressForPlatformInvalidFunction.into())
@@ -3610,7 +4101,6 @@ pub unsafe fn get_extension_function_address_for_platform(
 //=========================== DERIVED FUNCTIONS ==============================
 //============================================================================
 //============================================================================
-
 
 /// Returns a list of versions for devices.
 pub fn device_versions(device_ids: &[DeviceId]) -> OclCoreResult<Vec<OpenclVersion>> {
@@ -3642,7 +4132,10 @@ pub fn default_platform() -> OclCoreResult<PlatformId> {
         let default_platform_idx = default_platform_idx();
         if default_platform_idx > platform_list.len() - 1 {
             Err(ApiWrapperError::DefaultPlatformEnvVarBadIdx {
-                    default_platform_idx, max_idx: platform_list.len() - 1}.into())
+                default_platform_idx,
+                max_idx: platform_list.len() - 1,
+            }
+            .into())
         } else {
             Ok(platform_list[default_platform_idx])
         }
@@ -3679,30 +4172,31 @@ pub fn get_kernel_name(kernel: &Kernel) -> OclCoreResult<String> {
 /// TODO: Break out create and build parts into requisite functions then call
 /// from here.
 pub fn create_build_program<C, D>(
-            context: C,
-            src_strings: &[CString],
-            device_ids: Option<&[D]>,
-            cmplr_opts: &CString,
-        ) -> OclCoreResult<Program>
-        where C: ClContextPtr, D: ClDeviceIdPtr + fmt::Debug
+    context: C,
+    src_strings: &[CString],
+    device_ids: Option<&[D]>,
+    cmplr_opts: &CString,
+) -> OclCoreResult<Program>
+where
+    C: ClContextPtr,
+    D: ClDeviceIdPtr + fmt::Debug,
 {
     let program = create_program_with_source(context, src_strings)?;
     build_program(&program, device_ids, cmplr_opts, None, None)?;
     Ok(program)
 }
 
-
 #[allow(dead_code)]
 /// Blocks until an event is complete.
 pub fn wait_for_event<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclCoreResult<()> {
-    let errcode = unsafe {
-        ffi::clWaitForEvents(1, event.as_ptr_ref())
-    };
+    let errcode = unsafe { ffi::clWaitForEvents(1, event.as_ptr_ref()) };
     eval_errcode(errcode, (), "clWaitForEvents", None::<String>)
 }
 
 /// Returns the status of `event`.
-pub fn event_status<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclCoreResult<CommandExecutionStatus> {
+pub fn event_status<'e, E: ClEventPtrRef<'e>>(
+    event: &'e E,
+) -> OclCoreResult<CommandExecutionStatus> {
     let mut status_int: cl_int = 0;
 
     let errcode = unsafe {
@@ -3716,8 +4210,13 @@ pub fn event_status<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclCoreResult<Com
     };
     eval_errcode(errcode, (), "clGetEventInfo", None::<String>)?;
 
-    CommandExecutionStatus::from_i32(status_int).ok_or_else(|| OclCoreError::String("Error converting \
-        'clGetEventInfo' status output.".to_string()))
+    CommandExecutionStatus::from_i32(status_int).ok_or_else(|| {
+        OclCoreError::String(
+            "Error converting \
+        'clGetEventInfo' status output."
+                .to_string(),
+        )
+    })
 }
 
 /// Returns true if an event is complete, false if not complete.
@@ -3736,16 +4235,20 @@ pub fn event_is_complete<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclCoreResul
 
     #[cfg(feature = "event_debug_print")]
     unsafe {
-        println!("Event Status: {:?} (ptr: {:?})",
+        println!(
+            "Event Status: {:?} (ptr: {:?})",
             CommandExecutionStatus::from_i32(status_int).unwrap(),
-            *event.as_ptr_ref());
+            *event.as_ptr_ref()
+        );
     }
 
-    eval_errcode(errcode, status_int == CommandExecutionStatus::Complete as i32,
-        "clEventGetInfo", Some("CL_EVENT_COMMAND_EXECUTION_STATUS"))
+    eval_errcode(
+        errcode,
+        status_int == CommandExecutionStatus::Complete as i32,
+        "clEventGetInfo",
+        Some("CL_EVENT_COMMAND_EXECUTION_STATUS"),
+    )
 }
-
-
 
 /// Verifies that the `context` is in fact a context object pointer.
 ///
@@ -3767,7 +4270,8 @@ pub fn event_is_complete<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclCoreResul
 ///
 #[inline]
 pub fn verify_context<C>(context: C) -> OclCoreResult<()>
-        where C: ClContextPtr
+where
+    C: ClContextPtr,
 {
     // context_info(context, ffi::CL_CONTEXT_REFERENCE_COUNT)
     if cfg!(release) {
@@ -3780,7 +4284,6 @@ pub fn verify_context<C>(context: C) -> OclCoreResult<()>
     }
 }
 
-
 /// Checks to see if a device supports the `CL_GL_SHARING_EXT` extension.
 fn device_supports_cl_gl_sharing<D: ClDeviceIdPtr>(device: D) -> OclCoreResult<bool> {
     match get_device_info(device, DeviceInfo::Extensions) {
@@ -3791,24 +4294,28 @@ fn device_supports_cl_gl_sharing<D: ClDeviceIdPtr>(device: D) -> OclCoreResult<b
     }
 }
 
-
 /// Returns the context for a command queue, bypassing extra processing.
 pub fn get_command_queue_context_ptr(queue: &CommandQueue) -> OclCoreResult<cl_context> {
     let mut result = 0 as cl_context;
     let result_size = mem::size_of::<cl_context>();
 
-    let errcode = unsafe { ffi::clGetCommandQueueInfo(
-        queue.as_ptr(),
-        CommandQueueInfo::Context as cl_command_queue_info,
-        result_size,
-        &mut result as *mut _ as *mut c_void,
-        ptr::null_mut(),
-    ) };
+    let errcode = unsafe {
+        ffi::clGetCommandQueueInfo(
+            queue.as_ptr(),
+            CommandQueueInfo::Context as cl_command_queue_info,
+            result_size,
+            &mut result as *mut _ as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
 
-    eval_errcode(errcode, result, "clGetCommandQueueInfo",
-        Some("functions::get_command_queue_context_ptr"))
+    eval_errcode(
+        errcode,
+        result,
+        "clGetCommandQueueInfo",
+        Some("functions::get_command_queue_context_ptr"),
+    )
 }
-
 
 //============================================================================
 //============================================================================

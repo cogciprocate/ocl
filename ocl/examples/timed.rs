@@ -8,14 +8,13 @@
 //! work on NVIDIA hardware. Until NVIDIA's implementation is corrected this
 //! example may fail on that platform.
 
-extern crate time;
 extern crate ocl;
 extern crate ocl_extras;
+extern crate time;
 // * TODO: Bring this back once `Instant` stabilizes: use
 //   std::time::Instant;
 
-
-use ocl::{core, ProQue, Buffer, EventList};
+use ocl::{core, Buffer, EventList, ProQue};
 use std::time::Instant;
 
 const WORK_SIZE: usize = 1 << 12;
@@ -29,7 +28,6 @@ const INIT_VAL_RANGE: (f32, f32) = (100.0, 200.0);
 
 const PRINT_SOME_RESULTS: bool = true;
 const RESULTS_TO_PRINT: usize = 5;
-
 
 fn timed() -> ocl::Result<()> {
     // Define a kernel:
@@ -51,11 +49,11 @@ fn timed() -> ocl::Result<()> {
     let vec_init = ocl_extras::scrambled_vec(INIT_VAL_RANGE, ocl_pq.dims().to_len());
 
     let buffer_init = Buffer::builder()
-            .queue(ocl_pq.queue().clone())
-            .flags(core::MemFlags::new())
-            .len(WORK_SIZE)
-            .copy_host_slice(&vec_init)
-            .build()?;
+        .queue(ocl_pq.queue().clone())
+        .flags(core::MemFlags::new())
+        .len(WORK_SIZE)
+        .copy_host_slice(&vec_init)
+        .build()?;
 
     let mut vec_result = vec![0.0f32; WORK_SIZE];
     let buffer_result = Buffer::<f32>::builder()
@@ -64,13 +62,13 @@ fn timed() -> ocl::Result<()> {
         .build()?;
 
     // Create a kernel with arguments matching those in the kernel:
-    let kern = ocl_pq.kernel_builder("add")
+    let kern = ocl_pq
+        .kernel_builder("add")
         .global_work_size(ocl_pq.dims().clone())
         .arg_named("source", Some(&buffer_init))
         .arg(SCALAR)
         .arg(&buffer_result)
         .build()?;
-
 
     // ##################################################
     // ##################### KERNEL #####################
@@ -93,7 +91,9 @@ fn timed() -> ocl::Result<()> {
 
     // Enqueue kernel for additional iterations:
     for _ in 0..(KERNEL_RUN_ITERS - 1) {
-        unsafe { kern.enq()?; }
+        unsafe {
+            kern.enq()?;
+        }
     }
 
     // Wait for all kernels to run:
@@ -128,12 +128,17 @@ fn timed() -> ocl::Result<()> {
     // ##################################################
 
     print!("\n");
-    println!("Enqueuing {} blocking kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
+    println!(
+        "Enqueuing {} blocking kernel buffer sequences... ",
+        KERNEL_AND_BUFFER_ITERS
+    );
 
     let kern_buf_start = Instant::now();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
-        unsafe { kern.enq()?; }
+        unsafe {
+            kern.enq()?;
+        }
         buffer_result.cmd().read(&mut vec_result).enq()?;
     }
 
@@ -141,14 +146,21 @@ fn timed() -> ocl::Result<()> {
     ocl_pq.queue().finish()?;
     print_elapsed("queue finished", kern_buf_start);
 
-    verify_results(&vec_init, &vec_result, KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS)?;
+    verify_results(
+        &vec_init,
+        &vec_result,
+        KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS,
+    )?;
 
     // ##################################################
     // ######### KERNEL & BUFFER NON-BLOCKING ###########
     // ##################################################
 
     print!("\n");
-    println!("Enqueuing {} non-blocking kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
+    println!(
+        "Enqueuing {} non-blocking kernel buffer sequences... ",
+        KERNEL_AND_BUFFER_ITERS
+    );
 
     let kern_buf_start = Instant::now();
 
@@ -159,8 +171,12 @@ fn timed() -> ocl::Result<()> {
         unsafe {
             kern.cmd().ewait(&buf_events).enew(&mut kern_events).enq()?;
         }
-        buffer_result.cmd().read(&mut vec_result).ewait(&kern_events)
-            .enew(&mut buf_events).enq()?;
+        buffer_result
+            .cmd()
+            .read(&mut vec_result)
+            .ewait(&kern_events)
+            .enew(&mut buf_events)
+            .enq()?;
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
@@ -172,23 +188,37 @@ fn timed() -> ocl::Result<()> {
     buf_events.wait_for()?;
     buf_events.clear_completed()?;
 
-    verify_results(&vec_init, &vec_result,
-        KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS)?;
+    verify_results(
+        &vec_init,
+        &vec_result,
+        KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS,
+    )?;
 
     // ##################################################
     // ############# CAUTION IS OVERRATED ###############
     // ##################################################
 
     print!("\n");
-    println!("Enqueuing another {} kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
+    println!(
+        "Enqueuing another {} kernel buffer sequences... ",
+        KERNEL_AND_BUFFER_ITERS
+    );
 
     let kern_buf_start = Instant::now();
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
-        unsafe { kern.cmd().enew(&mut kern_events).enq()?; }
+        unsafe {
+            kern.cmd().enew(&mut kern_events).enq()?;
+        }
 
-        unsafe { buffer_result.cmd().read(&mut vec_result).enew(&mut buf_events)
-            .block(true).enq()?; }
+        unsafe {
+            buffer_result
+                .cmd()
+                .read(&mut vec_result)
+                .enew(&mut buf_events)
+                .block(true)
+                .enq()?;
+        }
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
@@ -198,10 +228,15 @@ fn timed() -> ocl::Result<()> {
     kern_events.wait_for()?;
     buf_events.wait_for()?;
 
-    verify_results(&vec_init, &vec_result,
-        KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS)
+    verify_results(
+        &vec_init,
+        &vec_result,
+        KERNEL_AND_BUFFER_ITERS
+            + KERNEL_AND_BUFFER_ITERS
+            + KERNEL_AND_BUFFER_ITERS
+            + KERNEL_RUN_ITERS,
+    )
 }
-
 
 // [KEEP]:
 // Convert back to this once `Instant` stabilizes:
@@ -219,35 +254,50 @@ fn timed() -> ocl::Result<()> {
 fn print_elapsed(title: &str, start: Instant) {
     let time_elapsed = start.elapsed();
     let separator = if title.len() > 0 { ": " } else { "" };
-    println!("    {}{}{}.{:03}", title, separator, time_elapsed.as_secs(), time_elapsed.subsec_millis());
+    println!(
+        "    {}{}{}.{:03}",
+        title,
+        separator,
+        time_elapsed.as_secs(),
+        time_elapsed.subsec_millis()
+    );
 }
-
-
 
 fn verify_results(vec_init: &Vec<f32>, vec_result: &Vec<f32>, iters: i32) -> ocl::Result<()> {
     print!("\nVerifying result values... ");
-    if PRINT_SOME_RESULTS { print!("(printing {})\n", RESULTS_TO_PRINT); }
+    if PRINT_SOME_RESULTS {
+        print!("(printing {})\n", RESULTS_TO_PRINT);
+    }
 
     // let margin_of_error = iters as f32 / 100000.0;
     let margin_of_error = 0.1 as f32;
 
     for idx in 0..WORK_SIZE {
         let correct = vec_init[idx] + (iters as f32 * SCALAR);
-        assert!((correct - vec_result[idx]).abs() < margin_of_error,
+        assert!(
+            (correct - vec_result[idx]).abs() < margin_of_error,
             "    INVALID RESULT[{}]: init: {}, correct: {}, margin: {}, result: {}",
-            idx, vec_init[idx], correct, margin_of_error, vec_result[idx]);
+            idx,
+            vec_init[idx],
+            correct,
+            margin_of_error,
+            vec_result[idx]
+        );
 
-        if PRINT_SOME_RESULTS && (idx % (WORK_SIZE / RESULTS_TO_PRINT)) == 0  {
-            println!("    [{}]: init: {}, correct: {}, result: {}", idx, vec_init[idx],
-                correct, vec_result[idx]);
+        if PRINT_SOME_RESULTS && (idx % (WORK_SIZE / RESULTS_TO_PRINT)) == 0 {
+            println!(
+                "    [{}]: init: {}, correct: {}, result: {}",
+                idx, vec_init[idx], correct, vec_result[idx]
+            );
         }
     }
 
-    if PRINT_SOME_RESULTS { print!("\n"); }
+    if PRINT_SOME_RESULTS {
+        print!("\n");
+    }
     println!("All result values are correct.");
     Ok(())
 }
-
 
 pub fn main() {
     match timed() {

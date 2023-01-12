@@ -1,44 +1,60 @@
 //! An OpenCL kernel.
 
+pub use self::arg_type::{ArgType, BaseType, Cardinality};
+use crate::core::error::Error as OclCoreErrorKind;
+use crate::core::ffi::c_void;
+use crate::core::{
+    self, util, ArgVal, AsMem, ClVersions, CommandQueue as CommandQueueCore, Kernel as KernelCore,
+    KernelArgInfo, KernelArgInfoResult, KernelInfo, KernelInfoResult, KernelWorkGroupInfo,
+    KernelWorkGroupInfoResult, Mem as MemCore, MemCmdAll, OclPrm,
+};
+use crate::error::{Error as OclError, Result as OclResult};
+use crate::standard::{
+    Buffer, ClNullEventPtrEnum, ClWaitListPtrEnum, Device, Image, Program, Queue, Sampler,
+    SpatialDims, WorkDims,
+};
 use std;
-use std::borrow::Cow;
-use std::ops::Deref;
 use std::any::Any;
 use std::any::TypeId;
-use std::collections::{HashMap, BTreeMap};
-use std::marker::PhantomData;
-use std::cell::RefCell;
 use std::borrow::Borrow;
-use crate::core::ffi::c_void;
-use crate::core::{self, util, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
-    ArgVal, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
-    KernelWorkGroupInfo, KernelWorkGroupInfoResult, AsMem, MemCmdAll, ClVersions};
-use crate::core::error::{Error as OclCoreErrorKind};
-use crate::error::{Error as OclError, Result as OclResult};
-use crate::standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, ClNullEventPtrEnum,
-    ClWaitListPtrEnum, Buffer, Image};
-pub use self::arg_type::{BaseType, Cardinality, ArgType};
-
+use std::borrow::Cow;
+use std::cell::RefCell;
+use std::collections::{BTreeMap, HashMap};
+use std::marker::PhantomData;
+use std::ops::Deref;
 
 /// An error related to a `Kernel`, `KernelBuilder`, or `KernelCmd`.
 #[derive(Debug, thiserror::Error)]
 pub enum KernelError {
     #[error("No queue specified.")]
     CmdNoQueue,
-    #[error("Global Work Size cannot be left unspecified. Set a default for \
-        the kernel or specify one when enqueuing command.")]
+    #[error(
+        "Global Work Size cannot be left unspecified. Set a default for \
+        the kernel or specify one when enqueuing command."
+    )]
     CmdNoGws,
-    #[error("Unable to resolve argument named: '{0}'. Ensure that an argument with \
-        that name has been declared before building kernel.")]
+    #[error(
+        "Unable to resolve argument named: '{0}'. Ensure that an argument with \
+        that name has been declared before building kernel."
+    )]
     NamedArgsInvalidArgName(String),
-    #[error("No named arguments have been declared. Declare named arguments \
-        when before building kernel.")]
+    #[error(
+        "No named arguments have been declared. Declare named arguments \
+        when before building kernel."
+    )]
     NamedArgsNone,
     #[error("Kernel arg index out of range. (kernel: {0}, index: {1})")]
     ArgIdxOor(String, u32),
-    #[error("Kernel argument type mismatch. The argument named: '{arg_name}' at index: [{idx}] \
-        should be a '{ty_name}' ({ty:?}).")]
-    ArgTypeMismatch { idx: u32, arg_name: String, ty_name: String, ty: ArgType },
+    #[error(
+        "Kernel argument type mismatch. The argument named: '{arg_name}' at index: [{idx}] \
+        should be a '{ty_name}' ({ty:?})."
+    )]
+    ArgTypeMismatch {
+        idx: u32,
+        arg_name: String,
+        ty_name: String,
+        ty: ArgType,
+    },
     #[error("No program specified.")]
     BuilderNoProgram,
     #[error("No kernel name specified.")]
@@ -48,7 +64,6 @@ pub enum KernelError {
         declare arguments you plan to assign a value to at a later time.")]
     BuilderWrongArgCount { required: u32, specified: u32 },
 }
-
 
 /// A kernel command builder used to enqueue a kernel with a mix of default
 /// and optionally specified arguments.
@@ -71,14 +86,17 @@ impl<'k> KernelCmd<'k> {
     /// queue is set, this method **must** be called before enqueuing the
     /// kernel.
     pub fn queue<'q, Q>(mut self, queue: &'q Q) -> KernelCmd<'k>
-            where 'q: 'k, Q: 'k + AsRef<CommandQueueCore> {
+    where
+        'q: 'k,
+        Q: 'k + AsRef<CommandQueueCore>,
+    {
         self.queue = Some(queue.as_ref());
         self
     }
 
     /// Specifies a global work offset for this call only.
     #[deprecated(since = "0.18.0", note = "Use `::global_work_offset` instead.")]
-     pub fn gwo<D: Into<SpatialDims>>(mut self, gwo: D) -> KernelCmd<'k> {
+    pub fn gwo<D: Into<SpatialDims>>(mut self, gwo: D) -> KernelCmd<'k> {
         self.gwo = gwo.into();
         self
     }
@@ -98,7 +116,7 @@ impl<'k> KernelCmd<'k> {
     }
 
     /// Specifies a global work offset for this call only.
-     pub fn global_work_offset<D: Into<SpatialDims>>(mut self, gwo: D) -> KernelCmd<'k> {
+    pub fn global_work_offset<D: Into<SpatialDims>>(mut self, gwo: D) -> KernelCmd<'k> {
         self.gwo = gwo.into();
         self
     }
@@ -144,7 +162,10 @@ impl<'k> KernelCmd<'k> {
     ///
     /// [`EventList`]: struct.EventList.html
     pub fn ewait<'e, Ewl>(mut self, ewait: Ewl) -> KernelCmd<'k>
-            where 'e: 'k, Ewl: Into<ClWaitListPtrEnum<'e>> {
+    where
+        'e: 'k,
+        Ewl: Into<ClWaitListPtrEnum<'e>>,
+    {
         self.wait_events = Some(ewait.into());
         self
     }
@@ -181,7 +202,10 @@ impl<'k> KernelCmd<'k> {
     ///
     /// [`Event::empty`]: struct.Event.html#method.empty
     pub fn enew<'e, En>(mut self, new_event_dest: En) -> KernelCmd<'k>
-            where 'e: 'k, En: Into<ClNullEventPtrEnum<'e>> {
+    where
+        'e: 'k,
+        En: Into<ClNullEventPtrEnum<'e>>,
+    {
         self.new_event = Some(new_event_dest.into());
         self
     }
@@ -206,12 +230,19 @@ impl<'k> KernelCmd<'k> {
             None => return Err(KernelError::CmdNoGws.into()),
         };
 
-        core::enqueue_kernel(queue, &self.kernel, dim_count, self.gwo.to_work_offset(),
-            &gws, self.lws.to_work_size(), self.wait_events, self.new_event)
-            .map_err(OclError::from)
+        core::enqueue_kernel(
+            queue,
+            &self.kernel,
+            dim_count,
+            self.gwo.to_work_offset(),
+            &gws,
+            self.lws.to_work_size(),
+            self.wait_events,
+            self.new_event,
+        )
+        .map_err(OclError::from)
     }
 }
-
 
 /// Converts an argument index specifier to `u32`.
 #[derive(Clone, Debug)]
@@ -261,7 +292,6 @@ impl From<String> for ArgIdxSpecifier {
     }
 }
 
-
 /// Contains owned or shared argument values.
 #[derive(Debug, Clone)]
 enum ArgValKeeper<'b> {
@@ -271,11 +301,17 @@ enum ArgValKeeper<'b> {
 }
 
 impl<'b> ArgValKeeper<'b> {
-    fn owned_prm<T>(prm: T) -> ArgValKeeper<'b> where T: OclPrm {
+    fn owned_prm<T>(prm: T) -> ArgValKeeper<'b>
+    where
+        T: OclPrm,
+    {
         unsafe { ArgValKeeper::OwnedPrm(util::into_bytes(prm)) }
     }
 
-    fn owned_mem<T>(buf: MemCore) -> ArgValKeeper<'b> where T: OclPrm {
+    fn owned_mem<T>(buf: MemCore) -> ArgValKeeper<'b>
+    where
+        T: OclPrm,
+    {
         ArgValKeeper::OwnedMem(buf)
     }
 
@@ -288,26 +324,29 @@ impl<'b> ArgValKeeper<'b> {
     fn to_arg_val(&'b self) -> ArgVal<'b> {
         match *self {
             ArgValKeeper::Shared(ref av) => av.clone(),
-            ArgValKeeper::OwnedPrm(ref bytes) => {
-                unsafe { ArgVal::from_raw(bytes.len(), bytes.as_ptr() as *const c_void, false) }
-            }
-            ArgValKeeper::OwnedMem(ref mem) => {
-                ArgVal::mem(mem)
-            }
+            ArgValKeeper::OwnedPrm(ref bytes) => unsafe {
+                ArgVal::from_raw(bytes.len(), bytes.as_ptr() as *const c_void, false)
+            },
+            ArgValKeeper::OwnedMem(ref mem) => ArgVal::mem(mem),
         }
     }
 }
 
-
 /// Wraps argument values of different types.
-pub struct ArgValConverter<'b, T> where T: OclPrm {
+pub struct ArgValConverter<'b, T>
+where
+    T: OclPrm,
+{
     val: ArgValKeeper<'b>,
     type_id: Option<TypeId>,
     mem: Option<MemCore>,
     _ty: PhantomData<T>,
 }
 
-impl<'b, T> From<Option<&'b Buffer<T>>> for ArgValConverter<'b, T> where T: OclPrm {
+impl<'b, T> From<Option<&'b Buffer<T>>> for ArgValConverter<'b, T>
+where
+    T: OclPrm,
+{
     /// Converts from an Option<`Buffer`>.
     fn from(buf: Option<&'b Buffer<T>>) -> ArgValConverter<'b, T> {
         let val = match buf {
@@ -324,7 +363,10 @@ impl<'b, T> From<Option<&'b Buffer<T>>> for ArgValConverter<'b, T> where T: OclP
     }
 }
 
-impl<'b, T> From<&'b Buffer<T>> for ArgValConverter<'b, T> where T: OclPrm {
+impl<'b, T> From<&'b Buffer<T>> for ArgValConverter<'b, T>
+where
+    T: OclPrm,
+{
     /// Converts from a `Buffer`.
     fn from(buf: &'b Buffer<T>) -> ArgValConverter<'b, T> {
         ArgValConverter {
@@ -336,7 +378,10 @@ impl<'b, T> From<&'b Buffer<T>> for ArgValConverter<'b, T> where T: OclPrm {
     }
 }
 
-impl<'b, T> From<&'b mut Buffer<T>> for ArgValConverter<'b, T> where T: OclPrm {
+impl<'b, T> From<&'b mut Buffer<T>> for ArgValConverter<'b, T>
+where
+    T: OclPrm,
+{
     fn from(buf: &'b mut Buffer<T>) -> ArgValConverter<'b, T> {
         ArgValConverter::from(&*buf)
     }
@@ -348,7 +393,10 @@ impl<'b, T> From<&'b mut Buffer<T>> for ArgValConverter<'b, T> where T: OclPrm {
 //     }
 // }
 
-impl<'b, T> From<Buffer<T>> for ArgValConverter<'b, T> where T: OclPrm {
+impl<'b, T> From<Buffer<T>> for ArgValConverter<'b, T>
+where
+    T: OclPrm,
+{
     /// Converts from an owned `Buffer`.
     fn from(buf: Buffer<T>) -> ArgValConverter<'b, T> {
         ArgValConverter {
@@ -360,7 +408,10 @@ impl<'b, T> From<Buffer<T>> for ArgValConverter<'b, T> where T: OclPrm {
     }
 }
 
-impl<'b, T> From<Option<&'b Image<T>>> for ArgValConverter<'b, T> where T: OclPrm {
+impl<'b, T> From<Option<&'b Image<T>>> for ArgValConverter<'b, T>
+where
+    T: OclPrm,
+{
     /// Converts from an Option<`Image`>.
     fn from(img: Option<&'b Image<T>>) -> ArgValConverter<'b, T> {
         let val = match img {
@@ -377,7 +428,10 @@ impl<'b, T> From<Option<&'b Image<T>>> for ArgValConverter<'b, T> where T: OclPr
     }
 }
 
-impl<'b, T> From<&'b Image<T>> for ArgValConverter<'b, T> where T: OclPrm {
+impl<'b, T> From<&'b Image<T>> for ArgValConverter<'b, T>
+where
+    T: OclPrm,
+{
     /// Converts from an `Image`.
     fn from(img: &'b Image<T>) -> ArgValConverter<'b, T> {
         ArgValConverter {
@@ -389,7 +443,10 @@ impl<'b, T> From<&'b Image<T>> for ArgValConverter<'b, T> where T: OclPrm {
     }
 }
 
-impl<'b, T> From<&'b mut Image<T>> for ArgValConverter<'b, T> where T: OclPrm {
+impl<'b, T> From<&'b mut Image<T>> for ArgValConverter<'b, T>
+where
+    T: OclPrm,
+{
     fn from(img: &'b mut Image<T>) -> ArgValConverter<'b, T> {
         ArgValConverter::from(&*img)
     }
@@ -401,7 +458,10 @@ impl<'b, T> From<&'b mut Image<T>> for ArgValConverter<'b, T> where T: OclPrm {
 //     }
 // }
 
-impl<'b, T> From<Image<T>> for ArgValConverter<'b, T> where T: OclPrm {
+impl<'b, T> From<Image<T>> for ArgValConverter<'b, T>
+where
+    T: OclPrm,
+{
     /// Converts from an owned `Image`.
     fn from(img: Image<T>) -> ArgValConverter<'b, T> {
         ArgValConverter {
@@ -413,7 +473,10 @@ impl<'b, T> From<Image<T>> for ArgValConverter<'b, T> where T: OclPrm {
     }
 }
 
-impl<'b, T> From<&'b T> for ArgValConverter<'b, T> where T: OclPrm {
+impl<'b, T> From<&'b T> for ArgValConverter<'b, T>
+where
+    T: OclPrm,
+{
     /// Converts from a scalar or vector value.
     fn from(prm: &'b T) -> ArgValConverter<'b, T> {
         ArgValConverter {
@@ -425,7 +488,10 @@ impl<'b, T> From<&'b T> for ArgValConverter<'b, T> where T: OclPrm {
     }
 }
 
-impl<'b, T> From<T> for ArgValConverter<'b, T> where T: OclPrm {
+impl<'b, T> From<T> for ArgValConverter<'b, T>
+where
+    T: OclPrm,
+{
     /// Converts from a scalar or vector value.
     fn from(prm: T) -> ArgValConverter<'b, T> {
         ArgValConverter {
@@ -436,8 +502,6 @@ impl<'b, T> From<T> for ArgValConverter<'b, T> where T: OclPrm {
         }
     }
 }
-
-
 
 /// A map of argument names -> indexes.
 #[derive(Clone, Debug)]
@@ -455,17 +519,14 @@ impl NamedArgs {
     /// Resolves the index of a named argument with a friendly error message.
     fn resolve_idx(&self, name: &str) -> OclResult<u32> {
         match self.0 {
-            Some(ref map) => {
-                match map.get(name) {
-                    Some(&ai) => Ok(ai),
-                    None => Err(KernelError::NamedArgsInvalidArgName(name.into()).into()),
-                }
+            Some(ref map) => match map.get(name) {
+                Some(&ai) => Ok(ai),
+                None => Err(KernelError::NamedArgsInvalidArgName(name.into()).into()),
             },
             None => Err(KernelError::NamedArgsNone.into()),
         }
     }
 }
-
 
 /// Storage for `Mem` arguments.
 //
@@ -489,7 +550,6 @@ impl MemArgs {
         }
     }
 }
-
 
 /// A kernel which represents a 'procedure'.
 ///
@@ -544,7 +604,8 @@ impl Kernel {
     /// argument information is not available on the associated platform.
     fn verify_arg_type<T: OclPrm + Any>(&self, arg_idx: u32) -> OclResult<()> {
         if let Some(ref arg_types) = self.arg_types {
-            let arg_type = arg_types.get(arg_idx as usize)
+            let arg_type = arg_types
+                .get(arg_idx as usize)
                 .ok_or(KernelError::ArgIdxOor(self.name()?, arg_idx))?;
 
             if arg_type.is_match::<T>() {
@@ -552,8 +613,13 @@ impl Kernel {
             } else {
                 let ty_name = arg_type_name(&self.obj_core, arg_idx)?;
                 let arg_name = arg_name(&self.obj_core, arg_idx)?;
-                Err(KernelError::ArgTypeMismatch { idx: arg_idx, arg_name,
-                    ty_name, ty: arg_type.clone() }.into())
+                Err(KernelError::ArgTypeMismatch {
+                    idx: arg_idx,
+                    arg_name,
+                    ty_name,
+                    ty: arg_type.clone(),
+                }
+                .into())
             }
         } else {
             Ok(())
@@ -605,7 +671,11 @@ impl Kernel {
     /// kern.set_arg(2, &result_buffer)?;
     /// ```
     pub fn set_arg<'a, T, Ai, Av>(&self, idx: Ai, arg: Av) -> OclResult<()>
-            where T: OclPrm, Ai: Into<ArgIdxSpecifier>, Av: Into<ArgValConverter<'a, T>> {
+    where
+        T: OclPrm,
+        Ai: Into<ArgIdxSpecifier>,
+        Av: Into<ArgValConverter<'a, T>>,
+    {
         let arg_idx = idx.into().to_idx(&self.named_args)?;
         self.verify_arg_type::<T>(arg_idx)?;
         let arg: ArgValConverter<T> = arg.into();
@@ -626,44 +696,59 @@ impl Kernel {
 
     /// Modifies the kernel argument named: `name`.
     #[deprecated(since = "0.18.0", note = "Use `::set_arg` instead.")]
-    pub fn set_arg_buf_named<'a, T, M>(&'a self, name: &'static str,
-            buffer_opt: Option<M>) -> OclResult<()>
-            where T: OclPrm, M: AsMem<T> + MemCmdAll {
+    pub fn set_arg_buf_named<'a, T, M>(
+        &'a self,
+        name: &'static str,
+        buffer_opt: Option<M>,
+    ) -> OclResult<()>
+    where
+        T: OclPrm,
+        M: AsMem<T> + MemCmdAll,
+    {
         let arg_idx = self.named_args.resolve_idx(name)?;
         match buffer_opt {
             Some(buffer) => {
                 self.mem_args.insert(arg_idx, buffer.as_mem().clone());
                 self._set_arg::<T>(arg_idx, ArgVal::mem(buffer.as_mem()))
-            },
+            }
             None => {
                 self.mem_args.remove(&arg_idx);
                 self._set_arg::<T>(arg_idx, ArgVal::mem_null())
-            },
+            }
         }
     }
 
     /// Modifies the kernel argument named: `name`.
     #[deprecated(since = "0.18.0", note = "Use `::set_arg` instead.")]
-    pub fn set_arg_img_named<'a, T, M>(&'a self, name: &'static str,
-            image_opt: Option<M>) -> OclResult<()>
-            where T: OclPrm, M: AsMem<T> + MemCmdAll {
+    pub fn set_arg_img_named<'a, T, M>(
+        &'a self,
+        name: &'static str,
+        image_opt: Option<M>,
+    ) -> OclResult<()>
+    where
+        T: OclPrm,
+        M: AsMem<T> + MemCmdAll,
+    {
         let arg_idx = self.named_args.resolve_idx(name)?;
         match image_opt {
             Some(img) => {
                 self.mem_args.insert(arg_idx, img.as_mem().clone());
                 self._set_arg::<T>(arg_idx, ArgVal::mem(img.as_mem()))
-            },
+            }
             None => {
                 self.mem_args.remove(&arg_idx);
                 self._set_arg::<T>(arg_idx, ArgVal::mem_null())
-            },
+            }
         }
     }
 
     /// Sets the value of a named sampler argument.
     #[deprecated(since = "0.18.0", note = "Use `::set_arg_sampler_named` instead.")]
-    pub fn set_arg_smp_named<'a>(&'a self, name: &'static str,
-            sampler_opt: Option<&Sampler>) -> OclResult<()> {
+    pub fn set_arg_smp_named<'a>(
+        &'a self,
+        name: &'static str,
+        sampler_opt: Option<&Sampler>,
+    ) -> OclResult<()> {
         let arg_idx = self.named_args.resolve_idx(name)?;
         match sampler_opt {
             Some(sampler) => self._set_arg::<u64>(arg_idx, ArgVal::sampler(sampler)),
@@ -673,26 +758,35 @@ impl Kernel {
 
     /// Modifies the kernel argument named: `name`.
     #[deprecated(since = "0.18.0", note = "Use `::set_arg` instead.")]
-    pub fn set_arg_scl_named<'a, T, B>(&'a self, name: &'static str, scalar: B)
-            -> OclResult<()>
-            where T: OclPrm, B: Borrow<T> {
+    pub fn set_arg_scl_named<'a, T, B>(&'a self, name: &'static str, scalar: B) -> OclResult<()>
+    where
+        T: OclPrm,
+        B: Borrow<T>,
+    {
         let arg_idx = self.named_args.resolve_idx(name)?;
         self._set_arg::<T>(arg_idx, ArgVal::scalar(scalar.borrow()))
     }
 
     /// Modifies the kernel argument named: `name`.
     #[deprecated(since = "0.18.0", note = "Use `::set_arg` instead.")]
-    pub fn set_arg_vec_named<'a, T, B>(&'a self, name: &'static str, vector: B)
-            -> OclResult<()>
-            where T: OclPrm, B: Borrow<T> {
+    pub fn set_arg_vec_named<'a, T, B>(&'a self, name: &'static str, vector: B) -> OclResult<()>
+    where
+        T: OclPrm,
+        B: Borrow<T>,
+    {
         let arg_idx = self.named_args.resolve_idx(name)?;
         self._set_arg::<T>(arg_idx, ArgVal::vector(vector.borrow()))
     }
 
     /// Sets the value of a named sampler argument.
-    pub fn set_arg_sampler_named<'a, Ai>(&'a self, idx: Ai,
-            sampler_opt: Option<&Sampler>) -> OclResult<()>
-            where Ai: Into<ArgIdxSpecifier> {
+    pub fn set_arg_sampler_named<'a, Ai>(
+        &'a self,
+        idx: Ai,
+        sampler_opt: Option<&Sampler>,
+    ) -> OclResult<()>
+    where
+        Ai: Into<ArgIdxSpecifier>,
+    {
         // let arg_idx = self.named_args.resolve_idx(name)?;
         let arg_idx = idx.into().to_idx(&self.named_args)?;
         match sampler_opt {
@@ -711,7 +805,7 @@ impl Kernel {
             gws: self.gws,
             lws: self.lws,
             wait_events: None,
-            new_event: None
+            new_event: None,
         }
     }
 
@@ -819,21 +913,28 @@ impl Kernel {
     }
 
     /// Returns work group information for this kernel.
-    pub fn wg_info(&self, device: Device, info_kind: KernelWorkGroupInfo)
-            -> OclResult<KernelWorkGroupInfoResult> {
+    pub fn wg_info(
+        &self,
+        device: Device,
+        info_kind: KernelWorkGroupInfo,
+    ) -> OclResult<KernelWorkGroupInfoResult> {
         core::get_kernel_work_group_info(&self.obj_core, device, info_kind).map_err(OclError::from)
     }
 
     /// Returns argument information for this kernel.
-    pub fn arg_info(&self, arg_idx: u32, info_kind: KernelArgInfo)
-            -> OclResult<KernelArgInfoResult> {
+    pub fn arg_info(
+        &self,
+        arg_idx: u32,
+        info_kind: KernelArgInfo,
+    ) -> OclResult<KernelArgInfoResult> {
         arg_info(&*self.as_core(), arg_idx, info_kind)
     }
 
     /// Returns the name of this kernel.
     pub fn name(&self) -> OclResult<String> {
         core::get_kernel_info(&self.obj_core, KernelInfo::FunctionName)
-            .map(|r| r.into()).map_err(OclError::from)
+            .map(|r| r.into())
+            .map_err(OclError::from)
     }
 
     /// Returns the number of arguments this kernel has.
@@ -841,7 +942,7 @@ impl Kernel {
         match core::get_kernel_info(&self.obj_core, KernelInfo::NumArgs) {
             Ok(KernelInfoResult::NumArgs(num)) => Ok(num),
             Err(err) => Err(err.into()),
-            _=> unreachable!(),
+            _ => unreachable!(),
         }
     }
 
@@ -866,18 +967,33 @@ impl Kernel {
     // }
 
     fn fmt_wg_info<D>(&self, f: &mut std::fmt::Formatter, devices: Vec<D>) -> std::fmt::Result
-            where D: Into<Device> {
+    where
+        D: Into<Device>,
+    {
         for device in devices {
             let device = device.into();
-            if !device.vendor().unwrap()
-                    .contains("NVIDIA") {
+            if !device.vendor().unwrap().contains("NVIDIA") {
                 f.debug_struct("WorkGroup")
-                    .field("WorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::WorkGroupSize))
-                    .field("CompileWorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::CompileWorkGroupSize))
-                    .field("LocalMemSize", &self.wg_info(device, KernelWorkGroupInfo::LocalMemSize))
-                    .field("PreferredWorkGroupSizeMultiple",
-                        &self.wg_info(device, KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple))
-                    .field("PrivateMemSize", &self.wg_info(device, KernelWorkGroupInfo::PrivateMemSize))
+                    .field(
+                        "WorkGroupSize",
+                        &self.wg_info(device, KernelWorkGroupInfo::WorkGroupSize),
+                    )
+                    .field(
+                        "CompileWorkGroupSize",
+                        &self.wg_info(device, KernelWorkGroupInfo::CompileWorkGroupSize),
+                    )
+                    .field(
+                        "LocalMemSize",
+                        &self.wg_info(device, KernelWorkGroupInfo::LocalMemSize),
+                    )
+                    .field(
+                        "PreferredWorkGroupSizeMultiple",
+                        &self.wg_info(device, KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple),
+                    )
+                    .field(
+                        "PrivateMemSize",
+                        &self.wg_info(device, KernelWorkGroupInfo::PrivateMemSize),
+                    )
                     // .field("GlobalWorkSize", &self.wg_info(device, KernelWorkGroupInfo::GlobalWorkSize))
                     .finish()?;
             }
@@ -901,7 +1017,6 @@ impl Deref for Kernel {
         &self.obj_core
     }
 }
-
 
 /// A kernel builder.
 ///
@@ -995,7 +1110,9 @@ impl<'b> KernelBuilder<'b> {
     /// Specifies a function name in the program declared with the `__kernel`
     /// qualifier (e.g. `__kernel void add_values(...`).
     pub fn name<'s, S>(&'s mut self, name: S) -> &'s mut KernelBuilder<'b>
-            where S: Into<String> {
+    where
+        S: Into<String>,
+    {
         self.name = Some(name.into());
         self
     }
@@ -1045,7 +1162,10 @@ impl<'b> KernelBuilder<'b> {
     ///
     /// Used when enqueuing kernel commands. Superseded if specified while
     /// building a queue command with `::cmd`.
-    pub fn global_work_offset<'s, D: Into<SpatialDims>>(&'s mut self, gwo: D) -> &'s mut KernelBuilder<'b> {
+    pub fn global_work_offset<'s, D: Into<SpatialDims>>(
+        &'s mut self,
+        gwo: D,
+    ) -> &'s mut KernelBuilder<'b> {
         self.gwo = gwo.into();
         self
     }
@@ -1054,7 +1174,10 @@ impl<'b> KernelBuilder<'b> {
     ///
     /// Used when enqueuing kernel commands. Superseded if specified while
     /// building a queue command with `::cmd`.
-    pub fn global_work_size<'s, D: Into<SpatialDims>>(&'s mut self, gws: D) -> &'s mut KernelBuilder<'b> {
+    pub fn global_work_size<'s, D: Into<SpatialDims>>(
+        &'s mut self,
+        gws: D,
+    ) -> &'s mut KernelBuilder<'b> {
         self.gws = gws.into();
         self
     }
@@ -1063,13 +1186,21 @@ impl<'b> KernelBuilder<'b> {
     ///
     /// Used when enqueuing kernel commands. Superseded if specified while
     /// building a queue command with `::cmd`.
-    pub fn local_work_size<'s, D: Into<SpatialDims>>(&'s mut self, lws: D) -> &'s mut KernelBuilder<'b> {
+    pub fn local_work_size<'s, D: Into<SpatialDims>>(
+        &'s mut self,
+        lws: D,
+    ) -> &'s mut KernelBuilder<'b> {
         self.lws = lws.into();
         self
     }
 
     /// Adds a new argument to the kernel and returns the index.
-    fn new_arg(&mut self, arg_val: ArgValKeeper<'b>, type_id: Option<TypeId>, mem: Option<MemCore>) -> u32 {
+    fn new_arg(
+        &mut self,
+        arg_val: ArgValKeeper<'b>,
+        type_id: Option<TypeId>,
+        mem: Option<MemCore>,
+    ) -> u32 {
         let arg_idx = self.args.len() as u32;
 
         // If the `KernelArg` is a `Mem` variant, clone the `MemCore` it
@@ -1088,32 +1219,36 @@ impl<'b> KernelBuilder<'b> {
 
     /// Non-builder-style version of `::arg_buf()`.
     fn new_arg_buf<T, M>(&mut self, buffer_opt: Option<&'b M>) -> u32
-            where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
+    where
+        T: OclPrm,
+        M: 'b + AsMem<T> + MemCmdAll,
+    {
         match buffer_opt {
-            Some(buffer) => {
-                self.new_arg(ArgValKeeper::Shared(ArgVal::mem(buffer.as_mem())),
-                    Some(TypeId::of::<T>()),
-                    Some(buffer.as_mem().clone()))
-            },
-            None => {
-                self.new_arg(ArgValKeeper::mem_null(),
-                    Some(TypeId::of::<T>()), None)
-            },
+            Some(buffer) => self.new_arg(
+                ArgValKeeper::Shared(ArgVal::mem(buffer.as_mem())),
+                Some(TypeId::of::<T>()),
+                Some(buffer.as_mem().clone()),
+            ),
+            None => self.new_arg(ArgValKeeper::mem_null(), Some(TypeId::of::<T>()), None),
         }
     }
 
     /// Non-builder-style version of `::arg_img()`.
     fn new_arg_img<T, M>(&mut self, image_opt: Option<&'b M>) -> u32
-            where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
+    where
+        T: OclPrm,
+        M: 'b + AsMem<T> + MemCmdAll,
+    {
         match image_opt {
             Some(image) => {
                 // Type is ignored:
-                self.new_arg(ArgValKeeper::Shared(ArgVal::mem(image.as_mem())), None,
-                    Some(image.as_mem().clone()))
-            },
-            None => {
-                self.new_arg(ArgValKeeper::mem_null(), None, None)
-            },
+                self.new_arg(
+                    ArgValKeeper::Shared(ArgVal::mem(image.as_mem())),
+                    None,
+                    Some(image.as_mem().clone()),
+                )
+            }
+            None => self.new_arg(ArgValKeeper::mem_null(), None, None),
         }
     }
 
@@ -1123,29 +1258,45 @@ impl<'b> KernelBuilder<'b> {
             Some(sampler) => {
                 // Type is ignored:
                 self.new_arg(ArgValKeeper::Shared(ArgVal::sampler(sampler)), None, None)
-            },
-            None => {
-                self.new_arg(ArgValKeeper::Shared(ArgVal::sampler_null()), None, None)
-            },
+            }
+            None => self.new_arg(ArgValKeeper::Shared(ArgVal::sampler_null()), None, None),
         }
     }
 
     /// Non-builder-style version of `::arg_scl()`.
     fn new_arg_scl<T>(&mut self, scalar: T) -> u32
-            where T: OclPrm {
-        self.new_arg(ArgValKeeper::owned_prm(scalar), Some(TypeId::of::<T>()), None)
+    where
+        T: OclPrm,
+    {
+        self.new_arg(
+            ArgValKeeper::owned_prm(scalar),
+            Some(TypeId::of::<T>()),
+            None,
+        )
     }
 
     /// Non-builder-style version of `::arg_vec()`.
     fn new_arg_vec<T>(&mut self, vector: T) -> u32
-            where T: OclPrm {
-        self.new_arg(ArgValKeeper::owned_prm(vector), Some(TypeId::of::<T>()), None)
+    where
+        T: OclPrm,
+    {
+        self.new_arg(
+            ArgValKeeper::owned_prm(vector),
+            Some(TypeId::of::<T>()),
+            None,
+        )
     }
 
     /// Non-builder-style version of `::arg_loc()`.
     fn new_arg_loc<T>(&mut self, length: usize) -> u32
-            where T: OclPrm {
-        self.new_arg(ArgValKeeper::Shared(ArgVal::local::<T>(&length)), None, None)
+    where
+        T: OclPrm,
+    {
+        self.new_arg(
+            ArgValKeeper::Shared(ArgVal::local::<T>(&length)),
+            None,
+            None,
+        )
     }
 
     /// Adds a new `Buffer`, `Image`, scalar, or vector argument to the
@@ -1163,7 +1314,10 @@ impl<'b> KernelBuilder<'b> {
     ///     .build()?;
     /// ```
     pub fn arg<'s, T, A>(&'s mut self, arg: A) -> &'s mut KernelBuilder<'b>
-            where T: OclPrm, A: Into<ArgValConverter<'b, T>> {
+    where
+        T: OclPrm,
+        A: Into<ArgValConverter<'b, T>>,
+    {
         let arg = arg.into();
         self.new_arg(arg.val, arg.type_id, arg.mem);
         self
@@ -1175,7 +1329,10 @@ impl<'b> KernelBuilder<'b> {
     /// The argument is added to the bottom of the argument order.
     #[deprecated(since = "0.18.0", note = "Use ::arg instead.")]
     pub fn arg_buf<'s, T, M>(&'s mut self, buffer: &'b M) -> &'s mut KernelBuilder<'b>
-            where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
+    where
+        T: OclPrm,
+        M: 'b + AsMem<T> + MemCmdAll,
+    {
         self.new_arg_buf::<T, _>(Some(buffer));
         self
     }
@@ -1186,7 +1343,10 @@ impl<'b> KernelBuilder<'b> {
     /// The argument is added to the bottom of the argument order.
     #[deprecated(since = "0.18.0", note = "Use ::arg instead.")]
     pub fn arg_img<'s, T, M>(&'s mut self, image: &'b M) -> &'s mut KernelBuilder<'b>
-            where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
+    where
+        T: OclPrm,
+        M: 'b + AsMem<T> + MemCmdAll,
+    {
         self.new_arg_img::<T, _>(Some(image));
         self
     }
@@ -1205,7 +1365,9 @@ impl<'b> KernelBuilder<'b> {
     /// The argument is added to the bottom of the argument order.
     #[deprecated(since = "0.18.0", note = "Use ::arg instead.")]
     pub fn arg_scl<'s, T>(&'s mut self, scalar: T) -> &'s mut KernelBuilder<'b>
-            where T: OclPrm {
+    where
+        T: OclPrm,
+    {
         self.new_arg_scl(scalar);
         self
     }
@@ -1215,7 +1377,9 @@ impl<'b> KernelBuilder<'b> {
     /// The argument is added to the bottom of the argument order.
     #[deprecated(since = "0.18.0", note = "Use ::arg instead.")]
     pub fn arg_vec<'s, T>(&'s mut self, vector: T) -> &'s mut KernelBuilder<'b>
-            where T: OclPrm {
+    where
+        T: OclPrm,
+    {
         self.new_arg_vec(vector);
         self
     }
@@ -1229,7 +1393,9 @@ impl<'b> KernelBuilder<'b> {
     /// workgroup.
     #[deprecated(since = "0.18.0", note = "Use ::arg_local instead.")]
     pub fn arg_loc<'s, T>(&'s mut self, length: usize) -> &'s mut KernelBuilder<'b>
-            where T: OclPrm {
+    where
+        T: OclPrm,
+    {
         self.new_arg_loc::<T>(length);
         self
     }
@@ -1250,7 +1416,9 @@ impl<'b> KernelBuilder<'b> {
     /// Local variables are used to share data between work items in the same
     /// workgroup.
     pub fn arg_local<'s, T>(&'s mut self, length: usize) -> &'s mut KernelBuilder<'b>
-            where T: OclPrm {
+    where
+        T: OclPrm,
+    {
         self.new_arg_loc::<T>(length);
         self
     }
@@ -1283,7 +1451,11 @@ impl<'b> KernelBuilder<'b> {
     /// kern.set_arg(2, &result_buffer)?;
     /// ```
     pub fn arg_named<'s, T, S, A>(&'s mut self, name: S, arg: A) -> &'s mut KernelBuilder<'b>
-            where S: Into<Cow<'static, str>>, T: OclPrm, A: Into<ArgValConverter<'b, T>> {
+    where
+        S: Into<Cow<'static, str>>,
+        T: OclPrm,
+        A: Into<ArgValConverter<'b, T>>,
+    {
         let arg = arg.into();
         let arg_idx = self.new_arg(arg.val, arg.type_id, arg.mem);
         self.named_args.insert(name.into(), arg_idx);
@@ -1297,8 +1469,16 @@ impl<'b> KernelBuilder<'b> {
     ///
     /// Named arguments can be easily modified later using `::set_arg_buf_named()`.
     #[deprecated(since = "0.18.0", note = "Use ::arg_named instead.")]
-    pub fn arg_buf_named<'s, T, S, M>(&'s mut self, name: S, buffer_opt: Option<&'b M>) -> &'s mut KernelBuilder<'b>
-            where S: Into<Cow<'static, str>>, T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
+    pub fn arg_buf_named<'s, T, S, M>(
+        &'s mut self,
+        name: S,
+        buffer_opt: Option<&'b M>,
+    ) -> &'s mut KernelBuilder<'b>
+    where
+        S: Into<Cow<'static, str>>,
+        T: OclPrm,
+        M: 'b + AsMem<T> + MemCmdAll,
+    {
         let arg_idx = self.new_arg_buf::<T, _>(buffer_opt);
         self.named_args.insert(name.into(), arg_idx);
         self
@@ -1311,8 +1491,16 @@ impl<'b> KernelBuilder<'b> {
     ///
     /// Named arguments can be easily modified later using `::set_arg_img_named()`.
     #[deprecated(since = "0.18.0", note = "Use ::arg_named instead.")]
-    pub fn arg_img_named<'s, T, S, M>(&'s mut self, name: S, image_opt: Option<&'b M>) -> &'s mut KernelBuilder<'b>
-            where S: Into<Cow<'static, str>>, T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
+    pub fn arg_img_named<'s, T, S, M>(
+        &'s mut self,
+        name: S,
+        image_opt: Option<&'b M>,
+    ) -> &'s mut KernelBuilder<'b>
+    where
+        S: Into<Cow<'static, str>>,
+        T: OclPrm,
+        M: 'b + AsMem<T> + MemCmdAll,
+    {
         let arg_idx = self.new_arg_img::<T, _>(image_opt);
         self.named_args.insert(name.into(), arg_idx);
         self
@@ -1325,8 +1513,14 @@ impl<'b> KernelBuilder<'b> {
     ///
     /// Named arguments can be easily modified later using `::set_arg_smp_named()`.
     #[deprecated(since = "0.18.0", note = "Use ::arg_sampler_named instead.")]
-    pub fn arg_smp_named<'s, S>(&'s mut self, name: S, sampler_opt: Option<&'b Sampler>) -> &'s mut KernelBuilder<'b>
-    where S: Into<Cow<'static, str>> {
+    pub fn arg_smp_named<'s, S>(
+        &'s mut self,
+        name: S,
+        sampler_opt: Option<&'b Sampler>,
+    ) -> &'s mut KernelBuilder<'b>
+    where
+        S: Into<Cow<'static, str>>,
+    {
         let arg_idx = self.new_arg_smp(sampler_opt);
         self.named_args.insert(name.into(), arg_idx);
         self
@@ -1340,8 +1534,14 @@ impl<'b> KernelBuilder<'b> {
     ///
     /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
     #[deprecated(since = "0.18.0", note = "Use ::arg_named instead.")]
-    pub fn arg_scl_named<'s, T>(&'s mut self, name: &'static str, scalar: T) -> &'s mut KernelBuilder<'b>
-            where T: OclPrm {
+    pub fn arg_scl_named<'s, T>(
+        &'s mut self,
+        name: &'static str,
+        scalar: T,
+    ) -> &'s mut KernelBuilder<'b>
+    where
+        T: OclPrm,
+    {
         let arg_idx = self.new_arg_scl(scalar);
         self.named_args.insert(name.into(), arg_idx);
         self
@@ -1355,8 +1555,14 @@ impl<'b> KernelBuilder<'b> {
     ///
     /// Named arguments can be easily modified later using `::set_arg_vec_named()`.
     #[deprecated(since = "0.18.0", note = "Use ::arg_named instead.")]
-    pub fn arg_vec_named<'s, T>(&'s mut self, name: &'static str, vector: T) -> &'s mut KernelBuilder<'b>
-            where T: OclPrm {
+    pub fn arg_vec_named<'s, T>(
+        &'s mut self,
+        name: &'static str,
+        vector: T,
+    ) -> &'s mut KernelBuilder<'b>
+    where
+        T: OclPrm,
+    {
         let arg_idx = self.new_arg_vec(vector);
         self.named_args.insert(name.into(), arg_idx);
         self
@@ -1368,7 +1574,11 @@ impl<'b> KernelBuilder<'b> {
     /// The argument is added to the bottom of the argument order.
     ///
     /// Named arguments can be easily modified later using `::set_arg_smp_named()`.
-    pub fn arg_sampler_named<'s>(&'s mut self, name: &'static str, sampler_opt: Option<&'b Sampler>) -> &'s mut KernelBuilder<'b> {
+    pub fn arg_sampler_named<'s>(
+        &'s mut self,
+        name: &'static str,
+        sampler_opt: Option<&'b Sampler>,
+    ) -> &'s mut KernelBuilder<'b> {
         let arg_idx = self.new_arg_smp(sampler_opt);
         self.named_args.insert(name.into(), arg_idx);
         self
@@ -1412,14 +1622,15 @@ impl<'b> KernelBuilder<'b> {
         let num_args = match core::get_kernel_info(&obj_core, KernelInfo::NumArgs) {
             Ok(KernelInfoResult::NumArgs(num)) => num,
             Err(err) => return Err(OclError::from(err)),
-            _=> unreachable!(),
+            _ => unreachable!(),
         };
 
         if self.args.len() as u32 != num_args {
             return Err(KernelError::BuilderWrongArgCount {
                 required: num_args,
                 specified: self.args.len() as u32,
-             }.into())
+            }
+            .into());
         }
 
         let mut arg_types = Vec::with_capacity(num_args as usize);
@@ -1431,9 +1642,11 @@ impl<'b> KernelBuilder<'b> {
         for arg_idx in 0..num_args {
             let arg_type = match ArgType::from_kern_and_idx(&obj_core, arg_idx) {
                 Ok(at) => {
-                    if !at.is_unknown() { all_arg_types_unknown = false; }
+                    if !at.is_unknown() {
+                        all_arg_types_unknown = false;
+                    }
                     at
-                },
+                }
                 Err(err) => {
                     if let OclError::OclCore(ref core_err) = err {
                         if let OclCoreErrorKind::VersionLow { .. } = core_err {
@@ -1442,7 +1655,7 @@ impl<'b> KernelBuilder<'b> {
                         }
                     }
                     return Err(err);
-                },
+                }
             };
             arg_types.push(arg_type);
         }
@@ -1454,8 +1667,13 @@ impl<'b> KernelBuilder<'b> {
                     if !arg_types[arg_idx].matches(type_id) {
                         let ty_name = arg_type_name(&obj_core, arg_idx as u32)?;
                         let arg_name = arg_name(&obj_core, arg_idx as u32)?;
-                        return Err(KernelError::ArgTypeMismatch { idx: arg_idx as u32,
-                            arg_name, ty_name, ty: arg_types[arg_idx].clone() }.into());
+                        return Err(KernelError::ArgTypeMismatch {
+                            idx: arg_idx as u32,
+                            arg_name,
+                            ty_name,
+                            ty: arg_types[arg_idx].clone(),
+                        }
+                        .into());
                     }
                 }
             }
@@ -1487,17 +1705,19 @@ impl<'b> KernelBuilder<'b> {
     }
 }
 
-
 /// Returns argument information for a kernel.
-pub fn arg_info(core: &KernelCore, arg_idx: u32, info_kind: KernelArgInfo)
-        -> OclResult<KernelArgInfoResult> {
+pub fn arg_info(
+    core: &KernelCore,
+    arg_idx: u32,
+    info_kind: KernelArgInfo,
+) -> OclResult<KernelArgInfoResult> {
     let device_versions = match core.device_versions() {
         Ok(vers) => vers,
         Err(e) => return Err(e.into()),
     };
 
-    core::get_kernel_arg_info(core, arg_idx, info_kind,
-        Some(&device_versions)).map_err(OclError::from)
+    core::get_kernel_arg_info(core, arg_idx, info_kind, Some(&device_versions))
+        .map_err(OclError::from)
 }
 
 /// Returns the type name for a kernel argument at the specified index.
@@ -1518,28 +1738,28 @@ pub fn arg_name(core: &KernelCore, arg_idx: u32) -> OclResult<String> {
     }
 }
 
-
 pub mod arg_type {
     #![allow(unused_imports)]
-    use std::any::{Any, TypeId};
-    use crate::ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
-        cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
-    use crate::core::{Error as OclCoreError, Result as OclCoreResult, Status, OclPrm, Kernel as KernelCore};
-    use crate::error::{Error as OclError, Result as OclResult};
-    use crate::standard::Sampler;
     use super::{arg_info, arg_type_name};
+    use crate::core::{
+        Error as OclCoreError, Kernel as KernelCore, OclPrm, Result as OclCoreResult, Status,
+    };
+    use crate::error::{Error as OclError, Result as OclResult};
+    use crate::ffi::{
+        cl_bitfield, cl_bool, cl_char, cl_double, cl_float, cl_half, cl_int, cl_long, cl_short,
+        cl_uchar, cl_uint, cl_ulong, cl_ushort,
+    };
+    use crate::standard::Sampler;
+    use std::any::{Any, TypeId};
 
     pub use crate::core::{
-        Char, Char2, Char3, Char4, Char8, Char16,
-        Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
-        Short, Short2, Short3, Short4, Short8, Short16,
-        Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
-        Int, Int2, Int3, Int4, Int8, Int16,
-        Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
-        Long, Long2, Long3, Long4, Long8, Long16,
-        Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
-        Float, Float2, Float3, Float4, Float8, Float16,
-        Double, Double2, Double3, Double4, Double8, Double16};
+        Char, Char16, Char2, Char3, Char4, Char8, Double, Double16, Double2, Double3, Double4,
+        Double8, Float, Float16, Float2, Float3, Float4, Float8, Int, Int16, Int2, Int3, Int4,
+        Int8, Long, Long16, Long2, Long3, Long4, Long8, Short, Short16, Short2, Short3, Short4,
+        Short8, Uchar, Uchar16, Uchar2, Uchar3, Uchar4, Uchar8, Uint, Uint16, Uint2, Uint3, Uint4,
+        Uint8, Ulong, Ulong16, Ulong2, Ulong3, Ulong4, Ulong8, Ushort, Ushort16, Ushort2, Ushort3,
+        Ushort4, Ushort8,
+    };
 
     /// The base type of an OpenCL primitive.
     #[derive(Clone, Debug, Copy, PartialEq, Eq)]
@@ -1675,13 +1895,13 @@ pub mod arg_type {
                             }
                             OclCoreErrorKind::EmptyInfoResult(EmptyInfoResultError::KernelArg) => {
                                 return ArgType::unknown();
-                            },
+                            }
                             _ => (),
                         }
                     }
 
                     Err(err)
-                },
+                }
             }
         }
 
@@ -1695,7 +1915,10 @@ pub mod arg_type {
                     $struct8:ty, $struct16:ty
                 ) => {{
                     let card_match = match self.cardinality {
-                        Cardinality::One => TypeId::of::<$primary>() == type_id || TypeId::of::<$struct>() == type_id,
+                        Cardinality::One => {
+                            TypeId::of::<$primary>() == type_id
+                                || TypeId::of::<$struct>() == type_id
+                        }
                         Cardinality::Two => TypeId::of::<$struct2>() == type_id,
                         Cardinality::Three => TypeId::of::<$struct3>() == type_id,
                         Cardinality::Four => TypeId::of::<$struct4>() == type_id,
@@ -1704,30 +1927,42 @@ pub mod arg_type {
                     };
 
                     if self.is_ptr {
-                        card_match ||
-                            TypeId::of::<$primary>() == type_id ||
-                            TypeId::of::<$struct>() == type_id
+                        card_match
+                            || TypeId::of::<$primary>() == type_id
+                            || TypeId::of::<$struct>() == type_id
                     } else {
                         card_match
                     }
-                }
-            }}
+                }};
+            }
 
             match self.base_type {
                 BaseType::Char => matches!(cl_char, Char, Char2, Char3, Char4, Char8, Char16),
-                BaseType::Uchar => matches!(cl_uchar, Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16),
+                BaseType::Uchar => {
+                    matches!(cl_uchar, Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16)
+                }
 
-                BaseType::Short => matches!(cl_short, Short, Short2, Short3, Short4, Short8, Short16),
-                BaseType::Ushort => matches!(cl_ushort, Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16),
+                BaseType::Short => {
+                    matches!(cl_short, Short, Short2, Short3, Short4, Short8, Short16)
+                }
+                BaseType::Ushort => {
+                    matches!(cl_ushort, Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16)
+                }
 
                 BaseType::Int => matches!(cl_int, Int, Int2, Int3, Int4, Int8, Int16),
                 BaseType::Uint => matches!(cl_uint, Uint, Uint2, Uint3, Uint4, Uint8, Uint16),
 
                 BaseType::Long => matches!(cl_long, Long, Long2, Long3, Long4, Long8, Long16),
-                BaseType::Ulong => matches!(cl_ulong, Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16),
+                BaseType::Ulong => {
+                    matches!(cl_ulong, Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16)
+                }
 
-                BaseType::Float => matches!(cl_float, Float, Float2, Float3, Float4, Float8, Float16),
-                BaseType::Double => matches!(cl_double, Double, Double2, Double3, Double4, Double8, Double16),
+                BaseType::Float => {
+                    matches!(cl_float, Float, Float2, Float3, Float4, Float8, Float16)
+                }
+                BaseType::Double => {
+                    matches!(cl_double, Double, Double2, Double3, Double4, Double8, Double16)
+                }
 
                 BaseType::Sampler => TypeId::of::<u64>() == type_id,
                 BaseType::Image => TypeId::of::<u64>() == type_id,
@@ -1778,16 +2013,17 @@ mod tests {
             }
         "#;
 
-        let pro_que = ProQue::builder()
-            .src(src)
-            .build()?;
+        let pro_que = ProQue::builder().src(src).build()?;
 
-        let kernel_diff = pro_que.kernel_builder("local_args")
+        let kernel_diff = pro_que
+            .kernel_builder("local_args")
             .global_work_size(1)
             .arg_local::<f64>(64)
             .build()?;
 
-        unsafe { kernel_diff.enq()?; }
+        unsafe {
+            kernel_diff.enq()?;
+        }
         Ok(())
     }
 }

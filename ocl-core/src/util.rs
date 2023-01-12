@@ -3,19 +3,17 @@
 //! ## Stability
 //!
 //! Printing functions may be moved/renamed/removed at any time.
-use std::ops::Range;
-use std::mem;
-use std::ptr;
-use std::iter;
-use std::string::FromUtf8Error;
-use num_traits::PrimInt;
 use crate::{OclPrm, OclScl};
+use num_traits::PrimInt;
+use std::iter;
+use std::mem;
+use std::ops::Range;
+use std::ptr;
+use std::string::FromUtf8Error;
 
 //=============================================================================
 //================================= MACROS ====================================
 //=============================================================================
-
-
 
 //=============================================================================
 //================================ STATICS ====================================
@@ -71,18 +69,26 @@ pub mod colors {
 /// An error caused by a utility function.
 #[derive(Debug, thiserror::Error)]
 pub enum UtilError {
-    #[error("The size of the source byte slice ({src} bytes) does not match \
-        the size of the destination type ({dst} bytes).")]
-    BytesTo { src: usize, dst: usize, },
-    #[error("The size of the source byte vector ({src} bytes) does not match \
-        the size of the destination type ({dst} bytes).")]
-    BytesInto { src: usize, dst: usize, },
-    #[error("The size of the source byte vector ({src} bytes) is not evenly \
-        divisible by the size of the destination type ({dst} bytes).")]
-    BytesIntoVec { src: usize, dst: usize, },
-    #[error("The size of the source byte slice ({src} bytes) is not evenly \
-        divisible by the size of the destination type ({dst} bytes).")]
-    BytesToVec { src: usize, dst: usize, },
+    #[error(
+        "The size of the source byte slice ({src} bytes) does not match \
+        the size of the destination type ({dst} bytes)."
+    )]
+    BytesTo { src: usize, dst: usize },
+    #[error(
+        "The size of the source byte vector ({src} bytes) does not match \
+        the size of the destination type ({dst} bytes)."
+    )]
+    BytesInto { src: usize, dst: usize },
+    #[error(
+        "The size of the source byte vector ({src} bytes) is not evenly \
+        divisible by the size of the destination type ({dst} bytes)."
+    )]
+    BytesIntoVec { src: usize, dst: usize },
+    #[error(
+        "The size of the source byte slice ({src} bytes) is not evenly \
+        divisible by the size of the destination type ({dst} bytes)."
+    )]
+    BytesToVec { src: usize, dst: usize },
     #[error("Unable to convert bytes into string: {0}")]
     BytesIntoString(#[from] FromUtf8Error),
 }
@@ -96,10 +102,10 @@ pub enum UtilError {
 pub fn bytes_to_u32(bytes: &[u8]) -> u32 {
     debug_assert!(bytes.len() == 4);
 
-    u32::from(bytes[0]) |
-    (u32::from(bytes[1]) << 8) |
-    (u32::from(bytes[2]) << 16) |
-    (u32::from(bytes[3]) << 24)
+    u32::from(bytes[0])
+        | (u32::from(bytes[1]) << 8)
+        | (u32::from(bytes[2]) << 16)
+        | (u32::from(bytes[3]) << 24)
 }
 
 /// Copies a slice of bytes to a new value of arbitrary type.
@@ -114,7 +120,10 @@ pub unsafe fn bytes_to<T>(bytes: &[u8]) -> Result<T, UtilError> {
         ptr::copy(bytes.as_ptr(), new_val.as_mut_ptr() as *mut u8, bytes.len());
         Ok(new_val.assume_init())
     } else {
-        Err(UtilError::BytesTo { src: bytes.len(), dst: mem::size_of::<T>() })
+        Err(UtilError::BytesTo {
+            src: bytes.len(),
+            dst: mem::size_of::<T>(),
+        })
     }
 }
 
@@ -135,7 +144,10 @@ pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> Result<T, UtilError> {
         ptr::copy(vec.as_ptr(), new_val.as_mut_ptr() as *mut u8, vec.len());
         Ok(new_val.assume_init())
     } else {
-        Err(UtilError::BytesInto { src: vec.len(), dst: mem::size_of::<T>() })
+        Err(UtilError::BytesInto {
+            src: vec.len(),
+            dst: mem::size_of::<T>(),
+        })
     }
 }
 
@@ -158,7 +170,10 @@ pub unsafe fn bytes_into_vec<T>(mut vec: Vec<u8>) -> Result<Vec<T>, UtilError> {
         new_vec.shrink_to_fit();
         Ok(new_vec)
     } else {
-        Err(UtilError::BytesIntoVec { src: vec.len(), dst: mem::size_of::<T>() })
+        Err(UtilError::BytesIntoVec {
+            src: vec.len(),
+            dst: mem::size_of::<T>(),
+        })
     }
 }
 
@@ -173,11 +188,18 @@ pub unsafe fn bytes_to_vec<T>(bytes: &[u8]) -> Result<Vec<T>, UtilError> {
     if bytes.len() % mem::size_of::<T>() == 0 {
         let new_len = bytes.len() / mem::size_of::<T>();
         let mut new_vec: Vec<T> = Vec::with_capacity(new_len);
-        ptr::copy(bytes.as_ptr(), new_vec.as_mut_ptr() as *mut _ as *mut u8, bytes.len());
+        ptr::copy(
+            bytes.as_ptr(),
+            new_vec.as_mut_ptr() as *mut _ as *mut u8,
+            bytes.len(),
+        );
         new_vec.set_len(new_len);
         Ok(new_vec)
     } else {
-        Err(UtilError::BytesToVec { src: bytes.len(), dst: mem::size_of::<T>() })
+        Err(UtilError::BytesToVec {
+            src: bytes.len(),
+            dst: mem::size_of::<T>(),
+        })
     }
 }
 
@@ -192,7 +214,6 @@ pub fn bytes_into_string(mut bytes: Vec<u8>) -> Result<String, UtilError> {
         .map(|str| String::from(str.trim()))
         .map_err(UtilError::BytesIntoString)
 }
-
 
 /// [UNTESTED] Copies an arbitrary primitive or struct into core bytes.
 ///
@@ -240,14 +261,15 @@ pub fn padded_len(len: usize, incr: usize) -> usize {
     }
 }
 
-
 /// An error caused by `util::vec_remove_rebuild`.
 #[derive(thiserror::Error, Debug)]
 pub enum VecRemoveRebuildError {
     #[error("Remove list is longer than source vector.")]
     TooLong,
-    #[error("'remove_list' contains at least one out of range index: [{idx}] \
-        ('orig_vec' length: {orig_len}).")]
+    #[error(
+        "'remove_list' contains at least one out of range index: [{idx}] \
+        ('orig_vec' length: {orig_len})."
+    )]
     OutOfRange { idx: usize, orig_len: usize },
 }
 
@@ -258,10 +280,13 @@ pub enum VecRemoveRebuildError {
 /// set very low (less than probably 5 or 10) as it's expensive to remove one
 /// by one.
 ///
-pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &[usize],
-                rebuild_threshold: usize) -> Result<(), VecRemoveRebuildError> {
+pub fn vec_remove_rebuild<T: Clone + Copy>(
+    orig_vec: &mut Vec<T>,
+    remove_list: &[usize],
+    rebuild_threshold: usize,
+) -> Result<(), VecRemoveRebuildError> {
     if remove_list.len() > orig_vec.len() {
-        return Err(VecRemoveRebuildError::TooLong)
+        return Err(VecRemoveRebuildError::TooLong);
     }
     let orig_len = orig_vec.len();
 
@@ -269,9 +294,9 @@ pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &
     if remove_list.len() <= rebuild_threshold {
         for &idx in remove_list.iter().rev() {
             if idx < orig_len {
-                 orig_vec.remove(idx);
+                orig_vec.remove(idx);
             } else {
-                return Err(VecRemoveRebuildError::OutOfRange { idx, orig_len })
+                return Err(VecRemoveRebuildError::OutOfRange { idx, orig_len });
             }
         }
     } else {
@@ -283,7 +308,7 @@ pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &
                 if idx < orig_len {
                     *remove_markers.get_unchecked_mut(idx) = false;
                 } else {
-                    return Err(VecRemoveRebuildError::OutOfRange { idx, orig_len })
+                    return Err(VecRemoveRebuildError::OutOfRange { idx, orig_len });
                 }
             }
 
@@ -309,7 +334,6 @@ pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &
 pub fn wrap_vals<T: OclPrm + PrimInt>(vals: &[T], val_n: T) -> Vec<T> {
     vals.iter().map(|&v| v % val_n).collect()
 }
-
 
 // /// Converts a length in `T` to a size in bytes.
 // #[inline]
@@ -341,7 +365,6 @@ pub fn print_bytes_as_hex(bytes: &[u8]) {
     }
 }
 
-
 #[allow(unused_assignments, unused_variables)]
 /// [UNSTABLE]: MAY BE REMOVED AT ANY TIME
 /// Prints a vector to stdout. Used for debugging.
@@ -349,31 +372,37 @@ pub fn print_bytes_as_hex(bytes: &[u8]) {
 // TODO: Remove or feature gate printing related code.
 //
 pub fn print_slice<T: OclScl>(
-            vec: &[T],
-            every: usize,
-            val_range: Option<(T, T)>,
-            idx_range: Option<Range<usize>>,
-            show_zeros: bool,
-            ) {
-    print!( "{cdgr}[{cg}{}{cdgr}/{}", vec.len(), every, cg = colors::C_GRN, cdgr = colors::C_DGR);
+    vec: &[T],
+    every: usize,
+    val_range: Option<(T, T)>,
+    idx_range: Option<Range<usize>>,
+    show_zeros: bool,
+) {
+    print!(
+        "{cdgr}[{cg}{}{cdgr}/{}",
+        vec.len(),
+        every,
+        cg = colors::C_GRN,
+        cdgr = colors::C_DGR
+    );
 
     let (vr_start, vr_end) = match val_range {
         Some(vr) => {
-            print!( ";({}-{})", vr.0, vr.1);
+            print!(";({}-{})", vr.0, vr.1);
             vr
-        },
+        }
         None => (Default::default(), Default::default()),
     };
 
     let (ir_start, ir_end) = match idx_range {
         Some(ref ir) => {
-            print!( ";[{}..{}]", ir.start, ir.end);
+            print!(";[{}..{}]", ir.start, ir.end);
             (ir.start, ir.end)
-        },
+        }
         None => (0usize, 0usize),
     };
 
-    print!( "]:{cd} ", cd = colors::C_DEFAULT,);
+    print!("]:{cd} ", cd = colors::C_DEFAULT,);
 
     let mut ttl_nz = 0usize;
     let mut ttl_ir = 0usize;
@@ -385,13 +414,11 @@ pub fn print_slice<T: OclScl>(
     let mut ttl_prntd: usize = 0;
     let len = vec.len();
 
-
     let mut color: &'static str = colors::C_DEFAULT;
     let mut prnt: bool = false;
 
     // Yes, this clusterfuck needs rewriting someday
     for (i, item) in vec.iter().enumerate() {
-
         prnt = false;
 
         if every != 0 {
@@ -436,9 +463,13 @@ pub fn print_slice<T: OclScl>(
         if within_idx_range && within_val_range {
             sum += item.to_i64().expect("ocl::buffer::print_vec(): vec[i]");
 
-            if *item > hi { hi = *item };
+            if *item > hi {
+                hi = *item
+            };
 
-            if *item < lo { lo = *item };
+            if *item < lo {
+                lo = *item
+            };
 
             if vec[i] != Default::default() {
                 ttl_nz += 1usize;
@@ -451,7 +482,14 @@ pub fn print_slice<T: OclScl>(
         }
 
         if prnt {
-            print!( "{cg}[{cd}{}{cg}:{cc}{}{cg}]{cd}", i, vec[i], cc = color, cd = colors::C_DEFAULT, cg = colors::C_DGR);
+            print!(
+                "{cg}[{cd}{}{cg}:{cc}{}{cg}]{cd}",
+                i,
+                vec[i],
+                cc = color,
+                cd = colors::C_DEFAULT,
+                cg = colors::C_DGR
+            );
             ttl_prntd += 1;
         }
     }
@@ -474,23 +512,30 @@ pub fn print_slice<T: OclScl>(
         //print!( "[ttl_nz: {}, nz_pct: {:.0}%, len: {}]", ttl_nz, nz_pct, len);
     }
 
-
-    println!("{cdgr}; (nz:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),\
+    println!(
+        "{cdgr}; (nz:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),\
         ir:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),hi:{},lo:{},anz:{:.2},prntd:{}){cd} ",
-        ttl_nz, nz_pct, ttl_ir, ir_pct, hi, lo, anz, ttl_prntd, cd = colors::C_DEFAULT, clbl = colors::C_LBL, cdgr = colors::C_DGR);
+        ttl_nz,
+        nz_pct,
+        ttl_ir,
+        ir_pct,
+        hi,
+        lo,
+        anz,
+        ttl_prntd,
+        cd = colors::C_DEFAULT,
+        clbl = colors::C_LBL,
+        cdgr = colors::C_DGR
+    );
 }
-
 
 pub fn print_simple<T: OclScl>(slice: &[T]) {
     print_slice(slice, 1, None, None, true);
 }
 
-
-
 pub fn print_val_range<T: OclScl>(slice: &[T], every: usize, val_range: Option<(T, T)>) {
     print_slice(slice, every, val_range, None, true);
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -513,7 +558,10 @@ mod tests {
             idx += 1;
         }
 
-        println!("util::tests::remove_rebuild(): bad_indices: {}", bad_indices.len());
+        println!(
+            "util::tests::remove_rebuild(): bad_indices: {}",
+            bad_indices.len()
+        );
 
         // Remove the bad values:
         super::vec_remove_rebuild(&mut primary_vals, &bad_indices[..], 3)
@@ -522,7 +570,10 @@ mod tests {
         // Check:
         for &val in primary_vals.iter() {
             if (val % 19 == 0) || (val % 31 == 0) || (val % 107 == 0) {
-                panic!("util::tests::remove_rebuild(): Value: '{}' found in list!", val);
+                panic!(
+                    "util::tests::remove_rebuild(): Value: '{}' found in list!",
+                    val
+                );
             }
         }
 
