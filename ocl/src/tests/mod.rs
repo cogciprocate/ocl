@@ -1,7 +1,7 @@
 //! These tests are fairly trivial. Most actual regression testing is done
 //! by running tests with [bismit](https://github.com/cogciprocate/bismit).
 //!
-//! Lots more tests needed (what's new?).
+//! On windows test may need to be run with `cargo test -- --test-threads 1`
 //!
 //! * TODO: port some of bismit's tests over.
 //!
