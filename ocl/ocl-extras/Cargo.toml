@@ -19,7 +19,7 @@ version = "0.19"
 # features = ["opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]
-# chrono = "0.2"
+# chrono = "0.4"
 num-traits = "0.2"
 rand = { version = "0.8", features = ["small_rng"] }
 failure = "0.1"

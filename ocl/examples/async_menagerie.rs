@@ -260,13 +260,13 @@ fn gen_kern_src(kernel_name: &str, type_str: &str, simple: bool, add: bool) -> S
 
     if simple {
         format!(
-            r#"__kernel void {}(
+            r#"__kernel void {kn}(
                     __global {ts}* in,
                     {ts} values,
                     __global {ts}* out)
             {{
                 uint idx = get_global_id(0);
-                out[idx] = in[idx] {} values;
+                out[idx] = in[idx] {op} values;
             }}"#,
             kn = kernel_name,
             op = op,

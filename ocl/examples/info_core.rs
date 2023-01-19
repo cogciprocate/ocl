@@ -585,7 +585,7 @@ fn print_platform_device(
             BinarySizes: {}{d}\
             Binaries: {}{d}\
             NumKernels: {}{d}\
-            KernelNames: {}{e}\
+            KernelNames: {b}{e}\
         ",
         to_string!(core::get_program_info(
             &program,
