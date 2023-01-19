@@ -117,7 +117,7 @@ suprised if most driver vendors implement the two host APIs identically.
 In the future it's possible the two may completely merge (or that Vulkan will
 absorb OpenCL). Whatever happens, nothing will change as far as the front end
 of this library is concerned. This library will maintain its focus on the
-compute side of things. For the graphics side, see the [voodoo] library.
+compute side of things.
 
 ##### License
 
