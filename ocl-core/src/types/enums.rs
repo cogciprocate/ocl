@@ -706,8 +706,7 @@ impl DeviceInfoResult {
             DeviceInfo::ImageBaseAddressAlignment => {
                 let r = unsafe { util::bytes_into::<u32>(result)? };
                 DeviceInfoResult::ImageBaseAddressAlignment(r)
-            }
-            // _ => DeviceInfoResult::TemporaryPlaceholderVariant(result),
+            } // _ => DeviceInfoResult::TemporaryPlaceholderVariant(result),
         };
 
         Ok(ir)
