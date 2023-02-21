@@ -1,132 +1,102 @@
 //! OpenCL / DirectX 11 sharing.
 
-pub use crate::cl_h::cl_uint;
+// + NVIDIA extension https://registry.khronos.org/OpenCL/extensions/nv/cl_nv_d3d11_sharing.txt
 
-pub const CL_CONTEXT_D3D11_DEVICE_KHR: cl_uint = 0x401D;
+#![allow(
+    non_camel_case_types,
+    dead_code,
+    unused_variables,
+    improper_ctypes,
+    non_upper_case_globals
+)]
 
-// /**********************************************************************************
-//  * Copyright (c) 2008-2015 The Khronos Group Inc.
-//  *
-//  * Permission is hereby granted, free of charge, to any person obtaining a
-//  * copy of this software and/or associated documentation files (the
-//  * "Materials"), to deal in the Materials without restriction, including
-//  * without limitation the rights to use, copy, modify, merge, publish,
-//  * distribute, sublicense, and/or sell copies of the Materials, and to
-//  * permit persons to whom the Materials are furnished to do so, subject to
-//  * the following conditions:
-//  *
-//  * The above copyright notice and this permission notice shall be included
-//  * in all copies or substantial portions of the Materials.
-//  *
-//  * MODIFICATIONS TO THIS FILE MAY MEAN IT NO LONGER ACCURATELY REFLECTS
-//  * KHRONOS STANDARDS. THE UNMODIFIED, NORMATIVE VERSIONS OF KHRONOS
-//  * SPECIFICATIONS AND HEADER INFORMATION ARE LOCATED AT
-//  *    https://www.khronos.org/registry/
-//  *
-//  * THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-//  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-//  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-//  * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-//  * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-//  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-//  * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-//  **********************************************************************************/
-// /* $Revision: 11708 $ on $Date: 2010-06-13 23:36:24 -0700 (Sun, 13 Jun 2010) $ */
-// #ifndef __OPENCL_CL_D3D11_H
-// #define __OPENCL_CL_D3D11_H
+use crate::cl_h::{
+    cl_command_queue, cl_command_type, cl_context, cl_context_info, cl_device_id, cl_event,
+    cl_image_info, cl_int, cl_mem, cl_mem_flags, cl_mem_info, cl_platform_id, cl_uint,
+};
+use libc::c_void;
 
-// #include <d3d11.h>
-// #include <CL/cl.h>
-// #include <CL/cl_platform.h>
+pub type cl_d3d11_device_source = cl_uint;
+pub type cl_d3d11_device_set = cl_uint;
+pub type cl_id3d11_buffer = *mut c_void;
+pub type cl_id3d11_texture2d = *mut c_void;
+pub type cl_id3d11_texture3d = *mut c_void;
 
-// #ifdef __cplusplus
-// extern "C" {
-// #endif
+// Error Codes
+pub const CL_INVALID_D3D11_DEVICE: cl_int = -1006;
+pub const CL_INVALID_D3D11_RESOURCE: cl_int = -1007;
+pub const CL_D3D11_RESOURCE_ALREADY_ACQUIRED: cl_int = -1008;
+pub const CL_D3D11_RESOURCE_NOT_ACQUIRED: cl_int = -1009;
 
-// /******************************************************************************
-//  * cl_khr_d3d11_sharing                                                       */
-// #define cl_khr_d3d11_sharing 1
+// cl_d3d11_device_source
+pub const CL_D3D11_DEVICE: cl_d3d11_device_source = 0x4019;
+pub const CL_D3D11_DXGI_ADAPTER: cl_d3d11_device_source = 0x401A;
 
-// typedef cl_uint cl_d3d11_device_source_khr;
-// typedef cl_uint cl_d3d11_device_set_khr;
+// cl_d3d11_device_set
+pub const CL_PREFERRED_DEVICES_FOR_D3D11: cl_d3d11_device_set = 0x401B;
+pub const CL_ALL_DEVICES_FOR_D3D11: cl_d3d11_device_set = 0x401C;
 
-// /******************************************************************************/
-// /* Error Codes */
-// #define CL_INVALID_D3D11_DEVICE_KHR                  -1006
-// #define CL_INVALID_D3D11_RESOURCE_KHR                -1007
-// #define CL_D3D11_RESOURCE_ALREADY_ACQUIRED_KHR       -1008
-// #define CL_D3D11_RESOURCE_NOT_ACQUIRED_KHR           -1009
+// cl_context_info
+pub const CL_CONTEXT_D3D11_DEVICE_KHR: cl_context_info = 0x401D;
+pub const CL_CONTEXT_D3D11_PREFER_SHARED_RESOURCES: cl_context_info = 0x402D;
 
-// /* cl_d3d11_device_source */
-// #define CL_D3D11_DEVICE_KHR                          0x4019
-// #define CL_D3D11_DXGI_ADAPTER_KHR                    0x401A
+// cl_mem_info
+pub const CL_MEM_D3D11_RESOURCE: cl_mem_info = 0x401E;
 
-// /* cl_d3d11_device_set */
-// #define CL_PREFERRED_DEVICES_FOR_D3D11_KHR           0x401B
-// #define CL_ALL_DEVICES_FOR_D3D11_KHR                 0x401C
+// cl_image_info
+pub const CL_IMAGE_D3D11_SUBRESOURCE: cl_image_info = 0x401F;
 
-// /* cl_context_info */
-// #define CL_CONTEXT_D3D11_DEVICE_KHR                  0x401D
-// #define CL_CONTEXT_D3D11_PREFER_SHARED_RESOURCES_KHR 0x402D
+// cl_command_type
+pub const CL_COMMAND_ACQUIRE_D3D11_OBJECTS: cl_command_type = 0x4020;
+pub const CL_COMMAND_RELEASE_D3D11_OBJECTS: cl_command_type = 0x4021;
 
-// /* cl_mem_info */
-// #define CL_MEM_D3D11_RESOURCE_KHR                    0x401E
+pub type clGetDeviceIDsFromD3D11_fn = extern "system" fn(
+    platform: cl_platform_id,
+    d3d_device_source: cl_d3d11_device_source,
+    d3d_object: *mut c_void,
+    d3d_device_set: cl_d3d11_device_set,
+    num_entries: cl_uint,
+    devices: *mut cl_device_id,
+    num_devices: *mut cl_uint,
+) -> cl_int;
 
-// /* cl_image_info */
-// #define CL_IMAGE_D3D11_SUBRESOURCE_KHR               0x401F
+pub type clCreateFromD3D11Buffer_fn = extern "system" fn(
+    context: cl_context,
+    flags: cl_mem_flags,
+    resource: cl_id3d11_buffer,
+    errcode_ret: *mut cl_int,
+) -> cl_mem;
 
-// /* cl_command_type */
-// #define CL_COMMAND_ACQUIRE_D3D11_OBJECTS_KHR         0x4020
-// #define CL_COMMAND_RELEASE_D3D11_OBJECTS_KHR         0x4021
+pub type clCreateFromD3D11Texture2D_fn = extern "system" fn(
+    context: cl_context,
+    flags: cl_mem_flags,
+    resource: cl_id3d11_texture2d,
+    subresource: cl_uint,
+    errcode_ret: *mut cl_int,
+) -> cl_mem;
 
-// /******************************************************************************/
-// typedef CL_API_ENTRY cl_int (CL_API_CALL *clGetDeviceIDsFromD3D11KHR_fn)(
-//     cl_platform_id             platform,
-//     cl_d3d11_device_source_khr d3d_device_source,
-//     void *                     d3d_object,
-//     cl_d3d11_device_set_khr    d3d_device_set,
-//     cl_uint                    num_entries,
-//     cl_device_id *             devices,
-//     cl_uint *                  num_devices) CL_API_SUFFIX__VERSION_1_2;
+pub type clCreateFromD3D11Texture3D_fn = extern "system" fn(
+    context: cl_context,
+    flags: cl_mem_flags,
+    resource: cl_id3d11_texture3d,
+    subresource: cl_uint,
+    errcode_ret: *mut cl_int,
+) -> cl_mem;
 
-// typedef CL_API_ENTRY cl_mem (CL_API_CALL *clCreateFromD3D11BufferKHR_fn)(
-//     cl_context     context,
-//     cl_mem_flags   flags,
-//     ID3D11Buffer * resource,
-//     cl_int *       errcode_ret) CL_API_SUFFIX__VERSION_1_2;
+pub type clEnqueueAcquireD3D11Objects_fn = extern "system" fn(
+    command_queue: cl_command_queue,
+    num_objects: cl_uint,
+    mem_objects: *const cl_mem,
+    num_events_in_wait_list: cl_uint,
+    event_wait_list: *const cl_event,
+    event: *mut cl_event,
+) -> cl_int;
 
-// typedef CL_API_ENTRY cl_mem (CL_API_CALL *clCreateFromD3D11Texture2DKHR_fn)(
-//     cl_context        context,
-//     cl_mem_flags      flags,
-//     ID3D11Texture2D * resource,
-//     UINT              subresource,
-//     cl_int *          errcode_ret) CL_API_SUFFIX__VERSION_1_2;
-
-// typedef CL_API_ENTRY cl_mem (CL_API_CALL *clCreateFromD3D11Texture3DKHR_fn)(
-//     cl_context        context,
-//     cl_mem_flags      flags,
-//     ID3D11Texture3D * resource,
-//     UINT              subresource,
-//     cl_int *          errcode_ret) CL_API_SUFFIX__VERSION_1_2;
-
-// typedef CL_API_ENTRY cl_int (CL_API_CALL *clEnqueueAcquireD3D11ObjectsKHR_fn)(
-//     cl_command_queue command_queue,
-//     cl_uint          num_objects,
-//     const cl_mem *   mem_objects,
-//     cl_uint          num_events_in_wait_list,
-//     const cl_event * event_wait_list,
-//     cl_event *       event) CL_API_SUFFIX__VERSION_1_2;
-
-// typedef CL_API_ENTRY cl_int (CL_API_CALL *clEnqueueReleaseD3D11ObjectsKHR_fn)(
-//     cl_command_queue command_queue,
-//     cl_uint          num_objects,
-//     const cl_mem *   mem_objects,
-//     cl_uint          num_events_in_wait_list,
-//     const cl_event * event_wait_list,
-//     cl_event *       event) CL_API_SUFFIX__VERSION_1_2;
-
-// #ifdef __cplusplus
-// }
-// #endif
-
-// #endif  /* __OPENCL_CL_D3D11_H */
+pub type clEnqueueReleaseD3D11Objects_fn = extern "system" fn(
+    command_queue: cl_command_queue,
+    num_objects: cl_uint,
+    mem_objects: *const cl_mem,
+    num_events_in_wait_list: cl_uint,
+    event_wait_list: *const cl_event,
+    event: *mut cl_event,
+) -> cl_int;

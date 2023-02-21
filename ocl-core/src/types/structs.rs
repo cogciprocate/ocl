@@ -336,7 +336,7 @@ pub enum ContextPropertyValue {
     AdapterD3d9Khr(isize),
     AdapterD3d9exKhr(isize),
     AdapterDxvaKhr(isize),
-    D3d11DeviceKhr(isize),
+    D3d11DeviceKhr(*mut c_void),
 }
 
 unsafe impl Send for ContextPropertyValue {}
@@ -526,6 +526,12 @@ impl ContextProperties {
                 );
                 self.contains_gl_context_or_sharegroup = true;
             }
+            ContextPropertyValue::D3d11DeviceKhr(val) => {
+                self.props.insert(
+                    ContextProperty::D3d11DeviceKhr,
+                    ContextPropertyValue::D3d11DeviceKhr(val),
+                );
+            }
             _ => panic!("'{:?}' is not yet a supported variant.", prop),
         }
     }
@@ -591,6 +597,10 @@ impl ContextProperties {
                     props_raw.push(sync as isize);
                 }
                 ContextPropertyValue::EglDisplayKhr(sync) => {
+                    props_raw.push(*key as isize);
+                    props_raw.push(sync as isize);
+                }
+                ContextPropertyValue::D3d11DeviceKhr(sync) => {
                     props_raw.push(*key as isize);
                     props_raw.push(sync as isize);
                 }
@@ -746,7 +756,7 @@ impl ContextProperties {
                 ContextProperty::D3d11DeviceKhr => {
                     context_props.props.insert(
                         ContextProperty::D3d11DeviceKhr,
-                        ContextPropertyValue::D3d11DeviceKhr(val_raw),
+                        ContextPropertyValue::D3d11DeviceKhr(val_raw as *mut c_void),
                     );
                 }
             }

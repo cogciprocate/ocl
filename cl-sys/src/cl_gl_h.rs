@@ -55,13 +55,7 @@ pub const CL_GLX_DISPLAY_KHR: cl_context_properties = 0x200A;
 pub const CL_WGL_HDC_KHR: cl_context_properties = 0x200B;
 pub const CL_CGL_SHAREGROUP_KHR: cl_context_properties = 0x200C;
 
-// typedef CL_API_ENTRY cl_int (CL_API_CALL *clGetGLContextInfoKHR_fn)(
-//     const cl_context_properties * properties,
-//     cl_gl_context_info            param_name,
-//     size_t                        param_value_size,
-//     void *                        param_value,
-//     size_t *                      param_value_size_ret);
-pub type clGetGLContextInfoKHR_fn = *mut extern "system" fn(
+pub type clGetGLContextInfoKHR_fn = extern "system" fn(
     properties: *const cl_context_properties,
     param_name: cl_gl_context_info,
     param_value_size: size_t,

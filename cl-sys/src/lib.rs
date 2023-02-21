@@ -68,7 +68,12 @@ pub use self::cl_dx9_media_sharing_h::{
     CL_CONTEXT_ADAPTER_D3D9EX_KHR, CL_CONTEXT_ADAPTER_D3D9_KHR, CL_CONTEXT_ADAPTER_DXVA_KHR,
 };
 
-pub use self::cl_d3d11_h::CL_CONTEXT_D3D11_DEVICE_KHR;
+pub use self::cl_d3d11_h::{
+    clCreateFromD3D11Buffer_fn, clCreateFromD3D11Texture2D_fn, clCreateFromD3D11Texture3D_fn,
+    clEnqueueAcquireD3D11Objects_fn, clEnqueueReleaseD3D11Objects_fn, clGetDeviceIDsFromD3D11_fn,
+    cl_d3d11_device_set, cl_d3d11_device_source, cl_id3d11_buffer, cl_id3d11_texture2d,
+    cl_id3d11_texture3d, CL_CONTEXT_D3D11_DEVICE_KHR,
+};
 
 // Types:
 pub use self::cl_h::{
