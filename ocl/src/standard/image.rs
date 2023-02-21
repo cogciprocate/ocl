@@ -25,6 +25,8 @@ use crate::core::GlTextureTarget;
 #[cfg(not(feature = "opencl_vendor_mesa"))]
 use crate::ffi::{cl_GLint, cl_GLuint};
 
+use crate::ffi::{cl_id3d11_texture2d, cl_id3d11_texture3d, cl_uint};
+
 /// The type of operation to be performed by a command.
 #[derive(Debug)]
 pub enum ImageCmdKind<'c, T: 'c> {
@@ -45,10 +47,12 @@ pub enum ImageCmdKind<'c, T: 'c> {
     },
     CopyToBuffer {
         buffer: &'c MemCore,
-        dst_origin: usize,
+        dst_offset: usize,
     },
     GLAcquire,
     GLRelease,
+    D3D11Acquire,
+    D3D11Release,
 }
 
 impl<'c, T: 'c> ImageCmdKind<'c, T> {
@@ -97,6 +101,7 @@ pub struct ImageCmd<'c, T: 'c> {
     ewait: Option<ClWaitListPtrEnum<'c>>,
     enew: Option<ClNullEventPtrEnum<'c>>,
     mem_dims: [usize; 3],
+    ext_fns: Option<&'c core::ExtensionFunctions>,
 }
 
 /// [UNSTABLE]: All methods still in a state of adjustifulsomeness.
@@ -104,7 +109,12 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     /// Returns a new image command builder associated with with the
     /// memory object `obj_core` along with a default `queue` and `to_len`
     /// (the length of the device side image).
-    fn new(queue: Option<&'c Queue>, obj_core: &'c MemCore, dims: [usize; 3]) -> ImageCmd<'c, T> {
+    fn new(
+        queue: Option<&'c Queue>,
+        obj_core: &'c MemCore,
+        dims: [usize; 3],
+        ext_fns: Option<&'c core::ExtensionFunctions>,
+    ) -> ImageCmd<'c, T> {
         ImageCmd {
             queue,
             obj_core,
@@ -117,6 +127,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
             ewait: None,
             enew: None,
             mem_dims: dims,
+            ext_fns,
         }
     }
 
@@ -239,7 +250,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn copy_to_buffer<'d>(mut self, buffer: &'d MemCore, dst_origin: usize) -> ImageCmd<'c, T>
+    pub fn copy_to_buffer<'d>(mut self, buffer: &'d MemCore, dst_offset: usize) -> ImageCmd<'c, T>
     where
         'd: 'c,
     {
@@ -248,7 +259,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
             "ocl::ImageCmd::copy_to_buffer(): Operation kind \
             already set for this command."
         );
-        self.kind = ImageCmdKind::CopyToBuffer { buffer, dst_origin };
+        self.kind = ImageCmdKind::CopyToBuffer { buffer, dst_offset };
         self
     }
 
@@ -285,6 +296,42 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
             already set for this command."
         );
         self.kind = ImageCmdKind::GLRelease;
+        self
+    }
+
+    /// Specifies that this command will acquire a D3D11 buffer.
+    ///
+    /// If `.block(..)` has been set it will be ignored.
+    ///
+    /// ## Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub fn d3d11_acquire(mut self) -> ImageCmd<'c, T> {
+        assert!(
+            self.kind.is_unspec(),
+            "ocl::ImageCmd::d3d11_acquire(): Operation kind \
+            already set for this command."
+        );
+        self.kind = ImageCmdKind::D3D11Acquire;
+        self
+    }
+
+    /// Specifies that this command will release a D3D11 buffer.
+    ///
+    /// If `.block(..)` has been set it will be ignored.
+    ///
+    /// ## Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub fn d3d11_release(mut self) -> ImageCmd<'c, T> {
+        assert!(
+            self.kind.is_unspec(),
+            "ocl::ImageCmd::d3d11_release(): Operation kind \
+            already set for this command."
+        );
+        self.kind = ImageCmdKind::D3D11Release;
         self
     }
 
@@ -483,68 +530,64 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
         };
 
         match self.kind {
-            ImageCmdKind::Read { data } => unsafe {
-                core::enqueue_read_image(
-                    queue,
-                    self.obj_core,
-                    self.block,
-                    self.origin,
-                    self.region,
-                    self.row_pitch_bytes,
-                    self.slc_pitch_bytes,
-                    data,
-                    self.ewait,
-                    self.enew,
-                )
+            ImageCmdKind::Read { data } => {
+                unsafe { core::enqueue_read_image(queue, self.obj_core, self.block,
+                    self.origin, self.region, self.row_pitch_bytes, self.slc_pitch_bytes, data, self.ewait,
+                    self.enew) }
             },
-            ImageCmdKind::Write { data } => unsafe {
-                core::enqueue_write_image(
-                    queue,
-                    self.obj_core,
-                    self.block,
-                    self.origin,
-                    self.region,
-                    self.row_pitch_bytes,
-                    self.slc_pitch_bytes,
-                    data,
-                    self.ewait,
-                    self.enew,
-                )
+            ImageCmdKind::Write { data } => {
+                unsafe {
+                    core::enqueue_write_image(queue, self.obj_core, self.block,
+                        self.origin, self.region, self.row_pitch_bytes, self.slc_pitch_bytes, data, self.ewait,
+                        self.enew)
+                }
             },
-            ImageCmdKind::Copy {
-                dst_image,
-                dst_origin,
-            } => core::enqueue_copy_image(
-                queue,
-                self.obj_core,
-                dst_image,
-                self.origin,
-                dst_origin,
-                self.region,
-                self.ewait,
-                self.enew,
-            ),
+            ImageCmdKind::Copy { dst_image, dst_origin } => {
+                core::enqueue_copy_image(queue, self.obj_core, dst_image, self.origin,
+                    dst_origin, self.region, self.ewait, self.enew)
+            },
+            ImageCmdKind::CopyToBuffer { buffer, dst_offset } => {
+                core::enqueue_copy_image_to_buffer::<T, _, _, _>(queue, self.obj_core, buffer, self.origin,
+                    self.region, dst_offset, self.ewait, self.enew)
+            },
 
-            #[cfg(not(feature = "opencl_vendor_mesa"))]
+            #[cfg(not(feature="opencl_vendor_mesa"))]
             ImageCmdKind::GLAcquire => {
                 // core::enqueue_acquire_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
                 let buf_slc = unsafe { std::slice::from_raw_parts(self.obj_core, 1) };
                 core::enqueue_acquire_gl_objects(queue, buf_slc, self.ewait, self.enew)
-            }
+            },
 
-            #[cfg(not(feature = "opencl_vendor_mesa"))]
+            #[cfg(not(feature="opencl_vendor_mesa"))]
             ImageCmdKind::GLRelease => {
                 // core::enqueue_release_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
                 let buf_slc = unsafe { std::slice::from_raw_parts(self.obj_core, 1) };
                 core::enqueue_release_gl_objects(queue, buf_slc, self.ewait, self.enew)
-            }
+            },
+
+            ImageCmdKind::D3D11Acquire => {
+                match self.ext_fns {
+                    Some(fns) => {
+                        let buf_slc = unsafe { std::slice::from_raw_parts(self.obj_core, 1) };
+                        core::enqueue_acquire_d3d11_objects(queue, buf_slc, self.ewait, self.enew, fns)
+                    }
+                    None => Err("ocl::ImageCmd::enq(): The function pointer to clEnqueueAcquireD3D11Objects was not resolved.".into())
+                }
+            },
+            ImageCmdKind::D3D11Release => {
+                match self.ext_fns {
+                    Some(fns) => {
+                        let buf_slc = unsafe { std::slice::from_raw_parts(self.obj_core, 1) };
+                        core::enqueue_release_d3d11_objects(queue, buf_slc, self.ewait, self.enew, fns)
+                    }
+                    None => Err("ocl::ImageCmd::enq(): The function pointer to clEnqueueReleaseD3D11Objects was not resolved.".into())
+                }
+            },
 
             ImageCmdKind::Unspecified => Err("ocl::ImageCmd::enq(): No operation \
-                specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."
-                .into()),
+                specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'.".into()),
             _ => unimplemented!(),
-        }
-        .map_err(OclError::from)
+        }.map_err(OclError::from)
     }
 }
 
@@ -754,6 +797,7 @@ pub struct Image<T: OclPrm> {
     queue: Option<Queue>,
     dims: SpatialDims,
     pixel_element_len: usize,
+    extension_functions: Option<core::ExtensionFunctions>,
     _pixel: PhantomData<T>,
 }
 
@@ -820,6 +864,7 @@ impl<T: OclPrm> Image<T> {
             queue: que_ctx.into(),
             dims,
             pixel_element_len,
+            extension_functions: None,
             _pixel: PhantomData,
         };
 
@@ -827,6 +872,13 @@ impl<T: OclPrm> Image<T> {
     }
 
     /// Returns a new `Image` from an existant GL texture2D/3D.
+    ///
+    /// Remember to specify the GL context when creating the CL context,
+    /// using `.properties(ocl_interop::get_properties_list())`
+    ///
+    /// Don't forget to `.cmd().gl_acquire().enq()` before using it and
+    /// `.cmd().gl_release().enq()` after.
+    ///
     // [WORK IN PROGRESS]
     #[cfg(not(feature = "opencl_vendor_mesa"))]
     pub fn from_gl_texture<'o, Q>(
@@ -885,6 +937,7 @@ impl<T: OclPrm> Image<T> {
             queue: que_ctx.into(),
             dims,
             pixel_element_len,
+            extension_functions: None,
             _pixel: PhantomData,
         };
 
@@ -892,6 +945,13 @@ impl<T: OclPrm> Image<T> {
     }
 
     /// Returns a new `Image` from an existant renderbuffer.
+    ///
+    /// Remember to specify the GL context when creating the CL context,
+    /// using `.properties(ocl_interop::get_properties_list())`
+    ///
+    /// Don't forget to `.cmd().gl_acquire().enq()` before using it and
+    /// `.cmd().gl_release().enq()` after.
+    ///
     // [WORK IN PROGRESS]
     #[cfg(not(feature = "opencl_vendor_mesa"))]
     pub fn from_gl_renderbuffer<'o, Q>(
@@ -925,6 +985,147 @@ impl<T: OclPrm> Image<T> {
             queue: que_ctx.into(),
             dims,
             pixel_element_len,
+            extension_functions: None,
+            _pixel: PhantomData,
+        };
+
+        Ok(new_img)
+    }
+
+    /// Returns a new `Image` from an existant ID3D11Texture2D.
+    ///
+    /// Remember to specify the D3D11 device when creating the CL context,
+    /// using `.properties()` and `.set_property_value(ContextPropertyValue::D3d11DeviceKhr(<pointer to ID3D11Device>))`
+    ///
+    /// Don't forget to `.cmd().d3d11_acquire().enq()` before using it and
+    /// `.cmd().d3d11_release().enq()` after.
+    ///
+    pub fn from_d3d11_texture2d<'o, Q>(
+        que_ctx: Q,
+        flags: MemFlags,
+        image_desc: ImageDescriptor,
+        texture: cl_id3d11_texture2d,
+        subresource: u32,
+    ) -> OclResult<Image<T>>
+    where
+        Q: Into<QueCtx<'o>>,
+    {
+        let que_ctx = que_ctx.into();
+        let context = que_ctx.context_cloned();
+        let device_versions = context.device_versions()?;
+
+        let extension_fns = match context.platform()? {
+            Some(platform) => core::ExtensionFunctions::resolve_all(*platform)?,
+            _ => {
+                return Err(
+                    "ocl::Image::from_d3d11_texture2d(): Platform must be set in context.".into(),
+                )
+            }
+        };
+
+        let obj_core = unsafe {
+            core::create_from_d3d11_texture2d(
+                &context,
+                texture,
+                subresource as cl_uint,
+                flags,
+                Some(&device_versions),
+                &extension_fns,
+            )?
+        };
+
+        let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize)? {
+            ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
+            _ => {
+                return Err("ocl::Image::element_len(): Unexpected \
+                'ImageInfoResult' variant."
+                    .into())
+            }
+        };
+
+        let dims = [
+            image_desc.image_width,
+            image_desc.image_height,
+            image_desc.image_depth,
+        ]
+        .into();
+
+        let new_img = Image {
+            obj_core,
+            queue: que_ctx.into(),
+            dims,
+            pixel_element_len,
+            extension_functions: Some(extension_fns),
+            _pixel: PhantomData,
+        };
+
+        Ok(new_img)
+    }
+
+    /// Returns a new `Image` from an existant ID3D11Texture2D.
+    ///
+    /// Remember to specify the D3D11 device when creating the CL context,
+    /// using `.properties()` and `.set_property_value(ContextPropertyValue::D3d11DeviceKhr(<pointer to ID3D11Device>))`
+    ///
+    /// Don't forget to `.cmd().d3d11_acquire().enq()` before using it and
+    /// `.cmd().d3d11_release().enq()` after.
+    ///
+    pub fn from_d3d11_texture3d<'o, Q>(
+        que_ctx: Q,
+        flags: MemFlags,
+        image_desc: ImageDescriptor,
+        texture: cl_id3d11_texture3d,
+        subresource: u32,
+    ) -> OclResult<Image<T>>
+    where
+        Q: Into<QueCtx<'o>>,
+    {
+        let que_ctx = que_ctx.into();
+        let context = que_ctx.context_cloned();
+        let device_versions = context.device_versions()?;
+
+        let extension_fns = match context.platform()? {
+            Some(platform) => core::ExtensionFunctions::resolve_all(*platform)?,
+            _ => {
+                return Err(
+                    "ocl::Image::from_d3d11_texture3d(): Platform must be set in context.".into(),
+                )
+            }
+        };
+
+        let obj_core = unsafe {
+            core::create_from_d3d11_texture3d(
+                &context,
+                texture,
+                subresource as cl_uint,
+                flags,
+                Some(&device_versions),
+                &extension_fns,
+            )?
+        };
+
+        let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize)? {
+            ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
+            _ => {
+                return Err("ocl::Image::element_len(): Unexpected \
+                'ImageInfoResult' variant."
+                    .into())
+            }
+        };
+
+        let dims = [
+            image_desc.image_width,
+            image_desc.image_height,
+            image_desc.image_depth,
+        ]
+        .into();
+
+        let new_img = Image {
+            obj_core,
+            queue: que_ctx.into(),
+            dims,
+            pixel_element_len,
+            extension_functions: Some(extension_fns),
             _pixel: PhantomData,
         };
 
@@ -942,6 +1143,7 @@ impl<T: OclPrm> Image<T> {
             self.queue.as_ref(),
             &self.obj_core,
             self.dims.to_lens().expect("ocl::Image::cmd"),
+            self.extension_functions.as_ref(),
         )
     }
 

@@ -112,10 +112,12 @@ extern crate num_traits;
 #[cfg(feature = "ocl-core-vector")]
 extern crate ocl_core_vector as vector;
 
-pub mod error;
+mod extension_functions;
 mod functions;
 #[cfg(test)]
 mod tests;
+pub use extension_functions::ExtensionFunctions;
+pub mod error;
 pub mod types;
 pub mod util;
 
@@ -170,6 +172,11 @@ pub use self::functions::{
     create_from_gl_buffer, create_from_gl_renderbuffer, create_from_gl_texture,
     create_from_gl_texture_2d, create_from_gl_texture_3d, enqueue_acquire_gl_objects,
     enqueue_fill_buffer, enqueue_release_gl_objects, get_gl_context_info_khr,
+};
+
+pub use self::functions::{
+    create_from_d3d11_buffer, create_from_d3d11_texture2d, create_from_d3d11_texture3d,
+    enqueue_acquire_d3d11_objects, enqueue_release_d3d11_objects,
 };
 
 pub use crate::traits::{OclNum, OclPrm, OclScl};

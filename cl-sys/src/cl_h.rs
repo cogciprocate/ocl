@@ -749,8 +749,8 @@ extern "system" {
     #[cfg(feature = "opencl_version_2_1")]
     pub fn clGetDeviceAndHostTimer(
         device: cl_device_id,
-        device_timestamp: cl_ulong,
-        host_timestamp: cl_ulong,
+        device_timestamp: *mut cl_ulong,
+        host_timestamp: *mut cl_ulong,
     ) -> cl_int;
 
     // extern CL_API_ENTRY cl_int CL_API_CALL
@@ -758,7 +758,7 @@ extern "system" {
     //                cl_ulong *   /* host_timestamp */)  CL_API_SUFFIX__VERSION_2_1;
     //############################### NEW 2.1 #################################
     #[cfg(feature = "opencl_version_2_1")]
-    pub fn clGetHostTimer(device: cl_device_id, host_timestamp: cl_ulong) -> cl_int;
+    pub fn clGetHostTimer(device: cl_device_id, host_timestamp: *mut cl_ulong) -> cl_int;
 
     // Context APIs:
     pub fn clCreateContext(
@@ -1034,7 +1034,7 @@ extern "system" {
         context: cl_context,
         num_devices: cl_uint,
         device_list: *const cl_device_id,
-        kernel_names: *mut char,
+        kernel_names: *const char,
         errcode_ret: *mut cl_int,
     ) -> cl_program;
 

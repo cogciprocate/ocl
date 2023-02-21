@@ -298,6 +298,7 @@ pub(crate) enum ApiFunction {
     CreateProgramWithIl,
     CreateImage,
     CreateFromGLTexture,
+    CreateFromD3D11Texture,
     GetKernelArgInfo,
     EnqueueFillBuffer,
     EnqueueFillImage,
@@ -373,6 +374,8 @@ pub enum ApiWrapperError {
         'GPU', 'ACCELERATOR', 'CUSTOM', and 'ALL'."
     )]
     DefaultDeviceTypeInvalidType(String),
+    #[error("The function pointer to {0} was not resolved.")]
+    ExtensionFunctionPointerNotResolved(String),
 }
 
 //============================================================================
@@ -1081,32 +1084,17 @@ where
     }
 }
 
-/// [INOPERATIVE: Needs troubleshooting] Returns OpenGL context information.
-///
 /// Used to query current or available devices associated with an existing
 /// OpenGL context/sharegroup.
 ///
 /// `properties` must identify a single valid GL context or GL share group
 /// object and a valid platform.
-///
-/// ### Debugging (notes)
-///
-/// For some reason, calling the function pointer returned by the call to
-/// `ffi::clGetExtensionFunctionAddressForPlatform` causes a segfault
-/// (`ffi::clGetExtensionFunctionAddressForPlatform` appears to be working
-/// just fine). The function pointer returned is not null.
-///
-/// Further investigation into the what address the returned function pointer
-/// points to is needed. There may be some Rust-specific quirk having to do
-/// with how libraries are loaded into memory. There may alternatively just be
-/// a simple mistake somewhere.
-///
 #[cfg(not(feature = "opencl_vendor_mesa"))]
 pub fn get_gl_context_info_khr(
     properties: &ContextProperties,
     request: GlContextInfo,
 ) -> OclCoreResult<GlContextInfoResult> {
-    let cl_get_gl_context_info_khr_fn = unsafe {
+    let cl_get_gl_context_info_khr_fn: ffi::clGetGLContextInfoKHR_fn = unsafe {
         let fn_name = match ::std::ffi::CString::new("clGetGLContextInfoKHR") {
             Ok(s) => s,
             Err(err) => return Err(err.into()),
@@ -1133,21 +1121,19 @@ pub fn get_gl_context_info_khr(
                 .into());
         }
 
-        fn_ptr as ffi::clGetGLContextInfoKHR_fn
+        std::mem::transmute(fn_ptr)
     };
 
     let props_bytes = properties.to_raw();
     let mut result_size: size_t = 0;
 
-    let errcode = unsafe {
-        (*cl_get_gl_context_info_khr_fn)(
-            props_bytes.as_ptr(),
-            request as cl_gl_context_info,
-            0 as size_t,
-            ptr::null_mut(),
-            &mut result_size as *mut usize,
-        )
-    };
+    let errcode = cl_get_gl_context_info_khr_fn(
+        props_bytes.as_ptr(),
+        request as cl_gl_context_info,
+        0 as size_t,
+        ptr::null_mut(),
+        &mut result_size as *mut usize,
+    );
 
     // if let Err(err) = eval_errcode(errcode, (), "clGetGlContextInfoKhr", None::<String>) {
     //     return GlContextInfoResult::Error(Box::new(err));
@@ -1166,15 +1152,13 @@ pub fn get_gl_context_info_khr(
 
     let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
 
-    let errcode = unsafe {
-        (*cl_get_gl_context_info_khr_fn)(
-            props_bytes.as_ptr(),
-            request as cl_gl_context_info,
-            result_size as size_t,
-            result.as_mut_ptr() as *mut c_void,
-            ptr::null_mut(),
-        )
-    };
+    let errcode = cl_get_gl_context_info_khr_fn(
+        props_bytes.as_ptr(),
+        request as cl_gl_context_info,
+        result_size as size_t,
+        result.as_mut_ptr() as *mut c_void,
+        ptr::null_mut(),
+    );
 
     let result = eval_errcode(errcode, result, "clGetGlContextInfoKhr", None::<String>)?;
     GlContextInfoResult::from_bytes(request, result)
@@ -1409,8 +1393,6 @@ where
 /// The caller must ensure that correct and appropriate `flags` are being
 /// used.
 ///
-// [UNTESTED]
-//
 // [TODO]: If version is < 1.2, automatically use older versions.
 //
 #[cfg(not(feature = "opencl_vendor_mesa"))]
@@ -1530,6 +1512,242 @@ where
 
     eval_errcode(errcode, buf_ptr, "clCreateFromGLTexture3D", None::<String>)
         .map(|ptr| Mem::from_raw_create_ptr(ptr))
+}
+
+/// Return a buffer pointer from a `D3D11` buffer object.
+///
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
+///
+/// ## Safety
+///
+/// The caller must ensure that correct and appropriate `flags` are being
+/// used.
+///
+pub unsafe fn create_from_d3d11_buffer<C>(
+    context: C,
+    buffer: ffi::cl_id3d11_buffer,
+    flags: MemFlags,
+    extension_fns: &crate::ExtensionFunctions,
+) -> OclCoreResult<Mem>
+where
+    C: ClContextPtr,
+{
+    // Verify that the context is valid
+    verify_context(context)?;
+
+    match extension_fns.clCreateFromD3D11Buffer {
+        Some(func) => {
+            let mut errcode: cl_int = 0;
+
+            let buf_ptr = func(
+                context.as_ptr(),
+                flags.bits() as cl_mem_flags,
+                buffer,
+                &mut errcode,
+            );
+
+            eval_errcode(errcode, buf_ptr, "clCreateFromD3D11Buffer", None::<String>)
+                .map(|ptr| Mem::from_raw_create_ptr(ptr))
+        }
+        None => Err(ApiWrapperError::ExtensionFunctionPointerNotResolved(
+            "clCreateFromD3D11Buffer".into(),
+        )
+        .into()),
+    }
+}
+
+/// Return a texture2D pointer from a `D3D11` texture2D object.
+///
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
+///
+/// ## Safety
+///
+/// The caller must ensure that correct and appropriate `flags` are being
+/// used.
+///
+pub unsafe fn create_from_d3d11_texture2d<C>(
+    context: C,
+    texture: ffi::cl_id3d11_texture2d,
+    subresource: cl_uint,
+    flags: MemFlags,
+    device_versions: Option<&[OpenclVersion]>,
+    extension_fns: &crate::ExtensionFunctions,
+) -> OclCoreResult<Mem>
+where
+    C: ClContextPtr,
+{
+    // Verify that the context is valid
+    verify_context(context)?;
+
+    // Verify device versions:
+    verify_device_versions(
+        device_versions,
+        [1, 2],
+        &context.as_ptr(),
+        ApiFunction::CreateFromD3D11Texture,
+    )?;
+
+    match extension_fns.clCreateFromD3D11Texture2D {
+        Some(func) => {
+            let mut errcode: cl_int = 0;
+
+            let buf_ptr = func(
+                context.as_ptr(),
+                flags.bits() as cl_mem_flags,
+                texture,
+                subresource,
+                &mut errcode,
+            );
+
+            eval_errcode(
+                errcode,
+                buf_ptr,
+                "clCreateFromD3D11Texture2D",
+                None::<String>,
+            )
+            .map(|ptr| Mem::from_raw_create_ptr(ptr))
+        }
+        None => Err(ApiWrapperError::ExtensionFunctionPointerNotResolved(
+            "clCreateFromD3D11Texture2D".into(),
+        )
+        .into()),
+    }
+}
+
+/// Return a texture3D pointer from a `D3D11` texture3D object.
+///
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
+///
+/// ## Safety
+///
+/// The caller must ensure that correct and appropriate `flags` are being
+/// used.
+///
+pub unsafe fn create_from_d3d11_texture3d<C>(
+    context: C,
+    texture: ffi::cl_id3d11_texture3d,
+    subresource: cl_uint,
+    flags: MemFlags,
+    device_versions: Option<&[OpenclVersion]>,
+    extension_fns: &crate::ExtensionFunctions,
+) -> OclCoreResult<Mem>
+where
+    C: ClContextPtr,
+{
+    // Verify that the context is valid
+    verify_context(context)?;
+
+    // Verify device versions:
+    verify_device_versions(
+        device_versions,
+        [1, 2],
+        &context.as_ptr(),
+        ApiFunction::CreateFromD3D11Texture,
+    )?;
+
+    match extension_fns.clCreateFromD3D11Texture3D {
+        Some(func) => {
+            let mut errcode: cl_int = 0;
+
+            let buf_ptr = func(
+                context.as_ptr(),
+                flags.bits() as cl_mem_flags,
+                texture,
+                subresource,
+                &mut errcode,
+            );
+
+            eval_errcode(
+                errcode,
+                buf_ptr,
+                "clCreateFromD3D11Texture3D",
+                None::<String>,
+            )
+            .map(|ptr| Mem::from_raw_create_ptr(ptr))
+        }
+        None => Err(ApiWrapperError::ExtensionFunctionPointerNotResolved(
+            "clCreateFromD3D11Texture3D".into(),
+        )
+        .into()),
+    }
+}
+
+/// Acquire D3D11 memory objects (buffers and images) that have been created
+/// from D3D11 objects.
+///
+/// To create a slice from a single `Mem` reference without any cost, use
+/// something like: `unsafe { ::std::slice::from_raw_parts(&core_mem, 1) };`.
+///
+pub fn enqueue_acquire_d3d11_objects<En, Ewl>(
+    command_queue: &CommandQueue,
+    buffers: &[Mem],
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+    extension_fns: &crate::ExtensionFunctions,
+) -> OclCoreResult<()>
+where
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
+
+    match extension_fns.clEnqueueAcquireD3D11Objects {
+        Some(func) => {
+            let errcode = func(
+                command_queue.as_ptr(),
+                buffers.len() as u32,
+                buffers.as_ptr() as *const cl_mem,
+                wait_list_len,
+                wait_list_ptr,
+                new_event_ptr,
+            );
+
+            eval_errcode(errcode, (), "clEnqueueAcquireD3D11Objects", None::<String>)
+        }
+        None => Err(ApiWrapperError::ExtensionFunctionPointerNotResolved(
+            "clEnqueueAcquireD3D11Objects".into(),
+        )
+        .into()),
+    }
+}
+
+/// Release D3D11 memory objects (buffers and images) that have been created
+/// from D3D11 objects.
+///
+/// To create a slice from a single `Mem` reference without any cost, use
+/// something like: `unsafe { ::std::slice::from_raw_parts(&core_mem, 1) };`.
+///
+pub fn enqueue_release_d3d11_objects<En, Ewl>(
+    command_queue: &CommandQueue,
+    buffers: &[Mem],
+    wait_list: Option<Ewl>,
+    new_event: Option<En>,
+    extension_fns: &crate::ExtensionFunctions,
+) -> OclCoreResult<()>
+where
+    En: ClNullEventPtr,
+    Ewl: ClWaitListPtr,
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_event_ptrs(wait_list, new_event);
+
+    match extension_fns.clEnqueueReleaseD3D11Objects {
+        Some(func) => {
+            let errcode = func(
+                command_queue.as_ptr(),
+                buffers.len() as u32,
+                buffers.as_ptr() as *const cl_mem,
+                wait_list_len,
+                wait_list_ptr,
+                new_event_ptr,
+            );
+
+            eval_errcode(errcode, (), "clEnqueueReleaseD3D11Objects", None::<String>)
+        }
+        None => Err(ApiWrapperError::ExtensionFunctionPointerNotResolved(
+            "clEnqueueReleaseD3D11Objects".into(),
+        )
+        .into()),
+    }
 }
 
 /// Creates a new buffer object (referred to as a sub-buffer object) from an
@@ -3478,9 +3696,6 @@ where
 /// Enqueues a command to copy an image object to a buffer object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyImageToBuffer.html)
-///
-// [UNTESTED]
-//
 pub fn enqueue_copy_image_to_buffer<T, M, En, Ewl>(
     command_queue: &CommandQueue,
     src_image: M,
@@ -3520,9 +3735,6 @@ where
 /// Enqueues a command to copy a buffer object to an image object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyBufferToImage.html)
-///
-// [UNTESTED]
-//
 pub fn enqueue_copy_buffer_to_image<T, M, En, Ewl>(
     command_queue: &CommandQueue,
     src_buffer: M,

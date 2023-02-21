@@ -17,6 +17,8 @@ use std::ops::{Deref, DerefMut, Range};
 #[cfg(not(feature = "opencl_vendor_mesa"))]
 use crate::ffi::cl_GLuint;
 
+use core::ffi::cl_id3d11_buffer;
+
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
     if offset >= mem_len {
         Err(format!(
@@ -122,6 +124,8 @@ where
     },
     GLAcquire,
     GLRelease,
+    D3D11Acquire,
+    D3D11Release,
 }
 
 impl<'c, T> BufferCmdKind<'c, T> {
@@ -189,6 +193,7 @@ where
     ewait: Option<ClWaitListPtrEnum<'c>>,
     enew: Option<ClNullEventPtrEnum<'c>>,
     mem_len: usize,
+    ext_fns: Option<&'c core::ExtensionFunctions>,
 }
 
 /// [UNSTABLE]: All methods still in a state of flux.
@@ -203,6 +208,7 @@ where
         buffer: &'c Buffer<T>,
         queue: Option<&'c Queue>,
         /*obj_core: &'c MemCore,*/ mem_len: usize,
+        ext_fns: Option<&'c core::ExtensionFunctions>,
     ) -> BufferCmd<'c, T> {
         BufferCmd {
             buffer,
@@ -213,6 +219,7 @@ where
             ewait: None,
             enew: None,
             mem_len,
+            ext_fns,
         }
     }
 
@@ -424,6 +431,42 @@ where
         self
     }
 
+    /// Specifies that this command will acquire a D3D11 buffer.
+    ///
+    /// If `.block(..)` has been set it will be ignored.
+    ///
+    /// ## Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub fn d3d11_acquire(mut self) -> BufferCmd<'c, T> {
+        assert!(
+            self.kind.is_unspec(),
+            "ocl::BufferCmd::d3d11_acquire(): Operation kind \
+            already set for this command."
+        );
+        self.kind = BufferCmdKind::D3D11Acquire;
+        self
+    }
+
+    /// Specifies that this command will release a D3D11 buffer.
+    ///
+    /// If `.block(..)` has been set it will be ignored.
+    ///
+    /// ## Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub fn d3d11_release(mut self) -> BufferCmd<'c, T> {
+        assert!(
+            self.kind.is_unspec(),
+            "ocl::BufferCmd::d3d11_release(): Operation kind \
+            already set for this command."
+        );
+        self.kind = BufferCmdKind::D3D11Release;
+        self
+    }
+
     /// Specifies that this command will be a fill operation.
     ///
     /// If `.block(..)` has been set it will be ignored.
@@ -627,110 +670,100 @@ where
         };
 
         match self.kind {
-            BufferCmdKind::Copy {
-                dst_buffer,
-                dst_offset,
-                len,
-            } => match self.shape {
-                BufferCmdDataShape::Lin { offset } => {
-                    let len = len.unwrap_or(self.mem_len);
-                    check_len(self.mem_len, len, offset)?;
-                    let dst_offset = dst_offset.unwrap_or(0);
+            BufferCmdKind::Copy { dst_buffer, dst_offset, len } => {
+                match self.shape {
+                    BufferCmdDataShape::Lin { offset } => {
+                        let len = len.unwrap_or(self.mem_len);
+                        check_len(self.mem_len, len, offset)?;
+                        let dst_offset = dst_offset.unwrap_or(0);
 
-                    core::enqueue_copy_buffer::<T, _, _, _>(
-                        queue,
-                        &self.buffer.obj_core,
-                        dst_buffer,
-                        offset,
-                        dst_offset,
-                        len,
-                        self.ewait,
-                        self.enew,
-                    )
-                    .map_err(OclError::from)
-                }
-                BufferCmdDataShape::Rect {
-                    src_origin,
-                    dst_origin,
-                    region,
-                    src_row_pitch_bytes,
-                    src_slc_pitch_bytes,
-                    dst_row_pitch_bytes,
-                    dst_slc_pitch_bytes,
-                } => {
-                    if dst_offset.is_some() || len.is_some() {
-                        return Err(
+                        core::enqueue_copy_buffer::<T, _, _, _>(queue,
+                            &self.buffer.obj_core, dst_buffer, offset, dst_offset, len,
+                            self.ewait, self.enew).map_err(OclError::from)
+                    },
+                    BufferCmdDataShape::Rect { src_origin, dst_origin, region,
+                        src_row_pitch_bytes, src_slc_pitch_bytes, dst_row_pitch_bytes,
+                        dst_slc_pitch_bytes } =>
+                    {
+                        if dst_offset.is_some() || len.is_some() { return Err(
                             "ocl::BufferCmd::enq(): For 'rect' shaped copies, destination \
                             offset and length must be 'None'. Ex.: \
-                            'cmd().copy(&{{buf_name}}, None, None)..'."
-                                .into(),
-                        );
+                            'cmd().copy(&{{buf_name}}, None, None)..'.".into());
+                        }
+
+                        core::enqueue_copy_buffer_rect::<T, _, _, _>(queue, &self.buffer.obj_core,
+                            dst_buffer, src_origin, dst_origin, region, src_row_pitch_bytes,
+                            src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
+                            self.ewait, self.enew).map_err(OclError::from)
+                    },
+                }
+            },
+            BufferCmdKind::CopyToImage { image, dst_origin, region } => {
+                match self.shape {
+                    BufferCmdDataShape::Lin { offset } => {
+                        core::enqueue_copy_buffer_to_image::<T, _, _, _>(queue, &self.buffer.obj_core, image, offset,
+                            dst_origin, region, self.ewait, self.enew).map_err(OclError::from)
+                    },
+                    BufferCmdDataShape::Rect { .. } => {
+                        Err("ocl::BufferCmd::enq(): CopyToImage not implemented for rect buffers".into())
                     }
-
-                    core::enqueue_copy_buffer_rect::<T, _, _, _>(
-                        queue,
-                        &self.buffer.obj_core,
-                        dst_buffer,
-                        src_origin,
-                        dst_origin,
-                        region,
-                        src_row_pitch_bytes,
-                        src_slc_pitch_bytes,
-                        dst_row_pitch_bytes,
-                        dst_slc_pitch_bytes,
-                        self.ewait,
-                        self.enew,
-                    )
-                    .map_err(OclError::from)
                 }
             },
 
-            #[cfg(not(feature = "opencl_vendor_mesa"))]
-            BufferCmdKind::Fill { pattern, len } => match self.shape {
-                BufferCmdDataShape::Lin { offset } => {
-                    let len = match len {
-                        Some(l) => l,
-                        None => self.mem_len,
-                    };
+            #[cfg(not(feature="opencl_vendor_mesa"))]
+            BufferCmdKind::Fill { pattern, len } => {
+                match self.shape {
+                    BufferCmdDataShape::Lin { offset } => {
+                        let len = match len {
+                            Some(l) => l,
+                            None => self.mem_len,
+                        };
 
-                    check_len(self.mem_len, len, offset)?;
+                        check_len(self.mem_len, len, offset)?;
 
-                    core::enqueue_fill_buffer(
-                        queue,
-                        &self.buffer.obj_core,
-                        pattern,
-                        offset,
-                        len,
-                        self.ewait,
-                        self.enew,
-                        Some(&queue.device_version()),
-                    )
-                    .map_err(OclError::from)
+                        core::enqueue_fill_buffer(queue, &self.buffer.obj_core, pattern,
+                            offset, len, self.ewait, self.enew, Some(&queue.device_version()))
+                            .map_err(OclError::from)
+                    },
+                    BufferCmdDataShape::Rect { .. } => Err(
+                        "ocl::BufferCmd::enq(): Rectangular fill is not a valid operation. \
+                        Please use the default shape, linear.".into())
                 }
-                BufferCmdDataShape::Rect { .. } => Err(
-                    "ocl::BufferCmd::enq(): Rectangular fill is not a valid operation. \
-                        Please use the default shape, linear."
-                        .into(),
-                ),
             },
-            #[cfg(not(feature = "opencl_vendor_mesa"))]
+            #[cfg(not(feature="opencl_vendor_mesa"))]
             BufferCmdKind::GLAcquire => {
                 let buf_slc = unsafe { std::slice::from_raw_parts(&self.buffer.obj_core, 1) };
-                core::enqueue_acquire_gl_objects(queue, buf_slc, self.ewait, self.enew)
-                    .map_err(OclError::from)
-            }
+                core::enqueue_acquire_gl_objects(queue, buf_slc, self.ewait, self.enew).map_err(OclError::from)
+            },
 
-            #[cfg(not(feature = "opencl_vendor_mesa"))]
+            #[cfg(not(feature="opencl_vendor_mesa"))]
             BufferCmdKind::GLRelease => {
                 let buf_slc = unsafe { std::slice::from_raw_parts(&self.buffer.obj_core, 1) };
-                core::enqueue_release_gl_objects(queue, buf_slc, self.ewait, self.enew)
-                    .map_err(OclError::from)
-            }
+                core::enqueue_release_gl_objects(queue, buf_slc, self.ewait, self.enew).map_err(OclError::from)
+            },
+
+            BufferCmdKind::D3D11Acquire => {
+                match self.ext_fns {
+                    Some(fns) => {
+                        let buf_slc = unsafe { std::slice::from_raw_parts(&self.buffer.obj_core, 1) };
+                        core::enqueue_acquire_d3d11_objects(queue, buf_slc, self.ewait, self.enew, fns).map_err(OclError::from)
+                    }
+                    None => Err("ocl::BufferCmd::enq(): The function pointer to clEnqueueAcquireD3D11Objects was not resolved.".into())
+                }
+            },
+            BufferCmdKind::D3D11Release => {
+                match self.ext_fns {
+                    Some(fns) => {
+                        let buf_slc = unsafe { std::slice::from_raw_parts(&self.buffer.obj_core, 1) };
+                        core::enqueue_release_d3d11_objects(queue, buf_slc, self.ewait, self.enew, fns).map_err(OclError::from)
+                    }
+                    None => Err("ocl::BufferCmd::enq(): The function pointer to clEnqueueReleaseD3D11Objects was not resolved.".into())
+                }
+            },
 
             BufferCmdKind::Unspecified => Err("ocl::BufferCmd::enq(): \
                 No operation specified. Use '.read(...)', 'write(...)', etc. before calling \
-                '.enq()'."
-                .into()),
+                '.enq()'.".into()),
             BufferCmdKind::Map { .. } => unreachable!(),
             _ => unimplemented!(),
         }
@@ -2065,6 +2098,7 @@ pub struct Buffer<T: OclPrm> {
     queue: Option<Queue>,
     len: usize,
     offset: Option<usize>,
+    extension_functions: Option<core::ExtensionFunctions>,
     _data: PhantomData<T>,
 }
 
@@ -2129,6 +2163,7 @@ impl<T: OclPrm> Buffer<T> {
             queue: que_ctx.into(),
             len,
             offset: None,
+            extension_functions: None,
             _data: PhantomData,
         };
 
@@ -2140,6 +2175,9 @@ impl<T: OclPrm> Buffer<T> {
     /// [UNTESTED]
     ///
     /// ### Errors
+    ///
+    /// Remember to specify the GL context when creating the CL context,
+    /// using `.properties(ocl_interop::get_properties_list())`
     ///
     /// Don't forget to `.cmd().gl_acquire().enq()` before using it and
     /// `.cmd().gl_release().enq()` after.
@@ -2176,6 +2214,69 @@ impl<T: OclPrm> Buffer<T> {
             queue: que_ctx.into(),
             len,
             offset: None,
+            extension_functions: None,
+            _data: PhantomData,
+        };
+
+        Ok(buf)
+    }
+
+    /// Creates a buffer linked to a previously created D3D11 buffer object.
+    ///
+    /// [UNTESTED]
+    ///
+    /// ### Errors
+    ///
+    /// Remember to specify the D3D11 device when creating the CL context,
+    /// using `.properties()` and `.set_property_value(ContextPropertyValue::D3d11DeviceKhr(<pointer to ID3D11Device>))`
+    ///
+    /// Don't forget to `.cmd().d3d11_acquire().enq()` before using it and
+    /// `.cmd().d3d11_release().enq()` after.
+    ///
+    /// See the [`BufferCmd` docs](builders/struct.BufferCmd.html)
+    /// for more info.
+    ///
+    pub fn from_d3d11_buffer<'o, Q>(
+        que_ctx: Q,
+        flags_opt: Option<MemFlags>,
+        object: cl_id3d11_buffer,
+    ) -> OclResult<Buffer<T>>
+    where
+        Q: Into<QueCtx<'o>>,
+    {
+        let flags = flags_opt.unwrap_or(core::MEM_READ_WRITE);
+        let que_ctx = que_ctx.into();
+        let context = que_ctx.context_cloned();
+
+        let extension_fns = match context.platform()? {
+            Some(platform) => core::ExtensionFunctions::resolve_all(*platform)?,
+            _ => {
+                return Err(
+                    "ocl::Image::from_d3d11_buffer(): Platform must be set in context.".into(),
+                )
+            }
+        };
+
+        let obj_core = match que_ctx {
+            QueCtx::Queue(ref q) => unsafe {
+                core::create_from_d3d11_buffer(&q.context(), object, flags, &extension_fns)?
+            },
+            QueCtx::Context(c) => unsafe {
+                core::create_from_d3d11_buffer(c, object, flags, &extension_fns)?
+            },
+        };
+
+        let len = match core::get_mem_object_info(&obj_core, MemInfo::Size)? {
+            MemInfoResult::Size(len_bytes) => len_bytes / ::std::mem::size_of::<T>(),
+            _ => unreachable!(),
+        };
+
+        let buf = Buffer {
+            obj_core,
+            queue: que_ctx.into(),
+            len,
+            offset: None,
+            extension_functions: Some(extension_fns),
             _data: PhantomData,
         };
 
@@ -2196,6 +2297,7 @@ impl<T: OclPrm> Buffer<T> {
             self,
             self.queue.as_ref(),
             /*&self.obj_core,*/ self.len(),
+            self.extension_functions.as_ref(),
         )
     }
 
@@ -2506,6 +2608,7 @@ impl<T: OclPrm> Buffer<T> {
             // Share mapped status with super-buffer:
             // is_mapped: self.is_mapped.clone(),
             offset: Some(offset),
+            extension_functions: self.extension_functions.clone(),
             _data: PhantomData,
         })
     }
