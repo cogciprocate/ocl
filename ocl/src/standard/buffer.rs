@@ -2603,7 +2603,7 @@ impl<T: OclPrm> Buffer<T> {
     /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubBuffer.html
     /// [`ocl::flags`]: flags/index.html
     /// [mem_flags]: flags/struct.MemFlags.html
-    /// [`MemFlags::new().read_write()`] flags/struct.MemFlags.html#method.read_write
+    /// [`MemFlags::new().read_write()`]: flags/struct.MemFlags.html#method.read_write
     ///
     pub fn create_sub_buffer<Do, Dl>(
         &self,
