@@ -2,7 +2,7 @@ OpenCL interfaces and types.
 
 #### [Documentation](https://docs.rs/ocl-core)
 
-[![](http://meritbadge.herokuapp.com/ocl_core)](https://crates.io/crates/ocl_core)
+[![](https://img.shields.io/crates/v/ocl-core.svg)](https://crates.io/crates/ocl_core)
 [![](https://docs.rs/ocl-core/badge.svg)](https://docs.rs/ocl-core)
 
 For a higher level, easier to use, and far less verbose OpenCL interface (that
