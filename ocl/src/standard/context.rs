@@ -27,7 +27,7 @@ use std::ops::{Deref, DerefMut};
 pub struct Context(ContextCore);
 
 impl Context {
-    /// Returns a [`ContextBuilder`](/ocl/ocl/struct.ContextBuilder.html).
+    /// Returns a [`ContextBuilder`](/ocl/builders/struct.ContextBuilder.html).
     ///
     /// This is the preferred way to create a Context.
     pub fn builder() -> ContextBuilder {
