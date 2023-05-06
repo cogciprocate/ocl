@@ -3,7 +3,7 @@ ocl
 
 #### [Documentation](https://docs.rs/ocl) | [Change Log](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
 
-[![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl) [![](https://docs.rs/ocl/badge.svg)](https://docs.rs/ocl)
+[![](https://img.shields.io/crates/v/ocl.svg)](https://crates.io/crates/ocl) [![](https://docs.rs/ocl/badge.svg)](https://docs.rs/ocl)
 [![Supported platforms](https://img.shields.io/badge/platform-windows%20%7C%20macos%20%7C%20linux%20%7C%20bsd-orange.svg)](https://en.wikipedia.org/wiki/Cross-platform)
 [![Linux Build Status](https://travis-ci.org/cogciprocate/ocl.svg?branch=master)](https://travis-ci.org/cogciprocate/ocl)
 

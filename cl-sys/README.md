@@ -2,7 +2,7 @@ OpenCL C FFI Bindings.
 
 ### [Documentation](https://docs.rs/cl-sys)
 
-[![](http://meritbadge.herokuapp.com/cl_sys)](https://crates.io/crates/cl_sys)
+[![](https://img.shields.io/crates/v/cl-sys.svg)](https://crates.io/crates/cl_sys)
 [![](https://docs.rs/cl-sys/badge.svg)](https://docs.rs/cl-sys)
 
 For a high level, easier to use, and far less verbose OpenCL interface (that

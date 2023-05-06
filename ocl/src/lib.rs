@@ -1,4 +1,4 @@
-//! # [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl) | [GitHub](https://github.com/cogciprocate/ocl)
+//! # [![](https://img.shields.io/crates/v/ocl.svg)](https://crates.io/crates/ocl) | [GitHub](https://github.com/cogciprocate/ocl)
 //!
 //! Rust implementation of the [OpenCL&trade; API].
 //!
