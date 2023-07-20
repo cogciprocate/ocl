@@ -2,7 +2,7 @@
 name = "ocl-extras"
 version = "0.1.1"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/cogciprocate/ocl"
 homepage = "https://github.com/cogciprocate/ocl/ocl-extras"
 documentation = "https://docs.rs/ocl-extras"

@@ -11,7 +11,7 @@ description = "Creates an OpenCL Context with OpenGL Interop enabled"
 readme = "README.md"
 keywords = ["OpenCL", "OpenGL", "gpgpu", "gpu", "GL"]
 categories = ["concurrency", "hardware-support", "api-bindings", "external-ffi-bindings"]
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 ocl = { path = "../ocl", version = "0.19" }
