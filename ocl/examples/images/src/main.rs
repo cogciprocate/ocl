@@ -135,7 +135,7 @@ fn main() {
         .unwrap();
 
     // Not sure why you'd bother creating a sampler on the host but here's how:
-    let sampler = Sampler::new(&context, true, AddressingMode::None, FilterMode::Nearest).unwrap();
+    let sampler = Sampler::new(&context, false, AddressingMode::None, FilterMode::Nearest).unwrap();
 
     let kernel = Kernel::builder()
         .program(&program)
