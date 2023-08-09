@@ -1391,7 +1391,7 @@ impl RawEventArray {
         E: AsRef<EventCore>,
     {
         if (self.len) < self.list.len() {
-            self.list[(self.len)] = unsafe { *(e.as_ref().as_ptr_ref()) };
+            self.list[self.len] = unsafe { *(e.as_ref().as_ptr_ref()) };
             self.len += 1;
         } else {
             panic!("RawEventArray::push: List is full.");
