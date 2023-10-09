@@ -1,7 +1,15 @@
-Version 0.19.5 (UNRELEASED)
+Version 0.19.6 (UNRELEASED)
+===========================
+
+*
+
+
+Version 0.19.5 (2023-10-09)
 ===========================
 
 * Add DirectX D3D11 Interop.
+* Specify a fixed `thiserror` dependency version.
+* Various fixes and formatting.
 
 
 Version 0.19.4 (2022-08-23)

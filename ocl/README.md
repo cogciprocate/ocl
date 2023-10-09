@@ -73,16 +73,6 @@ See the the remainder of [`examples/trivial.rs`] for more information about
 how this library leverages Rust's zero-cost abstractions to provide the full
 power and performance of the C API in a simple package.
 
-## Recent Changes
-
-* 0.18.0: Creating a
-  [`Kernel`](https://docs.rs/ocl/0.18.0/ocl/struct.Kernel.html) now requires
-  the use of the new
-  [`KernelBuilder`](https://docs.rs/ocl/0.18.0/ocl/struct.KernelBuilder.html).
-  See the [change
-  log](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md) for more
-  information.
-
 ##### Introduction to OpenCL
 
 For a quick but thorough primer on the basics of OpenCL, please see [Matthew
