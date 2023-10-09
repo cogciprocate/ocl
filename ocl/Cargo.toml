@@ -58,11 +58,12 @@ default = ["opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]
 nodrop = "0.1"
-thiserror = "1.0"
+thiserror = "=1.0.48"
 num-traits = "0.2"
 futures = "0.1"
 qutex = "0.2"
-ocl-core = { version = "~0.11.3", path = "../ocl-core" }
+#ocl-core = { version = "~0.11.3", path = "../ocl-core" }
+ocl-core = "0.11"
 
 [dev-dependencies]
 find_folder = "0.3"
