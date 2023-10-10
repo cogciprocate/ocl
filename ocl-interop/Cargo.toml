@@ -2,7 +2,7 @@
 name = "ocl-interop"
 
 # [REMINDER]: Bump version in `README.md`.
-version = "0.1.5"
+version = "0.1.6"
 
 authors = ["Nopey Nope<golgothasTerror101@gmail.com>", "Nick Sanders <cogciprocate@gmail.com>"]
 build = "build.rs"
