@@ -17,7 +17,7 @@ use std::ops::{Deref, DerefMut, Range};
 #[cfg(not(feature = "opencl_vendor_mesa"))]
 use crate::ffi::cl_GLuint;
 
-use core::ffi::cl_id3d11_buffer;
+use crate::core::ffi::cl_id3d11_buffer;
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
     if offset >= mem_len {

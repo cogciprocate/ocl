@@ -58,7 +58,7 @@ default = ["opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]
 nodrop = "0.1"
-thiserror = "=1.0.48"
+thiserror = "1.0.50"
 num-traits = "0.2"
 futures = "0.1"
 qutex = "0.2"
