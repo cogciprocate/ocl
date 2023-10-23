@@ -50,7 +50,9 @@
 
 extern crate futures;
 extern crate num_traits;
-pub extern crate ocl_core as core;
+pub extern crate ocl_core;
+
+pub use ocl_core as core;
 
 pub mod r#async;
 pub mod error;
