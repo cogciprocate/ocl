@@ -996,7 +996,7 @@ cl_vec!(Uint4, 4, u32, u);
 // unsafe impl OclPrm for ClUint8 {}
 // unsafe impl OclVec for ClUint8 {}
 
-cl_vec!(Uint8, 8, i8, u);
+cl_vec!(Uint8, 8, u32, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUint16(pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32,
