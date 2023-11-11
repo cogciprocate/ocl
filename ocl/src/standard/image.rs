@@ -1136,7 +1136,7 @@ impl<T: OclPrm> Image<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [command builder documentation](struct.ImageCmd)
+    /// See the [command builder documentation](builders/struct.ImageCmd.html)
     /// for more details.
     pub fn cmd(&self) -> ImageCmd<T> {
         ImageCmd::new(
@@ -1151,7 +1151,7 @@ impl<T: OclPrm> Image<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [command builder documentation](struct.ImageCmd#method.read)
+    /// See the [command builder documentation](builders/struct.ImageCmd.html#method.read)
     /// for more details.
     pub fn read<'c, 'd>(&'c self, data: &'d mut [T]) -> ImageCmd<'c, T>
     where
@@ -1164,7 +1164,7 @@ impl<T: OclPrm> Image<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [command builder documentation](struct.ImageCmd#method.write)
+    /// See the [command builder documentation](builders/struct.ImageCmd.html#method.write)
     /// for more details.
     pub fn write<'c, 'd>(&'c self, data: &'d [T]) -> ImageCmd<'c, T>
     where
@@ -1182,7 +1182,7 @@ impl<T: OclPrm> Image<T> {
     /// The caller must ensure that only one mapping of a particular memory
     /// region exists at a time.
     ///
-    /// See the [command builder documentation](struct.ImageCmd#method.map)
+    /// See the [command builder documentation](builders/struct.ImageCmd.html#method.map)
     /// for more details.
     ///
     #[inline]
@@ -1195,7 +1195,7 @@ impl<T: OclPrm> Image<T> {
     // ///
     // /// Call `.enq()` to enqueue the command.
     // ///
-    // /// See the [command builder documentation](struct.ImageCmd#method.copy)
+    // /// See the [command builder documentation](builders/struct.ImageCmd.html#method.copy)
     // /// for more details.
     // ///
     // #[inline]

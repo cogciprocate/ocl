@@ -100,7 +100,7 @@ impl ProQue {
     ///
     /// See [`KernelBuilder`] documentation for more
     ///
-    /// [`KernelBuilder`]: struct.KernelBuilder.html
+    /// [`KernelBuilder`]: builders/struct.KernelBuilder.html
     pub fn kernel_builder<S>(&self, name: S) -> KernelBuilder
     where
         S: Into<String>,
