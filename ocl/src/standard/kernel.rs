@@ -1,6 +1,8 @@
 //! An OpenCL kernel.
 
-pub use self::arg_type::{ArgType, BaseType, Cardinality};
+// pub use self::arg_type::{ArgType, BaseType, Cardinality};
+pub use self::arg_type::ArgType;
+
 use crate::core::error::Error as OclCoreErrorKind;
 use crate::core::ffi::c_void;
 use crate::core::{

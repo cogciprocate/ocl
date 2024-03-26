@@ -2260,7 +2260,8 @@ pub unsafe fn release_program(program: &Program) -> OclCoreResult<()> {
     )
 }
 
-pub struct UserDataPh(usize);
+// pub struct UserDataPh(usize);
+pub struct UserDataPh(());
 
 impl UserDataPh {
     fn unwrapped(&self) -> *mut c_void {
