@@ -1,7 +1,7 @@
 Version 0.19.6 (UNRELEASED)
 ===========================
 
-*
+* Fix odd naming conflict between (`ocl-`)`core` aliases and `thiserror`.
 
 
 Version 0.19.5 (2023-10-09)
