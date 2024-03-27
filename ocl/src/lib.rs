@@ -44,7 +44,7 @@
 //! [`Result`]: /ocl/ocl/type.Result.html
 //! [examples]: https://github.com/cogciprocate/ocl/tree/master/examples
 
-#![doc(html_root_url = "https://docs.rs/ocl/0.19.6")]
+#![doc(html_root_url = "https://docs.rs/ocl/0.19.7")]
 
 // #![warn(missing_docs)]
 
