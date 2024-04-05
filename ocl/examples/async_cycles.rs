@@ -32,15 +32,19 @@ extern crate colorify;
 use chrono::{DateTime, Duration, Local};
 use futures::Future;
 use futures_cpupool::{CpuFuture, CpuPool};
-use ocl::error::{Error as OclError, Result as OclResult};
-use ocl::ffi::{c_void, cl_event};
-use ocl::flags::{CommandQueueProperties, MemFlags};
-use ocl::prm::Int4;
-use ocl::traits::IntoRawEventArray;
-use ocl::{Buffer, Context, Device, Event, Kernel, Platform, Program, Queue, RwVec};
-use std::fmt::Debug;
-use std::sync::mpsc::{self, Receiver};
-use std::thread::{self, JoinHandle};
+use ocl::{
+    error::{Error as OclError, Result as OclResult},
+    ffi::{c_void, cl_event},
+    flags::{CommandQueueProperties, MemFlags},
+    prm::Int4,
+    traits::IntoRawEventArray,
+    Buffer, Context, Device, Event, Kernel, Platform, Program, Queue, RwVec,
+};
+use std::{
+    fmt::Debug,
+    sync::mpsc::{self, Receiver},
+    thread::{self, JoinHandle},
+};
 
 // Size of buffers and kernel work size:
 const WORK_SIZE: usize = 1 << 22;
