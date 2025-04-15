@@ -495,17 +495,7 @@ impl<'b> ProQueBuilder<'b> {
 
         let queue = Queue::new(&context, device, self.queue_properties)?;
 
-        // println!("PROQUEBUILDER: About to load SRC_STRINGS.");
-        let src_strings = program_builder
-            .get_src_strings()
-            .map_err(|e| e.to_string())?;
-        // println!("PROQUEBUILDER: About to load CMPLR_OPTS.");
-        let cmplr_opts = program_builder
-            .get_compiler_options()
-            .map_err(|e| e.to_string())?;
-        // println!("PROQUEBUILDER: All done.");
-
-        let program = Program::with_source(&context, &src_strings, Some(&[device]), &cmplr_opts)?;
+        let program = program_builder.build(&context)?;
 
         Ok(ProQue::new(context, queue, program, self.dims))
     }
