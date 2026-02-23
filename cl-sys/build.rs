@@ -22,7 +22,7 @@
  */
 
 fn main() {
-    if cfg!(windows) {
+    if std::env::var_os("CARGO_CFG_TARGET_OS") == Some("windows".into()) {
         let known_sdk = [
             // E.g. "c:\Program Files (x86)\Intel\OpenCL SDK\lib\x86\"
             ("INTELOCLSDKROOT", "x64", "x86"),
