@@ -2340,7 +2340,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [command builder documentation](builders/struct.BufferCmd)
+    /// See the [command builder documentation](builders/struct.BufferCmd.html)
     /// for more details.
     ///
     ///
@@ -2358,7 +2358,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [command builder documentation](builders/struct.BufferCmd#method.read)
+    /// See the [command builder documentation](builders/struct.BufferCmd.html#method.read)
     /// for more details.
     ///
     #[inline]
@@ -2374,7 +2374,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [command builder documentation](builders/struct.BufferCmd#method.write)
+    /// See the [command builder documentation](builders/struct.BufferCmd.html#method.write)
     /// for more details.
     ///
     #[inline]
@@ -2398,7 +2398,7 @@ impl<T: OclPrm> Buffer<T> {
     /// ### More Information
     ///
     /// See the [command builder
-    /// documentation](builders/struct.BufferCmd#method.map) or
+    /// documentation](builders/struct.BufferCmd.html#method.map) or
     /// [official SDK][map_buffer] for more details.
     ///
     /// [map_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html
@@ -2414,7 +2414,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [command builder documentation](builders/struct.BufferCmd#method.copy)
+    /// See the [command builder documentation](builders/struct.BufferCmd.html#method.copy)
     /// for more details.
     ///
     #[inline]
@@ -2603,7 +2603,7 @@ impl<T: OclPrm> Buffer<T> {
     /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubBuffer.html
     /// [`ocl::flags`]: flags/index.html
     /// [mem_flags]: flags/struct.MemFlags.html
-    /// [`MemFlags::new().read_write()`] flags/struct.MemFlags.html#method.read_write
+    /// [`MemFlags::new().read_write()`]: flags/struct.MemFlags.html#method.read_write
     ///
     pub fn create_sub_buffer<Do, Dl>(
         &self,
